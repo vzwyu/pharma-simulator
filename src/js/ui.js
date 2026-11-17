@@ -446,6 +446,7 @@ function viewTeam() {
   <div class="pagehead">
     <div><h2>团队<span>TEAM</span></h2><p>编制 ${S.team.length}/${cap} 人 · 月薪 ${f1(salaryTotal())} 万 · 每周精力 ${apMax()}（随人数增长）</p></div>
     <div class="flex gap8">
+      ${S.team.some(r => !r.filed) ? `<button class="btn" onclick="doFileAll()">统一备案（${S.team.filter(r => !r.filed).length} 人 · ${f1(0.5 * CFG.costScale[S.level] * S.team.filter(r => !r.filed).length)}万）</button>` : ''}
       <button class="btn" onclick="openMatrix()">团队明细配置</button>
       <button class="btn" ${S.ap < 1 || S.cash < projectCost(PROJECTS.find(p => p.id === 'hire'), 1) ? 'disabled' : ''} onclick="doProject('hire')">发布招聘（${f1(projectCost(PROJECTS.find(p => p.id === 'hire'), 1))}万）</button>
     </div>
@@ -524,7 +525,8 @@ function repCard(r) {
     <div class="rh">
       <div class="avatar">${r.name[0]}</div>
       <div style="flex:1"><b>${r.name}</b>${tagChips(r)}
-        <div class="meta">${ROLES[r.role].label} · 月薪 ${f1(r.salary)} 万 · ${r.months >= 1 ? '在岗 ' + Math.round(r.months) + ' 月' : '本月入职'}</div></div>
+        <div class="meta">${ROLES[r.role].label} · 月薪 ${f1(r.salary)} 万 · ${r.months >= 1 ? '在岗 ' + Math.round(r.months) + ' 月' : '本月入职'}
+          ${r.filed ? '' : ' · <span style="color:#B3261E">未备案</span>'}</div></div>
       <div style="text-align:right"><div style="font-size:17px;font-weight:700">${f1(r.ability)}</div><div style="font-size:9.5px;color:#8494A6">能力</div></div>
     </div>
     <div class="metrics">
@@ -552,6 +554,8 @@ function repCard(r) {
     <div class="chips">${chips || '<span class="hint">未分配终端</span>'}</div>
     ${obsBlock(r)}
     <div class="row">
+      ${r.filed ? '' : `<button class="btn sm" onclick="doFile('${r.id}')">办理备案（${f1(0.5 * CFG.costScale[S.level])}万）</button>`}
+      ${(r.coach || 0) > 0 ? `<span class="tag tagx">协访中 · 剩 ${r.coach} 周</span>` : ''}
       <button class="btn sm ghost" style="margin-left:-6px" onclick="openGuess('${r.id}')">猜标签<span style="color:#8494A6;margin-left:4px">剩 ${2 - (r.guesses || []).length} 次 · 1 精力</span></button>
     </div>
     <div class="row">
@@ -693,13 +697,13 @@ function viewActions() {
         <div class="pp">
           <span>预算 <b>${f1(cost)}</b> 万${need ? '<i style="color:#8494A6">/终端</i>' : ''}</span>
           <span>精力 <b>${p.ap}</b></span>
-          <span>上限 <b>${p.multi === 0 ? '全区域' : p.multi === -1 ? '—' : p.multi + ' 个'}</b></span>
+          <span>上限 <b>${p.multi === 0 ? '全区域' : p.multi === -1 ? '—' : p.multi === -2 ? '1 人' : p.multi + ' 个'}</b></span>
         </div>
         <div class="pp" style="margin-top:-4px">
           ${p.fail ? `<span>基础失败率 <b style="color:${p.fail >= 0.22 ? '#B3261E' : '#B8730A'}">${f1(p.fail * 100)}%</b></span>` : '<span style="color:#17795A">不判定失败</span>'}
           ${p.delay ? `<span>延迟 <b>${p.delay} 个月</b></span>` : '<span>当周生效</span>'}
         </div>
-        <button class="btn ${dis ? '' : 'primary'} sm block" ${dis ? 'disabled' : ''} onclick="openAction('${p.id}')">${p.multi === -1 ? '执行' : (p.multi === 0 ? '执行（全区域）' : '选择终端')}</button>
+        <button class="btn ${dis ? '' : 'primary'} sm block" ${dis ? 'disabled' : ''} onclick="openAction('${p.id}')">${p.multi === -1 ? '执行' : p.multi === -2 ? '选择代表' : (p.multi === 0 ? '执行（全区域）' : '选择终端')}</button>
       </div>`;
   }).join('')}
   </div>
@@ -718,6 +722,7 @@ function viewActions() {
 function openAction(pid) {
   const p = PROJECTS.find(x => x.id === pid);
   if (p.multi === -1) { doProject(pid); return; }
+  if (p.multi === -2) { ACT = { pid, sel: [], repId: null }; setModal(coachModal); return; }
   ACT = { pid, sel: p.multi === 0 ? S.terminals.map(t => t.id) : [] };
   setModal(actionModal);
 }
@@ -770,6 +775,49 @@ function actionModal() {
   };
 }
 
+function coachModal() {
+  const p = PROJECTS.find(x => x.id === ACT.pid);
+  const cost = projectCost(p, 1);
+  const dis = !ACT.repId || S.ap < p.ap || S.cash < cost;
+  const list = S.team.map(r => {
+    const n = assignIds(r).length;
+    const L = repLoad(r);
+    return `<label class="pickitem ${ACT.repId === r.id ? 'on' : ''}">
+      <input type="radio" name="coachrep" ${ACT.repId === r.id ? 'checked' : ''} onchange="ACT.repId='${r.id}';renderModal()">
+      <span class="nm">${r.name}</span>
+      <span class="mt">${(r.tags || []).map(id => (VISIBLE_TAGS.find(t => t.id === id) || {}).name).filter(Boolean).join('·')} ｜ ${n} 个终端 · 当量 ${f1(L)} · 忠诚 ${f1(r.loyalty)}${(r.coach || 0) > 0 ? ' · 协访中' : ''}</span>
+      <span class="fr" style="color:#8494A6">${r.filed ? '' : '未备案'}</span>
+    </label>`;
+  }).join('');
+  return {
+    title: `${p.name} · 选择代表`, en: p.en, wide: true,
+    body: `<div class="hint" style="margin-bottom:10px">陪谁跑一周，谁下个月就好过一点。协访同时会提高他的忠诚，也会让他的终端客情更稳。</div>
+      <div class="picklist">${list || '<div class="empty">没有代表</div>'}</div>
+      <div class="mxsum" style="margin-top:10px"><div>预算 <b>${f1(cost)}</b> 万 · 精力 <b>${p.ap}</b></div><div>效果持续 4 周</div></div>`,
+    footer: `<button class="btn" onclick="closeModal()">取消</button>
+      <button class="btn primary" ${dis ? 'disabled' : ''} onclick="confirmCoach()">确认协访</button>`,
+  };
+}
+
+function confirmCoach() {
+  const p = PROJECTS.find(x => x.id === ACT.pid);
+  const r = launchProject(p.id, [], ACT.repId);
+  toast(r.msg, r.ok ? 'good' : 'bad');
+  if (r.ok) { MODAL = null; renderModal(); }
+  render();
+}
+
+function doFile(rid) {
+  const r = fileRep(rid);
+  toast(r.msg, r.ok ? 'good' : 'bad');
+  render();
+}
+function doFileAll() {
+  const r = fileAll();
+  toast(r.msg, r.ok ? 'good' : 'bad');
+  render();
+}
+
 function confirmAction() {
   const p = PROJECTS.find(x => x.id === ACT.pid);
   const r = launchProject(p.id, ACT.sel);
@@ -780,7 +828,7 @@ function confirmAction() {
 
 function replayPlan() {
   let n = 0;
-  S.lastPlan.forEach(it => { const r = launchProject(it.pid, it.tids || []); if (r.ok) n++; });
+  S.lastPlan.forEach(it => { const r = launchProject(it.pid, it.tids || [], it.repId); if (r.ok) n++; });
   toast(n ? `已按上月计划执行 ${n} 项` : '精力或预算不足，未能执行', n ? 'good' : 'bad');
   render();
 }
@@ -789,6 +837,7 @@ function replayPlan() {
    关系
    ========================================================= */
 const REL_FX = {
+  boss: v => `评价增速 ${(v * 25).toFixed(0)}%`,
   compliance: v => `被抽查概率 ${(v * 30).toFixed(0)}%`,
   finance: v => `费用上限 ${(v * 12).toFixed(0)}%`,
   marketing: v => `区域会成本 ${(-v * 15).toFixed(0)}%`,
@@ -801,6 +850,7 @@ const REL_FX = {
   association: v => `合规冲击缓冲 ${(v * 20).toFixed(0)}%`,
 };
 const REL_HOW = {
+  boss: '完成月度目标 +、事件严格执行 +、协访 +1',
   compliance: '合规评分 ≥85 每月 +2，<60 每月 -2；合规培训 +5',
   finance: '预算低于 20 万会掉；上级评价 ≥70 每月 +0.6',
   marketing: '区域学术会 +2；上级评价 ≥70 每月 +0.6',

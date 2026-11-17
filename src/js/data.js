@@ -349,15 +349,24 @@ const PATHS = [
 ];
 
 const PLAYER_TAGS = [
-  { id: 'iron', name: '铁腕', desc: '全员覆盖 +5%，团队忠诚每月 -0.15', eff: { cov: 0.05, loyalty: -0.15 } },
-  { id: 'mentor', name: '师长', desc: '代表能力成长 +45%', eff: { growth: 0.45 } },
-  { id: 'data', name: '数据狂', desc: '所有项目失败率 -5pt', eff: { fail: -0.05 } },
-  { id: 'network', name: '关系通', desc: '准入开发效果 +12%', eff: { dev: 0.12 } },
-  { id: 'clean', name: '合规派', desc: '合规评分每月 +0.5，风险积累 -10%', eff: { compliance: 0.5, exposure: -0.1 } },
-  { id: 'frugal', name: '成本控', desc: '所有项目成本 -10%', eff: { cost: -0.1 } },
-  { id: 'workaholic', name: '工作狂', desc: '每周精力 +1', eff: { ap: 1 } },
-  { id: 'charisma', name: '人格魅力', desc: '上级评价获取 +30%', eff: { eval: 0.3 } },
-  { id: 'parachute', name: '空降兵', desc: '自带外部关系（客户 +15、商业 +10），但内部关系 -10', eff: { relExt: 12, relInt: -10 } },
+  { id: 'iron', name: '铁腕', desc: '全员覆盖 +5%；团队忠诚每月 -0.15，内部关系 -4',
+    eff: { cov: 0.05, loyalty: -0.15, relInt: -4 } },
+  { id: 'mentor', name: '师长', desc: '代表成长 +45%；项目成本 +6%（带人费时间）',
+    eff: { growth: 0.45, cost: 0.06 } },
+  { id: 'data', name: '数据狂', desc: '项目失败率 -5pt；客情推进 -12%（只讲数据不讲人情）',
+    eff: { fail: -0.05, rel: -0.12 } },
+  { id: 'network', name: '关系通', desc: '准入开发 +12%；项目成本 +5%（应酬多）',
+    eff: { dev: 0.12, cost: 0.05 } },
+  { id: 'clean', name: '合规派', desc: '合规每月 +0.5、风险 -10%；覆盖 -4%（动作保守）',
+    eff: { compliance: 0.5, exposure: -0.1, cov: -0.04 } },
+  { id: 'frugal', name: '成本控', desc: '项目成本 -10%；学术活动认知 -10%（省物料省讲者）',
+    eff: { cost: -0.1, aw: -0.10 } },
+  { id: 'workaholic', name: '工作狂', desc: '每周精力 +1；团队忠诚每月 -0.2',
+    eff: { ap: 1, loyalty: -0.2 } },
+  { id: 'charisma', name: '人格魅力', desc: '上级评价获取 +30%；内部关系 -4（抢功）',
+    eff: { eval: 0.3, relInt: -4 } },
+  { id: 'parachute', name: '空降兵', desc: '外部关系 +12；内部关系 -10，上级初始 -8',
+    eff: { relExt: 12, relInt: -10, boss: -8 } },
 ];
 
 /* =========================================================
@@ -397,6 +406,9 @@ const PROJECTS = [
   { id: 'relation', name: '客情维护', en: 'Key Account Care', cost: 2.0, ap: 1, multi: 3, fail: 0.10, delay: 0,
     base: { rel: 13 }, desc: '客情 +13 起，关系型终端更高；风险敞口 +2。',
     help: '客情是准入和处方的润滑剂，但边界要自己把握。' },
+  { id: 'coach', name: '协访', en: 'Co-visit', cost: 1.5, ap: 1, multi: -2, fail: 0.05, delay: 0,
+    base: {}, desc: '陪一名代表跑一周市场：该代表覆盖 ×1.25 持续 4 周，忠诚 +6，其负责终端客情 +3。',
+    help: '地区经理的基本功。带得动的人，才留得住；也顺带摸清他到底几斤几两。' },
   { id: 'city', name: '区域学术会', en: 'Regional Symposium', cost: 9.0, ap: 1, multi: 0, fail: 0.20, delay: 0,
     base: { aw: 6 }, desc: '全区域认知度 +6，上级评价 +2。',
     help: '一次覆盖所有终端，终端越多越划算。' },
@@ -893,18 +905,21 @@ const AUDIT_EVENT = {
 const DIFFICULTY = {
   easy: {
     id: 'easy', name: '简单', en: 'EASY',
-    desc: '药事会季度例会，周期固定可预期；窗口期内开发成功率和收益都更高。',
-    cycle: 12, jitter: 0, window: 3, inBonus: 0.18, outPenalty: -0.10, noPht: false,
+    desc: '季度例会，周期固定；预算宽、内部好说话、代表队伍稳。',
+    cycle: 12, window: 3, inBonus: 0.18, outPenalty: -0.10, noPht: false,
+    cash: 150, relBase: 60, boss: 62, loyalty: 8, access: 5, awareness: 6, comp: -0.03,
   },
   normal: {
     id: 'normal', name: '中等', en: 'NORMAL',
-    desc: '药事会不定期召开，只能从"窗口临近"的迹象判断；错过要等下轮。',
-    cycle: 0, jitter: 0, window: 3, inBonus: 0.08, outPenalty: -0.06, noPht: false,
+    desc: '药事会不定期召开；预算与关系都是常态，一切靠自己挣。',
+    cycle: 0, window: 3, inBonus: 0.08, outPenalty: -0.06, noPht: false,
+    cash: 120, relBase: 50, boss: 50, loyalty: 0, access: 0, awareness: 0, comp: 0,
   },
   hard: {
     id: 'hard', name: '困难', en: 'HARD',
-    desc: '这家医院常年不开药事会，正式开发走不通。只能靠客情、病例、渠道一点点磨进院。',
-    cycle: 0, jitter: 0, window: 0, inBonus: 0, outPenalty: 0, noPht: true,
+    desc: '医院常年不开药事会；预算紧、内部冷脸、代表队伍本来就不好带。',
+    cycle: 0, window: 0, inBonus: 0, outPenalty: 0, noPht: true,
+    cash: 95, relBase: 41, boss: 42, loyalty: -9, access: -5, awareness: -8, comp: 0.05,
   },
 };
 
@@ -913,6 +928,7 @@ const DIFFICULTY = {
    ========================================================= */
 const REL_DEFS = {
   internal: [
+    { id: 'boss', name: '上级 / 省区', desc: '好感高 → 评价涨得快、预算更好批、晋升更顺' },
     { id: 'compliance', name: '合规部', desc: '好感高 → 被抽查概率下降、合规培训效果更好' },
     { id: 'finance', name: '财务部', desc: '好感高 → 费用上限上浮、报销更顺' },
     { id: 'marketing', name: '市场部', desc: '好感高 → 区域学术会成本下降' },
@@ -1025,3 +1041,22 @@ EVENTS.push(
     ],
   },
 );
+
+/* 2026 年行业新规：双备案 + 三定一有，学术活动全面收紧 */
+EVENTS.push({
+  id: 'tight', title: '学术活动收紧', en: 'Academic Activity Clampdown', weight: 11,
+  cond: s => s.totalMonth > 2,
+  text: '《医药代表管理办法》落地后，辖区三甲医院全面执行"三定一有"：定时、定点、定人、有记录，且需提前 3 个工作日预约，单次沟通不超过 10 分钟。',
+  options: [
+    { label: '全面转为预约制，压缩场次', cost: 2, ap: 1,
+      run: s => { s.flags.tight = 8; s.compliance = Math.min(100, s.compliance + 4);
+        s.rel.external.hospital = Math.min(100, s.rel.external.hospital + 3);
+        return { text: '改为预约制，场次减半但每场更扎实。合规 +4，医院关系 +3；未来 2 个月科室会效果 -20%。', tone: 'good' }; } },
+    { label: '转线上会议，绕开进院限制', cost: 4, ap: 1,
+      run: s => { s.flags.tight = 4; s.rel.external.kol = Math.min(100, s.rel.external.kol + 4);
+        return { text: '线上会铺开，覆盖人数更多但深度不足。未来 1 个月科室会效果 -20%，专家关系 +4。', tone: 'flat' }; } },
+    { label: '照常进院，走老路子', cost: 0,
+      run: s => { s.riskMod = Math.min(60, s.riskMod + 12); s.compliance = Math.max(0, s.compliance - 6);
+        return { text: '代表照旧进科室。风险 +12，合规 -6。一旦被院内通报，这个代表就进不去了。', tone: 'bad' }; } },
+  ],
+});

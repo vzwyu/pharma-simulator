@@ -23,7 +23,9 @@ function relMod(group, id) { return (relOf(group, id) - 50) / 50; }
 function relAdd(group, id, d) {
   if (!S.rel || !S.rel[group] || S.rel[group][id] == null) return;
   S.rel[group][id] = clamp(S.rel[group][id] + d, 0, 100);
+  if (S.relTouch) S.relTouch[group + ':' + id] = S.totalWeek;
 }
+function relTouched(group, id) { return (S.relTouch && S.relTouch[group + ':' + id]) || 0; }
 function diffCfg() { return DIFFICULTY[S.diff] || DIFFICULTY.normal; }
 
 /* ---------- 政策身份 ---------- */
@@ -104,6 +106,8 @@ function makeRep(state, opt) {
     ct: +clamp(rnd(primary.ct[0], primary.ct[1]) + mod.ct, 0, 100).toFixed(1),
     exposure: 0,
     salary,
+    filed: !!(opt && opt.filed),
+    coach: 0,
     assign: {},
     tactic: 'standard',
     months: 0,
@@ -255,8 +259,10 @@ function repLoad(r) {
 
 function repBase(r) {
   const pm = playerMod();
+  const fileF = r.filed === false ? 0.55 : 1;
+  const coachF = (r.coach || 0) > 0 ? 1.25 : 1;
   return (r.ability / 100) * ROLES[r.role].cov * moraleOf(r) * tacticOf(r).cov
-    * (1 + (r.mod ? r.mod.cov : 0)) * (1 + (pm.cov || 0));
+    * (1 + (r.mod ? r.mod.cov : 0)) * (1 + (pm.cov || 0)) * fileF * coachF;
 }
 
 function tacticMulOf(r) {
@@ -384,6 +390,7 @@ function apMax() {
 /* ---------- 新游戏 ---------- */
 function newGame(playerName, pathId, tagIds, diffId) {
   generateWorld();
+  const dc = DIFFICULTY[diffId] || DIFFICULTY.normal;
   const pm = { ap: 0, cov: 0, growth: 0, fail: 0, dev: 0, compliance: 0, cost: 0, eval: 0, exposure: 0 };
   (tagIds || []).forEach(id => {
     const t = PLAYER_TAGS.find(x => x.id === id);
@@ -397,16 +404,17 @@ function newGame(playerName, pathId, tagIds, diffId) {
     diff: diffId || 'normal',
     player: { path: pathId || 'sales', tags: (tagIds || []).slice(), mod: pm },
     rel: {
-      internal: { compliance: 55, finance: 50, marketing: 50, medical: 50, commercial: 50, hr: 50 },
-      external: { hospital: 50, distributor: 50, kol: 50, association: 50 },
+      internal: { boss: dc.boss, compliance: dc.relBase + 5, finance: dc.relBase, marketing: dc.relBase, medical: dc.relBase, commercial: dc.relBase, hr: dc.relBase },
+      external: { hospital: dc.relBase, distributor: dc.relBase, kol: dc.relBase, association: dc.relBase },
     },
+    relTouch: {},
     level: 0,
     weekInMonth: 1,
     monthInAct: 1,
     totalWeek: 1,
     totalMonth: 1,
     year: 2026,
-    cash: CFG.startCash,
+    cash: dc.cash,
     ap: 0,
     compliance: 92,
     reputation: 55,
@@ -431,8 +439,10 @@ function newGame(playerName, pathId, tagIds, diffId) {
     pendingPromotion: null,
   };
   enterAct(0, false);
-  const a = makeRep(S, { traitId: 'grinder', ability: 58, role: '代表' });
-  const b = makeRep(S, { traitId: 'scholar', ability: 55, role: '代表' });
+  const a = makeRep(S, { traitId: 'grinder', ability: 58, role: '代表', filed: true });
+  const b = makeRep(S, { traitId: 'scholar', ability: 55, role: '代表', filed: true });
+  a.loyalty = clamp(a.loyalty + dc.loyalty, 0, 100);
+  b.loyalty = clamp(b.loyalty + dc.loyalty, 0, 100);
   const t0 = S.terminals[0], t1 = S.terminals[1];
   a.assign[t0.id] = { p: PRODUCTS.map(p => p.id), pharm: true };
   b.assign[t1.id] = { p: PRODUCTS.slice(0, 2).map(p => p.id), pharm: false };
@@ -444,7 +454,10 @@ function newGame(playerName, pathId, tagIds, diffId) {
     relAdd('external', 'kol', pm.relExt * 0.6);
     relAdd('external', 'association', pm.relExt * 0.4);
   }
-  if (pm.relInt) ['compliance', 'finance', 'marketing', 'medical', 'commercial', 'hr'].forEach(k => relAdd('internal', k, pm.relInt));
+  if (pm.relInt) ['boss', 'compliance', 'finance', 'marketing', 'medical', 'commercial', 'hr'].forEach(k => relAdd('internal', k, pm.relInt));
+  if (pm.boss) relAdd('internal', 'boss', pm.boss);
+  // 初始维护时间基线
+  ['internal', 'external'].forEach(g => Object.keys(S.rel[g]).forEach(k => { S.relTouch[g + ':' + k] = S.totalWeek; }));
 
   S.ap = apMax();
   log('info', `你接手了${WORLD.county}市场。两个代表，两张桌子，100 万预算。`);
@@ -470,6 +483,11 @@ function enterAct(level, carry) {
     if (p) {
       t.access = p.access; t.awareness = p.awareness; t.relation = p.relation;
       t.comp = p.comp; t.spend = p.spend || 0; t.idle = p.idle || 0;
+    } else {
+      const dc0 = diffCfg();
+      t.access = clamp(t.access + dc0.access, 0, 100);
+      t.awareness = clamp(t.awareness + dc0.awareness, 0, 100);
+      t.comp = clamp(t.comp + dc0.comp, 0, 0.95);
     }
     return t;
   });
@@ -518,13 +536,16 @@ function effOf(pid, t) {
   const pe = PROF_EFF[t.prof] || PROF_EFF.academic;
   const tf = tierF(t);
   const pm = playerMod();
-  const medF = 1 + relMod('internal', 'medical') * 0.15;
+  const pm0 = playerMod();
+  const awP = 1 + (pm0.aw || 0), relP = 1 + (pm0.rel || 0);
+  const medF = (1 + relMod('internal', 'medical') * 0.15) * awP;
   const comF = 1 + relMod('internal', 'commercial') * 0.18;
   const kolF = 1 + relMod('external', 'kol') * 0.15;
   const hosF = 1 + relMod('external', 'hospital') * 0.12;
-  if (pid === 'dept') return { aw: 12 * te.aw * pe.aw * tf * medF, rel: 4 * te.rel * pe.rel * hosF };
-  if (pid === 'case') return { aw: 14 * te.aw * pe.aw * te.cs * tf * medF * kolF, rel: 8 * te.rel * pe.rel * te.cs * hosF };
-  if (pid === 'relation') return { rel: 13 * te.rel * pe.rel * tf * hosF };
+  const tightF = (S.flags.tight > 0) ? 0.8 : 1;
+  if (pid === 'dept') return { aw: 12 * te.aw * pe.aw * tf * medF * tightF, rel: 4 * te.rel * pe.rel * hosF * relP };
+  if (pid === 'case') return { aw: 14 * te.aw * pe.aw * te.cs * tf * medF * kolF, rel: 8 * te.rel * pe.rel * te.cs * hosF * relP };
+  if (pid === 'relation') return { rel: 13 * te.rel * pe.rel * tf * hosF * relP };
   if (pid === 'channel') return { access: 8 * (pe.ch || 1) * comF, rel: 5 * te.rel * pe.rel * hosF };
   if (pid === 'dev') {
     const base = 14 + t.relation / 100 * 10;
@@ -564,11 +585,29 @@ function failRateOf(p, t) {
   return clamp(f, 0.03, 0.7);
 }
 
-function launchProject(pid, tids) {
+function launchProject(pid, tids, repId) {
   const p = PROJECTS.find(x => x.id === pid);
   if (!p) return { ok: false, msg: '项目不存在' };
   const dc = diffCfg();
   if (pid === 'dev' && dc.noPht) return { ok: false, msg: '这家医院常年不开药事会，正式开发走不通——用客情、病例、渠道磨进院' };
+
+  if (p.multi === -2) {
+    const r = S.team.find(x => x.id === repId);
+    if (!r) return { ok: false, msg: '请选择要协访的代表' };
+    const c = projectCost(p, 1);
+    if (S.ap < p.ap) return { ok: false, msg: '精力不足' };
+    if (S.cash < c) return { ok: false, msg: '预算不足' };
+    S.cash = +(S.cash - c).toFixed(2); S.ap -= p.ap;
+    r.coach = 4;
+    r.loyalty = Math.min(100, r.loyalty + 6);
+    assignIds(r).forEach(tid => { const t = termById(tid); if (t) { t.relation = Math.min(100, t.relation + 3); t.idle = 0; } });
+    relAdd('internal', 'boss', 1); relAdd('internal', 'hr', 1);
+    const msg = `协访 ${r.name}：覆盖 ×1.25 持续 4 周，忠诚 +6，其 ${assignIds(r).length} 个终端客情 +3。`;
+    S.planThisMonth.push({ pid, tids: [], repId, msg });
+    log('action', msg);
+    return { ok: true, msg };
+  }
+
 
   let list = [];
   if (p.multi === -1) list = [];
@@ -710,6 +749,30 @@ function hireCandidate(cid) {
   return { ok: true, msg: `${c.name} 已入职` };
 }
 
+function fileRep(rid) {
+  const r = S.team.find(x => x.id === rid);
+  if (!r || r.filed) return { ok: false, msg: '已备案' };
+  const c = +(0.5 * CFG.costScale[S.level]).toFixed(2);
+  if (S.cash < c) return { ok: false, msg: '预算不足' };
+  S.cash = +(S.cash - c).toFixed(2);
+  r.filed = true;
+  relAdd('internal', 'compliance', 1);
+  log('good', `${r.name} 完成双备案（国家平台 + 院内登记），可以正常进院了。`);
+  return { ok: true, msg: `${r.name} 已备案` };
+}
+
+function fileAll() {
+  const todo = S.team.filter(r => !r.filed);
+  if (!todo.length) return { ok: false, msg: '全员已备案' };
+  const c = +(0.5 * CFG.costScale[S.level] * todo.length).toFixed(2);
+  if (S.cash < c) return { ok: false, msg: '预算不足' };
+  S.cash = +(S.cash - c).toFixed(2);
+  todo.forEach(r => { r.filed = true; });
+  relAdd('internal', 'compliance', 2);
+  log('good', `${todo.length} 名代表完成备案，花费 ${c} 万。`);
+  return { ok: true, msg: `${todo.length} 人完成备案` };
+}
+
 function fireRep(rid) {
   const r = S.team.find(x => x.id === rid);
   if (!r) return;
@@ -818,6 +881,7 @@ function endWeek() {
     if (r.mod.jobhunt && r.months >= 10) loy -= 0.55;
     r.loyalty = clamp(r.loyalty + loy, 0, 100);
     r.ability = Math.min(100, r.ability + (r.ability < 70 ? 0.55 : 0.22) / 4 * (1 + r.mod.growth + (playerMod().growth || 0)));
+    if (r.coach > 0) r.coach--;
   });
 
   // 4.5) 药事会周期推进
@@ -833,8 +897,10 @@ function endWeek() {
     });
   }
 
-  // 4.6) 关系自然回落
+  // 4.6) 关系：长期不维护才缓慢回落（人与人的关系，比终端慢得多）
   ['internal', 'external'].forEach(g => Object.keys(S.rel[g]).forEach(k => {
+    const idle = S.totalWeek - (S.relTouch[g + ':' + k] || 0);
+    if (idle <= 12) return;
     const v = S.rel[g][k];
     if (v > 50) S.rel[g][k] = Math.max(50, v - 0.25);
     else if (v < 50) S.rel[g][k] = Math.min(50, v + 0.25);
@@ -870,7 +936,7 @@ function endWeek() {
   }
 
   // 9) 政策时效
-  ['filing', 'lean'].forEach(k => { if (S.flags[k] > 0) S.flags[k]--; });
+  ['filing', 'lean', 'tight'].forEach(k => { if (S.flags[k] > 0) S.flags[k]--; });
 
   // 10) 累计到本月
   S.wk.sales += weekSales;
@@ -942,7 +1008,7 @@ function rollMonth() {
   if (S.compliance >= 85) d += 0.8;
   if (S.compliance < 60) d -= 1.6;
   if (prev && sales > prev.sales) d += 0.5;
-  d *= (1 + (playerMod().eval || 0));
+  d *= (1 + (playerMod().eval || 0)) * (1 + relMod('internal', 'boss') * 0.25);
   S.reputation = clamp(S.reputation + d, 0, 100);
   S.compliance = Math.min(100, S.compliance + (playerMod().compliance || 0));
   if (S.compliance >= 85) relAdd('internal', 'compliance', 2);

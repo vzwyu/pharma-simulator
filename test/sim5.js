@@ -10,6 +10,7 @@ const S=A.S();
 let guard=0, months=[];
 while(!S.over && guard++<220){
   while(S.team.length<A.CFG.teamCap[S.level] && S.cash>30) S.team.push(A.makeRep(S));
+  vm.runInContext('fileAll()', ctx);
   const terms=S.terminals.slice().sort((a,b)=>b.potential-a.potential);
   S.team.forEach((r,i)=>{
     r.assign={}; r.tactic='standard';

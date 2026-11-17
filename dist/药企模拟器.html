@@ -960,15 +960,24 @@ const PATHS = [
 ];
 
 const PLAYER_TAGS = [
-  { id: 'iron', name: '铁腕', desc: '全员覆盖 +5%，团队忠诚每月 -0.15', eff: { cov: 0.05, loyalty: -0.15 } },
-  { id: 'mentor', name: '师长', desc: '代表能力成长 +45%', eff: { growth: 0.45 } },
-  { id: 'data', name: '数据狂', desc: '所有项目失败率 -5pt', eff: { fail: -0.05 } },
-  { id: 'network', name: '关系通', desc: '准入开发效果 +12%', eff: { dev: 0.12 } },
-  { id: 'clean', name: '合规派', desc: '合规评分每月 +0.5，风险积累 -10%', eff: { compliance: 0.5, exposure: -0.1 } },
-  { id: 'frugal', name: '成本控', desc: '所有项目成本 -10%', eff: { cost: -0.1 } },
-  { id: 'workaholic', name: '工作狂', desc: '每周精力 +1', eff: { ap: 1 } },
-  { id: 'charisma', name: '人格魅力', desc: '上级评价获取 +30%', eff: { eval: 0.3 } },
-  { id: 'parachute', name: '空降兵', desc: '自带外部关系（客户 +15、商业 +10），但内部关系 -10', eff: { relExt: 12, relInt: -10 } },
+  { id: 'iron', name: '铁腕', desc: '全员覆盖 +5%；团队忠诚每月 -0.15，内部关系 -4',
+    eff: { cov: 0.05, loyalty: -0.15, relInt: -4 } },
+  { id: 'mentor', name: '师长', desc: '代表成长 +45%；项目成本 +6%（带人费时间）',
+    eff: { growth: 0.45, cost: 0.06 } },
+  { id: 'data', name: '数据狂', desc: '项目失败率 -5pt；客情推进 -12%（只讲数据不讲人情）',
+    eff: { fail: -0.05, rel: -0.12 } },
+  { id: 'network', name: '关系通', desc: '准入开发 +12%；项目成本 +5%（应酬多）',
+    eff: { dev: 0.12, cost: 0.05 } },
+  { id: 'clean', name: '合规派', desc: '合规每月 +0.5、风险 -10%；覆盖 -4%（动作保守）',
+    eff: { compliance: 0.5, exposure: -0.1, cov: -0.04 } },
+  { id: 'frugal', name: '成本控', desc: '项目成本 -10%；学术活动认知 -10%（省物料省讲者）',
+    eff: { cost: -0.1, aw: -0.10 } },
+  { id: 'workaholic', name: '工作狂', desc: '每周精力 +1；团队忠诚每月 -0.2',
+    eff: { ap: 1, loyalty: -0.2 } },
+  { id: 'charisma', name: '人格魅力', desc: '上级评价获取 +30%；内部关系 -4（抢功）',
+    eff: { eval: 0.3, relInt: -4 } },
+  { id: 'parachute', name: '空降兵', desc: '外部关系 +12；内部关系 -10，上级初始 -8',
+    eff: { relExt: 12, relInt: -10, boss: -8 } },
 ];
 
 /* =========================================================
@@ -1008,6 +1017,9 @@ const PROJECTS = [
   { id: 'relation', name: '客情维护', en: 'Key Account Care', cost: 2.0, ap: 1, multi: 3, fail: 0.10, delay: 0,
     base: { rel: 13 }, desc: '客情 +13 起，关系型终端更高；风险敞口 +2。',
     help: '客情是准入和处方的润滑剂，但边界要自己把握。' },
+  { id: 'coach', name: '协访', en: 'Co-visit', cost: 1.5, ap: 1, multi: -2, fail: 0.05, delay: 0,
+    base: {}, desc: '陪一名代表跑一周市场：该代表覆盖 ×1.25 持续 4 周，忠诚 +6，其负责终端客情 +3。',
+    help: '地区经理的基本功。带得动的人，才留得住；也顺带摸清他到底几斤几两。' },
   { id: 'city', name: '区域学术会', en: 'Regional Symposium', cost: 9.0, ap: 1, multi: 0, fail: 0.20, delay: 0,
     base: { aw: 6 }, desc: '全区域认知度 +6，上级评价 +2。',
     help: '一次覆盖所有终端，终端越多越划算。' },
@@ -1504,18 +1516,21 @@ const AUDIT_EVENT = {
 const DIFFICULTY = {
   easy: {
     id: 'easy', name: '简单', en: 'EASY',
-    desc: '药事会季度例会，周期固定可预期；窗口期内开发成功率和收益都更高。',
-    cycle: 12, jitter: 0, window: 3, inBonus: 0.18, outPenalty: -0.10, noPht: false,
+    desc: '季度例会，周期固定；预算宽、内部好说话、代表队伍稳。',
+    cycle: 12, window: 3, inBonus: 0.18, outPenalty: -0.10, noPht: false,
+    cash: 150, relBase: 60, boss: 62, loyalty: 8, access: 5, awareness: 6, comp: -0.03,
   },
   normal: {
     id: 'normal', name: '中等', en: 'NORMAL',
-    desc: '药事会不定期召开，只能从"窗口临近"的迹象判断；错过要等下轮。',
-    cycle: 0, jitter: 0, window: 3, inBonus: 0.08, outPenalty: -0.06, noPht: false,
+    desc: '药事会不定期召开；预算与关系都是常态，一切靠自己挣。',
+    cycle: 0, window: 3, inBonus: 0.08, outPenalty: -0.06, noPht: false,
+    cash: 120, relBase: 50, boss: 50, loyalty: 0, access: 0, awareness: 0, comp: 0,
   },
   hard: {
     id: 'hard', name: '困难', en: 'HARD',
-    desc: '这家医院常年不开药事会，正式开发走不通。只能靠客情、病例、渠道一点点磨进院。',
-    cycle: 0, jitter: 0, window: 0, inBonus: 0, outPenalty: 0, noPht: true,
+    desc: '医院常年不开药事会；预算紧、内部冷脸、代表队伍本来就不好带。',
+    cycle: 0, window: 0, inBonus: 0, outPenalty: 0, noPht: true,
+    cash: 95, relBase: 41, boss: 42, loyalty: -9, access: -5, awareness: -8, comp: 0.05,
   },
 };
 
@@ -1524,6 +1539,7 @@ const DIFFICULTY = {
    ========================================================= */
 const REL_DEFS = {
   internal: [
+    { id: 'boss', name: '上级 / 省区', desc: '好感高 → 评价涨得快、预算更好批、晋升更顺' },
     { id: 'compliance', name: '合规部', desc: '好感高 → 被抽查概率下降、合规培训效果更好' },
     { id: 'finance', name: '财务部', desc: '好感高 → 费用上限上浮、报销更顺' },
     { id: 'marketing', name: '市场部', desc: '好感高 → 区域学术会成本下降' },
@@ -1637,6 +1653,25 @@ EVENTS.push(
   },
 );
 
+/* 2026 年行业新规：双备案 + 三定一有，学术活动全面收紧 */
+EVENTS.push({
+  id: 'tight', title: '学术活动收紧', en: 'Academic Activity Clampdown', weight: 11,
+  cond: s => s.totalMonth > 2,
+  text: '《医药代表管理办法》落地后，辖区三甲医院全面执行"三定一有"：定时、定点、定人、有记录，且需提前 3 个工作日预约，单次沟通不超过 10 分钟。',
+  options: [
+    { label: '全面转为预约制，压缩场次', cost: 2, ap: 1,
+      run: s => { s.flags.tight = 8; s.compliance = Math.min(100, s.compliance + 4);
+        s.rel.external.hospital = Math.min(100, s.rel.external.hospital + 3);
+        return { text: '改为预约制，场次减半但每场更扎实。合规 +4，医院关系 +3；未来 2 个月科室会效果 -20%。', tone: 'good' }; } },
+    { label: '转线上会议，绕开进院限制', cost: 4, ap: 1,
+      run: s => { s.flags.tight = 4; s.rel.external.kol = Math.min(100, s.rel.external.kol + 4);
+        return { text: '线上会铺开，覆盖人数更多但深度不足。未来 1 个月科室会效果 -20%，专家关系 +4。', tone: 'flat' }; } },
+    { label: '照常进院，走老路子', cost: 0,
+      run: s => { s.riskMod = Math.min(60, s.riskMod + 12); s.compliance = Math.max(0, s.compliance - 6);
+        return { text: '代表照旧进科室。风险 +12，合规 -6。一旦被院内通报，这个代表就进不去了。', tone: 'bad' }; } },
+  ],
+});
+
 </script>
 <script>
 /* =========================================================
@@ -1664,7 +1699,9 @@ function relMod(group, id) { return (relOf(group, id) - 50) / 50; }
 function relAdd(group, id, d) {
   if (!S.rel || !S.rel[group] || S.rel[group][id] == null) return;
   S.rel[group][id] = clamp(S.rel[group][id] + d, 0, 100);
+  if (S.relTouch) S.relTouch[group + ':' + id] = S.totalWeek;
 }
+function relTouched(group, id) { return (S.relTouch && S.relTouch[group + ':' + id]) || 0; }
 function diffCfg() { return DIFFICULTY[S.diff] || DIFFICULTY.normal; }
 
 /* ---------- 政策身份 ---------- */
@@ -1745,6 +1782,8 @@ function makeRep(state, opt) {
     ct: +clamp(rnd(primary.ct[0], primary.ct[1]) + mod.ct, 0, 100).toFixed(1),
     exposure: 0,
     salary,
+    filed: !!(opt && opt.filed),
+    coach: 0,
     assign: {},
     tactic: 'standard',
     months: 0,
@@ -1896,8 +1935,10 @@ function repLoad(r) {
 
 function repBase(r) {
   const pm = playerMod();
+  const fileF = r.filed === false ? 0.55 : 1;
+  const coachF = (r.coach || 0) > 0 ? 1.25 : 1;
   return (r.ability / 100) * ROLES[r.role].cov * moraleOf(r) * tacticOf(r).cov
-    * (1 + (r.mod ? r.mod.cov : 0)) * (1 + (pm.cov || 0));
+    * (1 + (r.mod ? r.mod.cov : 0)) * (1 + (pm.cov || 0)) * fileF * coachF;
 }
 
 function tacticMulOf(r) {
@@ -2025,6 +2066,7 @@ function apMax() {
 /* ---------- 新游戏 ---------- */
 function newGame(playerName, pathId, tagIds, diffId) {
   generateWorld();
+  const dc = DIFFICULTY[diffId] || DIFFICULTY.normal;
   const pm = { ap: 0, cov: 0, growth: 0, fail: 0, dev: 0, compliance: 0, cost: 0, eval: 0, exposure: 0 };
   (tagIds || []).forEach(id => {
     const t = PLAYER_TAGS.find(x => x.id === id);
@@ -2038,16 +2080,17 @@ function newGame(playerName, pathId, tagIds, diffId) {
     diff: diffId || 'normal',
     player: { path: pathId || 'sales', tags: (tagIds || []).slice(), mod: pm },
     rel: {
-      internal: { compliance: 55, finance: 50, marketing: 50, medical: 50, commercial: 50, hr: 50 },
-      external: { hospital: 50, distributor: 50, kol: 50, association: 50 },
+      internal: { boss: dc.boss, compliance: dc.relBase + 5, finance: dc.relBase, marketing: dc.relBase, medical: dc.relBase, commercial: dc.relBase, hr: dc.relBase },
+      external: { hospital: dc.relBase, distributor: dc.relBase, kol: dc.relBase, association: dc.relBase },
     },
+    relTouch: {},
     level: 0,
     weekInMonth: 1,
     monthInAct: 1,
     totalWeek: 1,
     totalMonth: 1,
     year: 2026,
-    cash: CFG.startCash,
+    cash: dc.cash,
     ap: 0,
     compliance: 92,
     reputation: 55,
@@ -2072,8 +2115,10 @@ function newGame(playerName, pathId, tagIds, diffId) {
     pendingPromotion: null,
   };
   enterAct(0, false);
-  const a = makeRep(S, { traitId: 'grinder', ability: 58, role: '代表' });
-  const b = makeRep(S, { traitId: 'scholar', ability: 55, role: '代表' });
+  const a = makeRep(S, { traitId: 'grinder', ability: 58, role: '代表', filed: true });
+  const b = makeRep(S, { traitId: 'scholar', ability: 55, role: '代表', filed: true });
+  a.loyalty = clamp(a.loyalty + dc.loyalty, 0, 100);
+  b.loyalty = clamp(b.loyalty + dc.loyalty, 0, 100);
   const t0 = S.terminals[0], t1 = S.terminals[1];
   a.assign[t0.id] = { p: PRODUCTS.map(p => p.id), pharm: true };
   b.assign[t1.id] = { p: PRODUCTS.slice(0, 2).map(p => p.id), pharm: false };
@@ -2085,7 +2130,10 @@ function newGame(playerName, pathId, tagIds, diffId) {
     relAdd('external', 'kol', pm.relExt * 0.6);
     relAdd('external', 'association', pm.relExt * 0.4);
   }
-  if (pm.relInt) ['compliance', 'finance', 'marketing', 'medical', 'commercial', 'hr'].forEach(k => relAdd('internal', k, pm.relInt));
+  if (pm.relInt) ['boss', 'compliance', 'finance', 'marketing', 'medical', 'commercial', 'hr'].forEach(k => relAdd('internal', k, pm.relInt));
+  if (pm.boss) relAdd('internal', 'boss', pm.boss);
+  // 初始维护时间基线
+  ['internal', 'external'].forEach(g => Object.keys(S.rel[g]).forEach(k => { S.relTouch[g + ':' + k] = S.totalWeek; }));
 
   S.ap = apMax();
   log('info', `你接手了${WORLD.county}市场。两个代表，两张桌子，100 万预算。`);
@@ -2111,6 +2159,11 @@ function enterAct(level, carry) {
     if (p) {
       t.access = p.access; t.awareness = p.awareness; t.relation = p.relation;
       t.comp = p.comp; t.spend = p.spend || 0; t.idle = p.idle || 0;
+    } else {
+      const dc0 = diffCfg();
+      t.access = clamp(t.access + dc0.access, 0, 100);
+      t.awareness = clamp(t.awareness + dc0.awareness, 0, 100);
+      t.comp = clamp(t.comp + dc0.comp, 0, 0.95);
     }
     return t;
   });
@@ -2159,13 +2212,16 @@ function effOf(pid, t) {
   const pe = PROF_EFF[t.prof] || PROF_EFF.academic;
   const tf = tierF(t);
   const pm = playerMod();
-  const medF = 1 + relMod('internal', 'medical') * 0.15;
+  const pm0 = playerMod();
+  const awP = 1 + (pm0.aw || 0), relP = 1 + (pm0.rel || 0);
+  const medF = (1 + relMod('internal', 'medical') * 0.15) * awP;
   const comF = 1 + relMod('internal', 'commercial') * 0.18;
   const kolF = 1 + relMod('external', 'kol') * 0.15;
   const hosF = 1 + relMod('external', 'hospital') * 0.12;
-  if (pid === 'dept') return { aw: 12 * te.aw * pe.aw * tf * medF, rel: 4 * te.rel * pe.rel * hosF };
-  if (pid === 'case') return { aw: 14 * te.aw * pe.aw * te.cs * tf * medF * kolF, rel: 8 * te.rel * pe.rel * te.cs * hosF };
-  if (pid === 'relation') return { rel: 13 * te.rel * pe.rel * tf * hosF };
+  const tightF = (S.flags.tight > 0) ? 0.8 : 1;
+  if (pid === 'dept') return { aw: 12 * te.aw * pe.aw * tf * medF * tightF, rel: 4 * te.rel * pe.rel * hosF * relP };
+  if (pid === 'case') return { aw: 14 * te.aw * pe.aw * te.cs * tf * medF * kolF, rel: 8 * te.rel * pe.rel * te.cs * hosF * relP };
+  if (pid === 'relation') return { rel: 13 * te.rel * pe.rel * tf * hosF * relP };
   if (pid === 'channel') return { access: 8 * (pe.ch || 1) * comF, rel: 5 * te.rel * pe.rel * hosF };
   if (pid === 'dev') {
     const base = 14 + t.relation / 100 * 10;
@@ -2205,11 +2261,29 @@ function failRateOf(p, t) {
   return clamp(f, 0.03, 0.7);
 }
 
-function launchProject(pid, tids) {
+function launchProject(pid, tids, repId) {
   const p = PROJECTS.find(x => x.id === pid);
   if (!p) return { ok: false, msg: '项目不存在' };
   const dc = diffCfg();
   if (pid === 'dev' && dc.noPht) return { ok: false, msg: '这家医院常年不开药事会，正式开发走不通——用客情、病例、渠道磨进院' };
+
+  if (p.multi === -2) {
+    const r = S.team.find(x => x.id === repId);
+    if (!r) return { ok: false, msg: '请选择要协访的代表' };
+    const c = projectCost(p, 1);
+    if (S.ap < p.ap) return { ok: false, msg: '精力不足' };
+    if (S.cash < c) return { ok: false, msg: '预算不足' };
+    S.cash = +(S.cash - c).toFixed(2); S.ap -= p.ap;
+    r.coach = 4;
+    r.loyalty = Math.min(100, r.loyalty + 6);
+    assignIds(r).forEach(tid => { const t = termById(tid); if (t) { t.relation = Math.min(100, t.relation + 3); t.idle = 0; } });
+    relAdd('internal', 'boss', 1); relAdd('internal', 'hr', 1);
+    const msg = `协访 ${r.name}：覆盖 ×1.25 持续 4 周，忠诚 +6，其 ${assignIds(r).length} 个终端客情 +3。`;
+    S.planThisMonth.push({ pid, tids: [], repId, msg });
+    log('action', msg);
+    return { ok: true, msg };
+  }
+
 
   let list = [];
   if (p.multi === -1) list = [];
@@ -2351,6 +2425,30 @@ function hireCandidate(cid) {
   return { ok: true, msg: `${c.name} 已入职` };
 }
 
+function fileRep(rid) {
+  const r = S.team.find(x => x.id === rid);
+  if (!r || r.filed) return { ok: false, msg: '已备案' };
+  const c = +(0.5 * CFG.costScale[S.level]).toFixed(2);
+  if (S.cash < c) return { ok: false, msg: '预算不足' };
+  S.cash = +(S.cash - c).toFixed(2);
+  r.filed = true;
+  relAdd('internal', 'compliance', 1);
+  log('good', `${r.name} 完成双备案（国家平台 + 院内登记），可以正常进院了。`);
+  return { ok: true, msg: `${r.name} 已备案` };
+}
+
+function fileAll() {
+  const todo = S.team.filter(r => !r.filed);
+  if (!todo.length) return { ok: false, msg: '全员已备案' };
+  const c = +(0.5 * CFG.costScale[S.level] * todo.length).toFixed(2);
+  if (S.cash < c) return { ok: false, msg: '预算不足' };
+  S.cash = +(S.cash - c).toFixed(2);
+  todo.forEach(r => { r.filed = true; });
+  relAdd('internal', 'compliance', 2);
+  log('good', `${todo.length} 名代表完成备案，花费 ${c} 万。`);
+  return { ok: true, msg: `${todo.length} 人完成备案` };
+}
+
 function fireRep(rid) {
   const r = S.team.find(x => x.id === rid);
   if (!r) return;
@@ -2459,6 +2557,7 @@ function endWeek() {
     if (r.mod.jobhunt && r.months >= 10) loy -= 0.55;
     r.loyalty = clamp(r.loyalty + loy, 0, 100);
     r.ability = Math.min(100, r.ability + (r.ability < 70 ? 0.55 : 0.22) / 4 * (1 + r.mod.growth + (playerMod().growth || 0)));
+    if (r.coach > 0) r.coach--;
   });
 
   // 4.5) 药事会周期推进
@@ -2474,8 +2573,10 @@ function endWeek() {
     });
   }
 
-  // 4.6) 关系自然回落
+  // 4.6) 关系：长期不维护才缓慢回落（人与人的关系，比终端慢得多）
   ['internal', 'external'].forEach(g => Object.keys(S.rel[g]).forEach(k => {
+    const idle = S.totalWeek - (S.relTouch[g + ':' + k] || 0);
+    if (idle <= 12) return;
     const v = S.rel[g][k];
     if (v > 50) S.rel[g][k] = Math.max(50, v - 0.25);
     else if (v < 50) S.rel[g][k] = Math.min(50, v + 0.25);
@@ -2511,7 +2612,7 @@ function endWeek() {
   }
 
   // 9) 政策时效
-  ['filing', 'lean'].forEach(k => { if (S.flags[k] > 0) S.flags[k]--; });
+  ['filing', 'lean', 'tight'].forEach(k => { if (S.flags[k] > 0) S.flags[k]--; });
 
   // 10) 累计到本月
   S.wk.sales += weekSales;
@@ -2583,7 +2684,7 @@ function rollMonth() {
   if (S.compliance >= 85) d += 0.8;
   if (S.compliance < 60) d -= 1.6;
   if (prev && sales > prev.sales) d += 0.5;
-  d *= (1 + (playerMod().eval || 0));
+  d *= (1 + (playerMod().eval || 0)) * (1 + relMod('internal', 'boss') * 0.25);
   S.reputation = clamp(S.reputation + d, 0, 100);
   S.compliance = Math.min(100, S.compliance + (playerMod().compliance || 0));
   if (S.compliance >= 85) relAdd('internal', 'compliance', 2);
@@ -3222,6 +3323,7 @@ function viewTeam() {
   <div class="pagehead">
     <div><h2>团队<span>TEAM</span></h2><p>编制 ${S.team.length}/${cap} 人 · 月薪 ${f1(salaryTotal())} 万 · 每周精力 ${apMax()}（随人数增长）</p></div>
     <div class="flex gap8">
+      ${S.team.some(r => !r.filed) ? `<button class="btn" onclick="doFileAll()">统一备案（${S.team.filter(r => !r.filed).length} 人 · ${f1(0.5 * CFG.costScale[S.level] * S.team.filter(r => !r.filed).length)}万）</button>` : ''}
       <button class="btn" onclick="openMatrix()">团队明细配置</button>
       <button class="btn" ${S.ap < 1 || S.cash < projectCost(PROJECTS.find(p => p.id === 'hire'), 1) ? 'disabled' : ''} onclick="doProject('hire')">发布招聘（${f1(projectCost(PROJECTS.find(p => p.id === 'hire'), 1))}万）</button>
     </div>
@@ -3300,7 +3402,8 @@ function repCard(r) {
     <div class="rh">
       <div class="avatar">${r.name[0]}</div>
       <div style="flex:1"><b>${r.name}</b>${tagChips(r)}
-        <div class="meta">${ROLES[r.role].label} · 月薪 ${f1(r.salary)} 万 · ${r.months >= 1 ? '在岗 ' + Math.round(r.months) + ' 月' : '本月入职'}</div></div>
+        <div class="meta">${ROLES[r.role].label} · 月薪 ${f1(r.salary)} 万 · ${r.months >= 1 ? '在岗 ' + Math.round(r.months) + ' 月' : '本月入职'}
+          ${r.filed ? '' : ' · <span style="color:#B3261E">未备案</span>'}</div></div>
       <div style="text-align:right"><div style="font-size:17px;font-weight:700">${f1(r.ability)}</div><div style="font-size:9.5px;color:#8494A6">能力</div></div>
     </div>
     <div class="metrics">
@@ -3328,6 +3431,8 @@ function repCard(r) {
     <div class="chips">${chips || '<span class="hint">未分配终端</span>'}</div>
     ${obsBlock(r)}
     <div class="row">
+      ${r.filed ? '' : `<button class="btn sm" onclick="doFile('${r.id}')">办理备案（${f1(0.5 * CFG.costScale[S.level])}万）</button>`}
+      ${(r.coach || 0) > 0 ? `<span class="tag tagx">协访中 · 剩 ${r.coach} 周</span>` : ''}
       <button class="btn sm ghost" style="margin-left:-6px" onclick="openGuess('${r.id}')">猜标签<span style="color:#8494A6;margin-left:4px">剩 ${2 - (r.guesses || []).length} 次 · 1 精力</span></button>
     </div>
     <div class="row">
@@ -3469,13 +3574,13 @@ function viewActions() {
         <div class="pp">
           <span>预算 <b>${f1(cost)}</b> 万${need ? '<i style="color:#8494A6">/终端</i>' : ''}</span>
           <span>精力 <b>${p.ap}</b></span>
-          <span>上限 <b>${p.multi === 0 ? '全区域' : p.multi === -1 ? '—' : p.multi + ' 个'}</b></span>
+          <span>上限 <b>${p.multi === 0 ? '全区域' : p.multi === -1 ? '—' : p.multi === -2 ? '1 人' : p.multi + ' 个'}</b></span>
         </div>
         <div class="pp" style="margin-top:-4px">
           ${p.fail ? `<span>基础失败率 <b style="color:${p.fail >= 0.22 ? '#B3261E' : '#B8730A'}">${f1(p.fail * 100)}%</b></span>` : '<span style="color:#17795A">不判定失败</span>'}
           ${p.delay ? `<span>延迟 <b>${p.delay} 个月</b></span>` : '<span>当周生效</span>'}
         </div>
-        <button class="btn ${dis ? '' : 'primary'} sm block" ${dis ? 'disabled' : ''} onclick="openAction('${p.id}')">${p.multi === -1 ? '执行' : (p.multi === 0 ? '执行（全区域）' : '选择终端')}</button>
+        <button class="btn ${dis ? '' : 'primary'} sm block" ${dis ? 'disabled' : ''} onclick="openAction('${p.id}')">${p.multi === -1 ? '执行' : p.multi === -2 ? '选择代表' : (p.multi === 0 ? '执行（全区域）' : '选择终端')}</button>
       </div>`;
   }).join('')}
   </div>
@@ -3494,6 +3599,7 @@ function viewActions() {
 function openAction(pid) {
   const p = PROJECTS.find(x => x.id === pid);
   if (p.multi === -1) { doProject(pid); return; }
+  if (p.multi === -2) { ACT = { pid, sel: [], repId: null }; setModal(coachModal); return; }
   ACT = { pid, sel: p.multi === 0 ? S.terminals.map(t => t.id) : [] };
   setModal(actionModal);
 }
@@ -3546,6 +3652,49 @@ function actionModal() {
   };
 }
 
+function coachModal() {
+  const p = PROJECTS.find(x => x.id === ACT.pid);
+  const cost = projectCost(p, 1);
+  const dis = !ACT.repId || S.ap < p.ap || S.cash < cost;
+  const list = S.team.map(r => {
+    const n = assignIds(r).length;
+    const L = repLoad(r);
+    return `<label class="pickitem ${ACT.repId === r.id ? 'on' : ''}">
+      <input type="radio" name="coachrep" ${ACT.repId === r.id ? 'checked' : ''} onchange="ACT.repId='${r.id}';renderModal()">
+      <span class="nm">${r.name}</span>
+      <span class="mt">${(r.tags || []).map(id => (VISIBLE_TAGS.find(t => t.id === id) || {}).name).filter(Boolean).join('·')} ｜ ${n} 个终端 · 当量 ${f1(L)} · 忠诚 ${f1(r.loyalty)}${(r.coach || 0) > 0 ? ' · 协访中' : ''}</span>
+      <span class="fr" style="color:#8494A6">${r.filed ? '' : '未备案'}</span>
+    </label>`;
+  }).join('');
+  return {
+    title: `${p.name} · 选择代表`, en: p.en, wide: true,
+    body: `<div class="hint" style="margin-bottom:10px">陪谁跑一周，谁下个月就好过一点。协访同时会提高他的忠诚，也会让他的终端客情更稳。</div>
+      <div class="picklist">${list || '<div class="empty">没有代表</div>'}</div>
+      <div class="mxsum" style="margin-top:10px"><div>预算 <b>${f1(cost)}</b> 万 · 精力 <b>${p.ap}</b></div><div>效果持续 4 周</div></div>`,
+    footer: `<button class="btn" onclick="closeModal()">取消</button>
+      <button class="btn primary" ${dis ? 'disabled' : ''} onclick="confirmCoach()">确认协访</button>`,
+  };
+}
+
+function confirmCoach() {
+  const p = PROJECTS.find(x => x.id === ACT.pid);
+  const r = launchProject(p.id, [], ACT.repId);
+  toast(r.msg, r.ok ? 'good' : 'bad');
+  if (r.ok) { MODAL = null; renderModal(); }
+  render();
+}
+
+function doFile(rid) {
+  const r = fileRep(rid);
+  toast(r.msg, r.ok ? 'good' : 'bad');
+  render();
+}
+function doFileAll() {
+  const r = fileAll();
+  toast(r.msg, r.ok ? 'good' : 'bad');
+  render();
+}
+
 function confirmAction() {
   const p = PROJECTS.find(x => x.id === ACT.pid);
   const r = launchProject(p.id, ACT.sel);
@@ -3556,7 +3705,7 @@ function confirmAction() {
 
 function replayPlan() {
   let n = 0;
-  S.lastPlan.forEach(it => { const r = launchProject(it.pid, it.tids || []); if (r.ok) n++; });
+  S.lastPlan.forEach(it => { const r = launchProject(it.pid, it.tids || [], it.repId); if (r.ok) n++; });
   toast(n ? `已按上月计划执行 ${n} 项` : '精力或预算不足，未能执行', n ? 'good' : 'bad');
   render();
 }
@@ -3565,6 +3714,7 @@ function replayPlan() {
    关系
    ========================================================= */
 const REL_FX = {
+  boss: v => `评价增速 ${(v * 25).toFixed(0)}%`,
   compliance: v => `被抽查概率 ${(v * 30).toFixed(0)}%`,
   finance: v => `费用上限 ${(v * 12).toFixed(0)}%`,
   marketing: v => `区域会成本 ${(-v * 15).toFixed(0)}%`,
@@ -3577,6 +3727,7 @@ const REL_FX = {
   association: v => `合规冲击缓冲 ${(v * 20).toFixed(0)}%`,
 };
 const REL_HOW = {
+  boss: '完成月度目标 +、事件严格执行 +、协访 +1',
   compliance: '合规评分 ≥85 每月 +2，<60 每月 -2；合规培训 +5',
   finance: '预算低于 20 万会掉；上级评价 ≥70 每月 +0.6',
   marketing: '区域学术会 +2；上级评价 ≥70 每月 +0.6',
