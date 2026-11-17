@@ -993,7 +993,7 @@ function showWeekMeeting(res) {
       <span>${o.desc}</span></button>`).join('');
 
   setModal(() => ({
-    title: `第 ${S.totalMonth} 月 · 第 ${w.week} 周 周会`, en: 'WEEKLY REVIEW', dismissible: false, wide: true,
+    title: `第 ${w.month} 月 · 第 ${w.week} 周 周会`, en: 'WEEKLY REVIEW', dismissible: false, wide: true,
     body: `
       <div class="wkhead">
         <div><span class="hint">本周销售</span><b>${f1(w.sales)} 万</b></div>

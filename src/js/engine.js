@@ -786,6 +786,7 @@ function endWeek() {
   if (incident) S.wk.incident = incident;
 
   const snap = {
+    month: S.totalMonth,
     week: S.weekInMonth,
     sales: +weekSales.toFixed(1),
     risk: +risk.toFixed(1),
@@ -851,7 +852,7 @@ function rollMonth() {
   S.reputation = clamp(S.reputation + d, 0, 100);
   S.compliance = Math.min(100, S.compliance + (playerMod().compliance || 0));
 
-  const cap = Math.max(120, ACTS[S.level].target * 2.5);
+  const cap = Math.max(200, ACTS[S.level].target * 2.5);
   let up = 0;
   if (S.cash > cap) { up = +(S.cash - cap).toFixed(1); S.cash = cap; }
 
