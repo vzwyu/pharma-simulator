@@ -564,3 +564,33 @@ table.tb tr:hover td { background: #FBFCFE; }
 .effbtn span { display: block; font-size: 10.5px; color: var(--ink2); margin-top: 2px; }
 .effbtn em { display: block; font-style: normal; font-size: 10px; color: var(--ink3); margin-top: 4px; }
 .effbtn:disabled { opacity: .42; cursor: not-allowed; }
+
+/* 难度选择 */
+.diffrow { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; max-width: 620px; margin-bottom: 14px; }
+.diffcard { border: 1px solid rgba(255,255,255,.18); border-radius: 9px; padding: 9px 11px; cursor: pointer; background: rgba(255,255,255,.05); }
+.diffcard:hover { background: rgba(255,255,255,.1); }
+.diffcard.on { background: #fff; border-color: #fff; }
+.diffcard b { display: block; font-size: 12.5px; color: #fff; margin-bottom: 3px; }
+.diffcard b em { font-style: normal; font-size: 9px; color: #8FB4E8; margin-left: 5px; letter-spacing: .5px; }
+.diffcard span { display: block; font-size: 10px; color: #A9C3E2; line-height: 1.55; }
+.diffcard.on b { color: #0A1B33; }
+.diffcard.on b em { color: #6E88A8; }
+.diffcard.on span { color: #46607F; }
+
+/* 治疗领域 / 政策身份 chip */
+.tachip { display: inline-block; font-size: 9.5px; padding: 0 4px; border-radius: 3px; background: #EEF1F5; color: #5B6B7C; margin-left: 5px; vertical-align: middle; }
+.polchip { display: inline-block; font-size: 9.5px; padding: 0 4px; border-radius: 3px; margin-left: 4px; vertical-align: middle; }
+.polchip.nrdl { background: #E9EFFA; color: #2E5FA6; }
+.polchip.vbp { background: #FBE9E6; color: #A33B2A; }
+.polchip.edl { background: #E9F5F0; color: #14684C; }
+.polchip.self { background: #F4F1EA; color: #8A7A55; }
+
+/* 关系页 */
+.relrow { padding: 9px 0; border-bottom: 1px dashed var(--line2); }
+.relrow:last-child { border-bottom: 0; }
+.relhead { display: flex; justify-content: space-between; align-items: baseline; font-size: 12.5px; margin-bottom: 5px; }
+.relhead b { font-weight: 600; }
+.relhead span { font-variant-numeric: tabular-nums; font-weight: 600; }
+.reldesc { font-size: 10.5px; color: var(--ink3); margin-top: 5px; line-height: 1.5; }
+.relfx { font-size: 10.5px; color: var(--ink3); margin-top: 2px; line-height: 1.5; }
+.relfx b { font-variant-numeric: tabular-nums; }

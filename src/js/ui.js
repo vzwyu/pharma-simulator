@@ -8,7 +8,7 @@ let PENDING = null;
 let MODAL = null;
 let PICKER = null;
 let ACT = { pid: null, sel: [] };
-let START = { stage: 'path', path: null, name: '王磊', tags: [] };
+let START = { stage: 'path', path: null, name: '王磊', tags: [], diff: 'normal' };
 let WEEK_RES = null;
 
 /* ---------- 工具 ---------- */
@@ -154,7 +154,7 @@ function topbar() {
 function nav() {
   const items = [
     ['overview', '经营总览', '◫'], ['terminals', '终端', '▤'], ['team', '团队', '◉'],
-    ['actions', '行动', '✦'], ['compliance', '合规', '⚠'], ['log', '记录', '≡'],
+    ['actions', '行动', '✦'], ['relations', '关系', '◎'], ['compliance', '合规', '⚠'], ['log', '记录', '≡'],
   ];
   const cand = S.candidates.length;
   return `<nav class="sidenav">
@@ -175,6 +175,7 @@ function mainView() {
     case 'terminals': return viewTerminals();
     case 'team': return viewTeam();
     case 'actions': return viewActions();
+    case 'relations': return viewRelations();
     case 'compliance': return viewCompliance();
     case 'log': return viewLog();
     default: return viewOverview();
@@ -329,7 +330,7 @@ function viewTerminals() {
           <span class="bar thin"><i style="width:${Math.min(100, sh * 2.2)}%"></i></span>
           <div class="t2" style="margin:5px 0 0;font-size:10.5px">
             <span>${reps.length ? reps.join('、') : '<span style="color:#B3261E">无代表驻点</span>'}</span>
-            <span>${t.idle >= 8 ? `<span style="color:#B3261E">闲置 ${t.idle} 周</span>` : t.pharm ? `院边 ${t.pharm}` : ''}</span>
+            <span>${t.idle >= 8 ? `<span style="color:#B3261E">闲置 ${t.idle} 周</span>` : phtText(t)}</span>
           </div>
         </div>`;
   }).join('')}
@@ -341,6 +342,19 @@ function viewTerminals() {
 function barRow(label, value, color) {
   const c = color || (value < 25 ? '#B3261E' : value < 55 ? '#B8730A' : '#0143B0');
   return `<div class="detail-row"><span class="lb">${label}</span><span class="bar"><i style="width:${Math.min(100, value)}%;background:${c}"></i></span><span class="vl">${f1(value)}</span></div>`;
+}
+
+function phtText(t) {
+  const dc = DIFFICULTY[S.diff];
+  if (dc.noPht) return '<span style="color:#B8730A">不开药事会</span>';
+  if (t.phtOpen > 0) return `<span style="color:#17795A">药事会窗口开放 · 剩 ${t.phtOpen} 周</span>`;
+  if (t.phtNext <= 4) return `<span style="color:#B8730A">药事会临近 · 约 ${t.phtNext} 周</span>`;
+  return `药事会约 ${t.phtNext} 周后`;
+}
+
+function polChips(p) {
+  if (!p.pol || !p.pol.length) return '<span class="polchip self">自费</span>';
+  return p.pol.map(k => `<span class="polchip ${k}">${POLICIES[k].short}</span>`).join('');
 }
 
 function effText(pid, t) {
@@ -360,9 +374,11 @@ function terminalDetail(t, c) {
   const prodRows = PRODUCTS.map(p => {
     const it = c.items[p.id];
     const who = c.reps.filter(x => x.p.includes(p.id)).map(x => x.name);
-    return `<tr><td><i style="display:inline-block;width:7px;height:7px;border-radius:2px;background:${p.color};margin-right:6px"></i>${p.name}</td>
+    const ta = it.ta || 0.7;
+    return `<tr><td><i style="display:inline-block;width:7px;height:7px;border-radius:2px;background:${p.color};margin-right:6px"></i>${p.name}
+        <span class="tachip">${TA_NAME[p.ta]}</span>${polChips(p)}</td>
+      <td class="r" style="color:${ta >= 1.1 ? '#17795A' : ta <= 0.65 ? '#B3261E' : '#8494A6'}">×${ta.toFixed(2)}</td>
       <td class="r">${f1(it.share * 100)}%</td><td class="r">${f1(it.sales)}</td>
-      <td class="r" style="color:#8494A6">${f1(it.cov)}</td>
       <td style="font-size:11px;color:${who.length ? '#4A5C70' : '#B3261E'}">${who.length ? who.join('、') : '无人负责'}</td></tr>`;
   }).join('');
 
@@ -371,7 +387,7 @@ function terminalDetail(t, c) {
   return `<section class="card">
     <div class="card-h">
       <div><h3 style="font-size:16px">${t.name} <em style="font-size:11px;color:#8494A6">${TYPE_LABEL[t.type]}${t.tier ? ' · ' + t.tier : ''}</em> ${allyBadge(t)}</h3>
-      <div class="hint">容量 ${f1(t.potential)} 万/月 · 竞品压力 ${f1(t.comp * 100)} · 闲置 ${t.idle} 周${t.idle >= 8 ? '（<span style="color:#B3261E">衰减加速</span>）' : ''}</div></div>
+      <div class="hint">容量 ${f1(t.potential)} 万/月 · 竞品压力 ${f1(t.comp * 100)} · 闲置 ${t.idle} 周${t.idle >= 8 ? '（<span style="color:#B3261E">衰减加速</span>）' : ''} · ${phtText(t)}</div></div>
       <div style="text-align:right"><div style="font-size:24px;font-weight:700;letter-spacing:-.5px">${f1(c.total)}<small style="font-size:11px;font-weight:400;color:#8494A6"> 万/月</small></div>
       <div class="hint">份额 ${f1(c.total / t.potential * 100)}% · 投入 ${f1(t.spend)} 万 · 费效 ${t.spend > 0 ? f1(c.total * 12 / Math.max(t.spend, 0.1)) + ' 倍' : '—'}</div></div>
     </div>
@@ -395,7 +411,7 @@ function terminalDetail(t, c) {
     <div class="card-h mt16" style="margin-bottom:6px"><h3 style="font-size:12px;color:#4A5C70">品种拆分<em>BY PRODUCT</em></h3>
       <span class="sub">效果随终端类型与画像浮动</span></div>
     <table class="tb">
-      <thead><tr><th>品种</th><th class="r">份额</th><th class="r">销售</th><th class="r">覆盖</th><th>负责代表</th></tr></thead>
+      <thead><tr><th>品种</th><th class="r">领域匹配</th><th class="r">份额</th><th class="r">销售</th><th>负责代表</th></tr></thead>
       <tbody>${prodRows}</tbody>
     </table>
 
@@ -734,7 +750,7 @@ function actionModal() {
     return `<label class="pickitem ${on ? 'on' : ''} ${disabledCh ? 'dis' : ''}">
         <input type="checkbox" ${on ? 'checked' : ''} ${disabledCh ? 'disabled' : ''} onchange="toggleActTarget('${t.id}')">
         <span class="nm">${t.name}</span>
-        <span class="mt">${effText(p.id, t)}</span>
+        <span class="mt">${p.id === 'dev' ? phtText(t) : effText(p.id, t)}</span>
         ${p.fail ? `<span class="fr" style="color:${fr > 0.3 ? '#B3261E' : '#B8730A'}">失败 ${f1(fr * 100)}%</span>` : ''}
       </label>`;
   }).join('')}
@@ -767,6 +783,70 @@ function replayPlan() {
   S.lastPlan.forEach(it => { const r = launchProject(it.pid, it.tids || []); if (r.ok) n++; });
   toast(n ? `已按上月计划执行 ${n} 项` : '精力或预算不足，未能执行', n ? 'good' : 'bad');
   render();
+}
+
+/* =========================================================
+   关系
+   ========================================================= */
+const REL_FX = {
+  compliance: v => `被抽查概率 ${(v * 30).toFixed(0)}%`,
+  finance: v => `费用上限 ${(v * 12).toFixed(0)}%`,
+  marketing: v => `区域会成本 ${(-v * 15).toFixed(0)}%`,
+  medical: v => `学术认知增益 ${(v * 15).toFixed(0)}%`,
+  commercial: v => `渠道准入 ${(v * 18).toFixed(0)}%`,
+  hr: v => `新人忠诚 +${(v * 8).toFixed(0)}`,
+  hospital: v => `客情 / 进院 ${(v * 12).toFixed(0)}%`,
+  distributor: v => `回款与配送 ${(v * 8).toFixed(0)}%`,
+  kol: v => `病例 / 会议增益 ${(v * 15).toFixed(0)}%`,
+  association: v => `合规冲击缓冲 ${(v * 20).toFixed(0)}%`,
+};
+const REL_HOW = {
+  compliance: '合规评分 ≥85 每月 +2，<60 每月 -2；合规培训 +5',
+  finance: '预算低于 20 万会掉；上级评价 ≥70 每月 +0.6',
+  marketing: '区域学术会 +2；上级评价 ≥70 每月 +0.6',
+  medical: '科室会 +0.8、病例征集 +2、区域会 +1',
+  commercial: '渠道建设 +3',
+  hr: '招聘 +1、团队培训 +1.5',
+  hospital: '客情维护 +2',
+  distributor: '渠道建设 +3',
+  kol: '病例征集 +2、区域学术会 +2',
+  association: 'DRG 特例单议 +3',
+};
+
+function relRow(def, group) {
+  const v = relOf(group, def.id);
+  const m = (v - 50) / 50;
+  const color = v >= 70 ? '#17795A' : v >= 45 ? '#0143B0' : v >= 30 ? '#B8730A' : '#B3261E';
+  return `<div class="relrow">
+    <div class="relhead"><b>${def.name}</b><span style="color:${color}">${f1(v)}</span></div>
+    <span class="bar thin"><i style="width:${v}%;background:${color}"></i></span>
+    <div class="reldesc">${def.desc}</div>
+    <div class="relfx">当前：<b style="color:${color}">${REL_FX[def.id](m)}</b>　·　${REL_HOW[def.id]}</div>
+  </div>`;
+}
+
+function viewRelations() {
+  return `
+  <div class="pagehead">
+    <div><h2>关系<span>RELATIONSHIPS</span></h2><p>公司内部看部门配合，外部看客户与渠道。关系每星期向 50 回落，要持续经营。</p></div>
+  </div>
+  <div class="grid-2">
+    <section class="card">
+      <div class="card-h"><h3>公司内部<em>INTERNAL</em></h3><span class="sub">目标：让流程站在你这边</span></div>
+      ${REL_DEFS.internal.map(d => relRow(d, 'internal')).join('')}
+    </section>
+    <section class="card">
+      <div class="card-h"><h3>外部资源<em>EXTERNAL</em></h3><span class="sub">目标：让客户替你说话</span></div>
+      ${REL_DEFS.external.map(d => relRow(d, 'external')).join('')}
+    </section>
+  </div>
+  <section class="card mt12">
+    <div class="card-h"><h3>关系怎么来<em>HOW IT MOVES</em></h3></div>
+    <div class="hint">
+      关系不是独立资源：合规做得好，合规部自然给你方便；区域会办得多，市场部和专家网络会记住你。<br>
+      开局选「空降兵」会自带一批外部关系，但内部各部门起点更低——空降的人，没人替你说话。
+    </div>
+  </section>`;
 }
 
 /* =========================================================
@@ -876,9 +956,13 @@ function renderStart() {
   app.innerHTML = `<div class="start"><div class="start-inner">
     <div class="kicker">${PATHS.find(p => p.id === START.path).name} · 个人能力配置</div>
     <h1 style="font-size:36px">你是谁<small>YOUR PROFILE</small></h1>
-    <div class="lead" style="margin:12px 0 16px">选 2 个个人标签，它们会一直影响你的管理半径、团队执行和项目成败。</div>
+    <div class="lead" style="margin:12px 0 14px">选 2 个个人标签，它们会一直影响你的管理半径、团队执行和项目成败。难度决定医院药事会的召开方式。</div>
     <div class="namebox" style="margin-bottom:14px">
       <input id="pname" placeholder="输入你的名字" value="${START.name}" maxlength="8" oninput="START.name=this.value">
+    </div>
+    <div class="diffrow">
+      ${['easy', 'normal', 'hard'].map(k => `<div class="diffcard ${START.diff === k ? 'on' : ''}" onclick="START.diff='${k}';renderStart()">
+        <b>${DIFFICULTY[k].name}<em>${DIFFICULTY[k].en}</em></b><span>${DIFFICULTY[k].desc}</span></div>`).join('')}
     </div>
     <div class="tagpick">
       ${PLAYER_TAGS.map(t => `<div class="tpick ${START.tags.includes(t.id) ? 'on' : ''}" onclick="togglePlayerTag('${t.id}')">
@@ -909,7 +993,7 @@ function startGame() {
   if (START.tags.length !== 2) { toast('请选择 2 个个人标签', 'bad'); return; }
   const el = document.getElementById('pname');
   const name = (el && el.value.trim()) || START.name || '王磊';
-  newGame(name, START.path, START.tags);
+  newGame(name, START.path, START.tags, START.diff);
   TAB = 'overview';
   SEL.terminal = S.terminals[0].id;
   render();
@@ -1119,7 +1203,7 @@ function winModal() {
 function restart() {
   MODAL = null; renderModal();
   S = null; PICKER = null; SEL = { terminal: null };
-  START = { stage: 'path', path: null, name: '王磊', tags: [] };
+  START = { stage: 'path', path: null, name: '王磊', tags: [], diff: 'normal' };
   render();
 }
 

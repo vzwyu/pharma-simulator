@@ -17,6 +17,31 @@ function assignIds(r) { return Object.keys(r.assign || {}); }
 function covers(r, tid) { return !!(r.assign && r.assign[tid]); }
 function playerMod() { return (S && S.player && S.player.mod) || {}; }
 
+/* ---------- 关系 ---------- */
+function relOf(group, id) { return (S.rel && S.rel[group] && S.rel[group][id] != null) ? S.rel[group][id] : 50; }
+function relMod(group, id) { return (relOf(group, id) - 50) / 50; }
+function relAdd(group, id, d) {
+  if (!S.rel || !S.rel[group] || S.rel[group][id] == null) return;
+  S.rel[group][id] = clamp(S.rel[group][id] + d, 0, 100);
+}
+function diffCfg() { return DIFFICULTY[S.diff] || DIFFICULTY.normal; }
+
+/* ---------- 政策身份 ---------- */
+function policyOf(p, type) {
+  let mul = 1, access = 1, price = 0;
+  (p.pol || []).forEach(k => {
+    const d = POLICIES[k];
+    if (!d) return;
+    let m = d.mul;
+    if (k === 'edl' && (type === 'primary' || type === 'retail')) m = d.primary;
+    mul *= m; access *= d.access; price += d.price;
+  });
+  if (!(p.pol || []).length && (type === 'primary' || type === 'retail')) mul *= 0.88;
+  return { mul, access, price };
+}
+
+function taOf(t, p) { return (t.taAff && t.taAff[p.ta]) || 0.7; }
+
 /* ---------- 建人 ---------- */
 function pickVisible(n, forceId) {
   const out = [];
@@ -302,27 +327,29 @@ function computeStats() {
 
     const tmul = mulW > 0 ? mulS / mulW : 1;
     const am = allyMulOf(t);
-    const avail = 0.02 + 0.98 * Math.pow(clamp(t.access, 0, 100) / 100, 0.7);
     const mix = MIX[t.type] || MIX.hospital;
     const items = {};
     let total = 0;
 
     PRODUCTS.forEach(p => {
       const m = mix[p.id] != null ? mix[p.id] : 0.25;
+      const pol = policyOf(p, t.type);
+      const taF = taOf(t, p);
+      const avail = 0.02 + 0.98 * Math.pow(clamp(t.access * taF, 0, 100) / 100, 0.7) * pol.access;
       let share = p.base
         + t.awareness / 100 * 0.26 * p.awWeight
         + Math.min(cov[p.id] || 0, 1.3) * 0.115
         + t.relation / 100 * 0.11
         - t.comp * 0.16
-        + p.priceEdge;
-      share = clamp(share, 0, 0.62) * avail * tmul * am * orderMul;
+        + p.priceEdge + pol.price;
+      share = clamp(share, 0, 0.72) * avail * tmul * am * orderMul * pol.mul;
       const sales = t.potential * m * share;
-      items[p.id] = { share, sales, cov: cov[p.id] || 0 };
+      items[p.id] = { share, sales, cov: cov[p.id] || 0, ta: taF, pol };
       total += sales;
       st.byProduct[p.id] += sales;
     });
 
-    st.terms[t.id] = { cov, covAll, total, items, reps, am, avail, tmul };
+    st.terms[t.id] = { cov, covAll, total, items, reps, am, tmul };
     st.total += total;
   });
   return st;
@@ -355,7 +382,7 @@ function apMax() {
 }
 
 /* ---------- 新游戏 ---------- */
-function newGame(playerName, pathId, tagIds) {
+function newGame(playerName, pathId, tagIds, diffId) {
   generateWorld();
   const pm = { ap: 0, cov: 0, growth: 0, fail: 0, dev: 0, compliance: 0, cost: 0, eval: 0, exposure: 0 };
   (tagIds || []).forEach(id => {
@@ -367,7 +394,12 @@ function newGame(playerName, pathId, tagIds) {
   S = {
     playerName: playerName || '王磊',
     path: pathId || 'sales',
+    diff: diffId || 'normal',
     player: { path: pathId || 'sales', tags: (tagIds || []).slice(), mod: pm },
+    rel: {
+      internal: { compliance: 55, finance: 50, marketing: 50, medical: 50, commercial: 50, hr: 50 },
+      external: { hospital: 50, distributor: 50, kol: 50, association: 50 },
+    },
     level: 0,
     weekInMonth: 1,
     monthInAct: 1,
@@ -405,6 +437,15 @@ function newGame(playerName, pathId, tagIds) {
   a.assign[t0.id] = { p: PRODUCTS.map(p => p.id), pharm: true };
   b.assign[t1.id] = { p: PRODUCTS.slice(0, 2).map(p => p.id), pharm: false };
   S.team.push(a, b);
+  // 个人标签带来的初始关系
+  if (pm.relExt) {
+    relAdd('external', 'hospital', pm.relExt * 1.2);
+    relAdd('external', 'distributor', pm.relExt * 0.8);
+    relAdd('external', 'kol', pm.relExt * 0.6);
+    relAdd('external', 'association', pm.relExt * 0.4);
+  }
+  if (pm.relInt) ['compliance', 'finance', 'marketing', 'medical', 'commercial', 'hr'].forEach(k => relAdd('internal', k, pm.relInt));
+
   S.ap = apMax();
   log('info', `你接手了${WORLD.county}市场。两个代表，两张桌子，100 万预算。`);
   log('sys', '提示：先看「终端」，把代表放到能出量的地方；准入低于 25 的终端几乎不出量。');
@@ -439,6 +480,10 @@ function enterAct(level, carry) {
     assignIds(r).forEach(tid => { if (!S.terminals.some(x => x.id === tid)) delete r.assign[tid]; });
   });
   S.pending = [];
+  S.terminals.forEach(t => {
+    t.phtOpen = 0;
+    t.phtNext = 3 + Math.floor(Math.random() * 12);
+  });
   S.ap = apMax();
 }
 
@@ -473,10 +518,14 @@ function effOf(pid, t) {
   const pe = PROF_EFF[t.prof] || PROF_EFF.academic;
   const tf = tierF(t);
   const pm = playerMod();
-  if (pid === 'dept') return { aw: 12 * te.aw * pe.aw * tf, rel: 4 * te.rel * pe.rel };
-  if (pid === 'case') return { aw: 14 * te.aw * pe.aw * te.cs * tf, rel: 8 * te.rel * pe.rel * te.cs };
-  if (pid === 'relation') return { rel: 13 * te.rel * pe.rel * tf };
-  if (pid === 'channel') return { access: 8 * (pe.ch || 1), rel: 5 * te.rel * pe.rel };
+  const medF = 1 + relMod('internal', 'medical') * 0.15;
+  const comF = 1 + relMod('internal', 'commercial') * 0.18;
+  const kolF = 1 + relMod('external', 'kol') * 0.15;
+  const hosF = 1 + relMod('external', 'hospital') * 0.12;
+  if (pid === 'dept') return { aw: 12 * te.aw * pe.aw * tf * medF, rel: 4 * te.rel * pe.rel * hosF };
+  if (pid === 'case') return { aw: 14 * te.aw * pe.aw * te.cs * tf * medF * kolF, rel: 8 * te.rel * pe.rel * te.cs * hosF };
+  if (pid === 'relation') return { rel: 13 * te.rel * pe.rel * tf * hosF };
+  if (pid === 'channel') return { access: 8 * (pe.ch || 1) * comF, rel: 5 * te.rel * pe.rel * hosF };
   if (pid === 'dev') {
     const base = 14 + t.relation / 100 * 10;
     return { access: base * te.dev * pe.dev * (1 + (pm.dev || 0)) * allyMulOf(t) * (1 - clamp(t.access, 0, 100) / 140) };
@@ -490,6 +539,8 @@ function projectCost(p, n) {
   let c = p.cost * CFG.costScale[S.level] * n;
   if (p.id === 'dept' && S.flags.filing > 0) c *= 1.2;
   if (p.id === 'relation' && S.flags.lean > 0) c *= 0.8;
+  if (p.id === 'city') c *= (1 - relMod('internal', 'marketing') * 0.15);
+  if (p.id === 'dept' && S.flags.filing > 0) c *= 1;
   c *= (1 + (pm.cost || 0));
   return +c.toFixed(2);
 }
@@ -516,6 +567,8 @@ function failRateOf(p, t) {
 function launchProject(pid, tids) {
   const p = PROJECTS.find(x => x.id === pid);
   if (!p) return { ok: false, msg: '项目不存在' };
+  const dc = diffCfg();
+  if (pid === 'dev' && dc.noPht) return { ok: false, msg: '这家医院常年不开药事会，正式开发走不通——用客情、病例、渠道磨进院' };
 
   let list = [];
   if (p.multi === -1) list = [];
@@ -574,7 +627,10 @@ function launchProject(pid, tids) {
     msgs.push('区域学术会召开，全终端认知 +6，上级评价 +2。');
   } else if (p.delay > 0) {
     list.forEach(tid => {
-      S.pending.push({ pid, tid, at: S.totalWeek + p.delay * CFG.weeksPerMonth, cost: +(cost / n).toFixed(2) });
+      const t = termById(tid);
+      const inWin = t && t.phtOpen > 0;
+      const mul = pid === 'dev' && t ? (inWin ? 1 + dc.inBonus : 1 + dc.outPenalty) : 1;
+      S.pending.push({ pid, tid, at: S.totalWeek + p.delay * CFG.weeksPerMonth, cost: +(cost / n).toFixed(2), mul });
       queued++;
     });
     msgs.push(`${queued} 个终端的${p.name}已提交，${p.delay} 个月后出结果。`);
@@ -591,15 +647,26 @@ function launchProject(pid, tids) {
     if (list.length > 1) msgs.push(`${p.name}：${ok} 个终端成功，${failed} 个失败。`);
   }
 
+  // 关系变化
+  if (pid === 'compliance') relAdd('internal', 'compliance', 5);
+  if (pid === 'train') relAdd('internal', 'hr', 1.5);
+  if (pid === 'hire') relAdd('internal', 'hr', 1);
+  if (pid === 'city') { relAdd('internal', 'marketing', 2); relAdd('internal', 'medical', 1); relAdd('external', 'kol', 2); }
+  if (pid === 'channel') { relAdd('internal', 'commercial', 3); relAdd('external', 'distributor', 3); }
+  if (pid === 'relation') relAdd('external', 'hospital', 2);
+  if (pid === 'case') { relAdd('internal', 'medical', 2); relAdd('external', 'kol', 2); }
+  if (pid === 'dept') relAdd('internal', 'medical', 0.8);
+
   if (!msgs.length) msgs.push(`${p.name}执行完成。`);
   S.planThisMonth.push({ pid, tids: list, msg: msgs[0] });
   msgs.forEach(m => log('action', m));
   return { ok: true, msg: msgs.join(' ') };
 }
 
-function applyEffect(p, t, success) {
+function applyEffect(p, t, success, extraMul) {
   const k = success ? 1 : 0.35;
   const e = effOf(p.id, t);
+  const hard = diffCfg().noPht;
   switch (p.id) {
     case 'dept':
       t.awareness = Math.min(100, t.awareness + (e.aw || 0) * k);
@@ -619,8 +686,14 @@ function applyEffect(p, t, success) {
       t.relation = Math.min(100, t.relation + (e.rel || 0) * k);
       break;
     case 'dev':
-      t.access = Math.min(100, t.access + (e.access || 0) * (success ? rnd(0.9, 1.15) : 0.45));
+      t.access = Math.min(100, t.access + (e.access || 0) * (success ? rnd(0.9, 1.15) : 0.45) * (extraMul || 1));
       break;
+  }
+  if (hard) {
+    if (p.id === 'relation') t.access = Math.min(100, t.access + 2.5 * k);
+    else if (p.id === 'case') t.access = Math.min(100, t.access + 2 * k);
+    else if (p.id === 'dept') t.access = Math.min(100, t.access + 0.8 * k);
+    else if (p.id === 'channel') t.access = Math.min(100, t.access + 1.5 * k);
   }
   t.idle = 0;
 }
@@ -631,6 +704,7 @@ function hireCandidate(cid) {
   if (i < 0) return { ok: false, msg: '候选人不存在' };
   if (S.team.length >= CFG.teamCap[S.level]) return { ok: false, msg: '编制已满' };
   const c = S.candidates.splice(i, 1)[0];
+  c.loyalty = clamp(c.loyalty + relMod('internal', 'hr') * 8, 0, 100);
   S.team.push(c);
   log('good', `${c.name} 入职，任 ${ROLES[c.role].label}，月薪 ${c.salary.toFixed(1)} 万。`);
   return { ok: true, msg: `${c.name} 已入职` };
@@ -687,7 +761,7 @@ function resolvePending() {
     if (!p || !t) return;
     const f = failRateOf(p, t);
     const ok = Math.random() > f;
-    applyEffect(p, t, ok);
+    applyEffect(p, t, ok, item.mul);
     msgs.push(`${t.name}・${p.name}${ok ? '落地' : '失败'}`);
   });
   return msgs;
@@ -746,10 +820,30 @@ function endWeek() {
     r.ability = Math.min(100, r.ability + (r.ability < 70 ? 0.55 : 0.22) / 4 * (1 + r.mod.growth + (playerMod().growth || 0)));
   });
 
+  // 4.5) 药事会周期推进
+  const dc0 = diffCfg();
+  if (!dc0.noPht) {
+    S.terminals.forEach(t => {
+      if (t.phtOpen > 0) { t.phtOpen--; return; }
+      t.phtNext = (t.phtNext || 1) - 1;
+      if (t.phtNext <= 0) {
+        t.phtOpen = dc0.window;
+        t.phtNext = dc0.id === 'easy' ? dc0.cycle + rndInt(-1, 1) : 8 + Math.floor(Math.random() * 14);
+      }
+    });
+  }
+
+  // 4.6) 关系自然回落
+  ['internal', 'external'].forEach(g => Object.keys(S.rel[g]).forEach(k => {
+    const v = S.rel[g][k];
+    if (v > 50) S.rel[g][k] = Math.max(50, v - 0.25);
+    else if (v < 50) S.rel[g][k] = Math.min(50, v + 0.25);
+  }));
+
   // 5) 销售（周 = 月跑量 / 4）
   const st = computeStats();
   const weekSales = st.total / CFG.weeksPerMonth;
-  const gross = weekSales * CFG.grossRate;
+  const gross = weekSales * CFG.grossRate * (1 + relMod('external', 'distributor') * 0.08);
   const sal = salaryTotal() / CFG.weeksPerMonth;
   S.cash = +(S.cash + gross - sal).toFixed(2);
 
@@ -761,7 +855,7 @@ function endWeek() {
 
   // 7) 监管抽查（周概率 = 月概率 / 4）
   let incident = null;
-  const p = (0.015 + Math.pow(risk / 100, 2) * 0.5) / 4;
+  const p = (0.015 + Math.pow(risk / 100, 2) * 0.5) / 4 * (1 - relMod('internal', 'compliance') * 0.3);
   if (Math.random() < p) incident = resolveInspection(risk);
 
   // 8) 人员流失
@@ -851,8 +945,12 @@ function rollMonth() {
   d *= (1 + (playerMod().eval || 0));
   S.reputation = clamp(S.reputation + d, 0, 100);
   S.compliance = Math.min(100, S.compliance + (playerMod().compliance || 0));
+  if (S.compliance >= 85) relAdd('internal', 'compliance', 2);
+  else if (S.compliance < 60) relAdd('internal', 'compliance', -2);
+  if (S.reputation >= 70) ['finance', 'marketing', 'medical', 'commercial', 'hr'].forEach(k => relAdd('internal', k, 0.6));
+  if (S.cash < 20) relAdd('internal', 'finance', -1.5);
 
-  const cap = Math.max(200, ACTS[S.level].target * 2.5);
+  const cap = Math.max(200, ACTS[S.level].target * 2.5) * (1 + relMod('internal', 'finance') * 0.12);
   let up = 0;
   if (S.cash > cap) { up = +(S.cash - cap).toFixed(1); S.cash = cap; }
 

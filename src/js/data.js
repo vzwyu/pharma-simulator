@@ -39,22 +39,43 @@ const TYPE_COST = { hospital: 1.0, primary: 0.5, retail: 0.7, city: 1.0, region:
 /* 竞品（虚构） */
 const RIVALS = ['瑞和药业', '东岭制药', '长康生物', '博远医药'];
 
+/* ---------------- 治疗领域（参考 ATC 大类） ---------------- */
+const TA_LIST = [
+  { id: 'C', name: '心血管', en: 'Cardiovascular' },
+  { id: 'A', name: '消化代谢', en: 'Alimentary' },
+  { id: 'N', name: '神经精神', en: 'Neuro' },
+  { id: 'J', name: '抗感染', en: 'Anti-infective' },
+  { id: 'R', name: '呼吸', en: 'Respiratory' },
+  { id: 'L', name: '抗肿瘤', en: 'Oncology' },
+  { id: 'M', name: '免疫骨骼', en: 'Immunology' },
+  { id: 'G', name: '泌尿生殖', en: 'Genitourinary' },
+];
+const TA_NAME = {};
+TA_LIST.forEach(t => { TA_NAME[t.id] = t.name; });
+
+/* 政策身份：可以同时拥有多个，也可能一个都没有（自费） */
+const POLICIES = {
+  nrdl: { id: 'nrdl', name: '医保目录', short: '医保', mul: 1.16, access: 1.10, price: 0, note: '报销身份，院内准入和处方意愿都更好' },
+  vbp:  { id: 'vbp',  name: '集采中标', short: '集采', mul: 1.34, access: 1.14, price: -0.05, note: '以价换量，份额高但单价被压' },
+  edl:  { id: 'edl',  name: '基药目录', short: '基药', mul: 1.08, access: 1.06, price: 0.01, primary: 1.24, note: '基层配备考核品种，卫生院和连锁最好卖' },
+};
+
 /* ---------------- 产品 ---------------- */
 const PROD_ARCH = [
   { id: 'herb', kind: '独家中成药', driver: '学术', base: 0.030, awWeight: 1.30, priceEdge: 0.020,
-    color: '#0143B0', 医保: '乙类', price: 68,
+    color: '#0143B0', 医保: '乙类', price: 68, ta: ['C', 'N', 'A'], polWeight: { nrdl: 0.5, edl: 0.15, vbp: 0.02 },
     mix: { hospital: 0.34, primary: 0.06, retail: 0.38, city: 0.34, region: 0.34 },
     note: '高值独家，靠学术证据和专家共识撬动，起量慢、天花板高' },
   { id: 'base', kind: '基药 · 医保甲类', driver: '渠道', base: 0.055, awWeight: 0.80, priceEdge: 0.050,
-    color: '#2F6BC9', 医保: '甲类', price: 12,
+    color: '#2F6BC9', 医保: '甲类', price: 12, ta: ['A', 'C', 'J'], polWeight: { nrdl: 0.55, edl: 0.55, vbp: 0.25 },
     mix: { hospital: 0.24, primary: 0.56, retail: 0.22, city: 0.24, region: 0.24 },
     note: '基药放量品，吃配送覆盖和基层网络，价格是硬通货' },
   { id: 'bio', kind: '生物制剂', driver: '准入', base: 0.026, awWeight: 1.10, priceEdge: -0.010,
-    color: '#0E7C6B', 医保: '乙类（谈判）', price: 1280,
+    color: '#0E7C6B', 医保: '乙类（谈判）', price: 1280, ta: ['L', 'M', 'N'], polWeight: { nrdl: 0.3, edl: 0.02, vbp: 0.05 },
     mix: { hospital: 0.26, primary: 0.04, retail: 0.08, city: 0.26, region: 0.26 },
     note: '高值生物药，进院难、谈判门槛高，一旦进院几乎没有替代' },
   { id: 'gen', kind: '仿制化药', driver: '价格', base: 0.045, awWeight: 0.90, priceEdge: -0.030,
-    color: '#8A5A00', 医保: '乙类', price: 35,
+    color: '#8A5A00', 医保: '乙类', price: 35, ta: ['R', 'G', 'C'], polWeight: { nrdl: 0.5, edl: 0.2, vbp: 0.4 },
     mix: { hospital: 0.16, primary: 0.34, retail: 0.32, city: 0.16, region: 0.16 },
     note: '多家竞品在拼，没有价格和客情就是陪跑' },
 ];
@@ -85,11 +106,19 @@ function genProductNames() {
 function buildProducts() {
   const names = genProductNames();
   PRODUCTS.length = 0;
+  const usedTa = {};
   PROD_ARCH.forEach((a, i) => {
+    const cands = a.ta.filter(x => !usedTa[x]);
+    const ta = pickOne(cands.length ? cands : a.ta);
+    usedTa[ta] = 1;
+    const pol = [];
+    Object.keys(a.polWeight).forEach(k => { if (Math.random() < a.polWeight[k]) pol.push(k); });
+    if (pol.includes('vbp') && !pol.includes('nrdl') && Math.random() < 0.6) pol.push('nrdl');
     PRODUCTS.push({
       id: a.id, name: names[i].name, short: names[i].name.slice(0, 2),
       kind: a.kind, driver: a.driver, base: a.base, awWeight: a.awWeight,
       priceEdge: a.priceEdge, color: a.color, 医保: a.医保, price: a.price, note: a.note,
+      ta, pol,
     });
   });
   // 归一化品种结构
@@ -171,6 +200,20 @@ function fill(str) {
     .replace('{c5}', WORLD.cities[4]).replace('{c6}', WORLD.cities[5]);
 }
 
+function buildTaAff(type) {
+  const aff = {};
+  TA_LIST.forEach(t => { aff[t.id] = 0.55 + Math.random() * 0.2; });
+  const strong = {
+    hospital: ['C', 'A', 'N', 'L'],
+    primary: ['R', 'A', 'J', 'C'],
+    retail: ['C', 'A', 'R', 'G'],
+    city: ['C', 'A', 'N', 'L'],
+    region: ['C', 'A', 'N', 'L'],
+  }[type] || ['C', 'A'];
+  strong.sort(() => Math.random() - 0.5).slice(0, 2).forEach(k => { aff[k] = 1.15 + Math.random() * 0.2; });
+  return aff;
+}
+
 function buildTerminals() {
   TERM_SPECS.forEach((specs, act) => {
     TERMINALS[act].length = 0;
@@ -187,7 +230,10 @@ function buildTerminals() {
         name, type: s[1], potential: s[2], access: s[3],
         awareness: s[4], relation: s[5], comp: s[6], tier: s[7],
         pharm: s[8] || 0, stores: s[9] ? stores : 0,
-        ally: null, spend: 0, idle: 0, prof: pickOne(['academic', 'relation', 'price']),
+        ally: null, spend: 0, idle: 0,
+        prof: pickOne(['academic', 'relation', 'price']),
+        taAff: buildTaAff(s[1]),
+        phtNext: 0,
       });
     });
     ALLIANCES[act].length = 0;
@@ -311,6 +357,7 @@ const PLAYER_TAGS = [
   { id: 'frugal', name: '成本控', desc: '所有项目成本 -10%', eff: { cost: -0.1 } },
   { id: 'workaholic', name: '工作狂', desc: '每周精力 +1', eff: { ap: 1 } },
   { id: 'charisma', name: '人格魅力', desc: '上级评价获取 +30%', eff: { eval: 0.3 } },
+  { id: 'parachute', name: '空降兵', desc: '自带外部关系（客户 +15、商业 +10），但内部关系 -10', eff: { relExt: 12, relInt: -10 } },
 ];
 
 /* =========================================================
@@ -839,3 +886,142 @@ const AUDIT_EVENT = {
         return { text: '材料补上了，但核查组记下了时间线异常。风险 +8，花费 4 万。', tone: 'bad' }; } },
   ],
 };
+
+/* =========================================================
+   难度：药事会制度不同（参考现实：有的医院一年只开一两次）
+   ========================================================= */
+const DIFFICULTY = {
+  easy: {
+    id: 'easy', name: '简单', en: 'EASY',
+    desc: '药事会季度例会，周期固定可预期；窗口期内开发成功率和收益都更高。',
+    cycle: 12, jitter: 0, window: 3, inBonus: 0.18, outPenalty: -0.10, noPht: false,
+  },
+  normal: {
+    id: 'normal', name: '中等', en: 'NORMAL',
+    desc: '药事会不定期召开，只能从"窗口临近"的迹象判断；错过要等下轮。',
+    cycle: 0, jitter: 0, window: 3, inBonus: 0.08, outPenalty: -0.06, noPht: false,
+  },
+  hard: {
+    id: 'hard', name: '困难', en: 'HARD',
+    desc: '这家医院常年不开药事会，正式开发走不通。只能靠客情、病例、渠道一点点磨进院。',
+    cycle: 0, jitter: 0, window: 0, inBonus: 0, outPenalty: 0, noPht: true,
+  },
+};
+
+/* =========================================================
+   关系：公司内部部门 + 外部资源
+   ========================================================= */
+const REL_DEFS = {
+  internal: [
+    { id: 'compliance', name: '合规部', desc: '好感高 → 被抽查概率下降、合规培训效果更好' },
+    { id: 'finance', name: '财务部', desc: '好感高 → 费用上限上浮、报销更顺' },
+    { id: 'marketing', name: '市场部', desc: '好感高 → 区域学术会成本下降' },
+    { id: 'medical', name: '医学部', desc: '好感高 → 学术活动认知增益更高' },
+    { id: 'commercial', name: '商务部', desc: '好感高 → 渠道建设效果更好' },
+    { id: 'hr', name: '人力部', desc: '好感高 → 候选人质量更好、新人上手更快' },
+  ],
+  external: [
+    { id: 'hospital', name: '医院客户', desc: '好感高 → 客情与进院更快' },
+    { id: 'distributor', name: '商业公司', desc: '好感高 → 回款更顺、配送覆盖更广' },
+    { id: 'kol', name: '专家网络', desc: '好感高 → 病例与区域会效果更好' },
+    { id: 'association', name: '行业协会', desc: '好感高 → 合规事件的冲击更小' },
+  ],
+};
+
+
+
+/* =========================================================
+   政策身份事件（医保 / 集采 / 基药）与支付改革
+   ========================================================= */
+EVENTS.push(
+  {
+    id: 'nrdl', title: '医保目录谈判', en: 'NRDL Negotiation', weight: 13,
+    cond: s => PRODUCTS.some(p => !p.pol.includes('nrdl')),
+    text: () => {
+      const p = pickOne(PRODUCTS.filter(x => !x.pol.includes('nrdl')));
+      return `${p.name}（${TA_NAME[p.ta]}）进入今年国家医保目录谈判名单。以价换量，降价幅度决定了能不能进。`;
+    },
+    options: [
+      { label: '大幅降价，确保进目录', cost: 3, ap: 1,
+        run: s => { const p = pick(PRODUCTS.filter(x => !x.pol.includes('nrdl'))); if (!p) return { text: '本轮没有可谈品种。', tone: 'flat' };
+          p.pol.push('nrdl'); p.priceEdge -= 0.02; s.reputation = Math.min(100, s.reputation + 4);
+          return { text: `${p.name} 进入医保目录，份额上限抬升，单价小幅下调。上级评价 +4。`, tone: 'good' }; } },
+      { label: '守住价格，接受谈判失败', cost: 0,
+        run: s => { const p = pick(PRODUCTS.filter(x => !x.pol.includes('nrdl')));
+          if (p) p.priceEdge += 0.01;
+          return { text: p ? `${p.name} 谈判未成，继续自费。价格守住了，但院内推广更难。` : '无品种可谈。', tone: 'flat' }; } },
+    ],
+  },
+  {
+    id: 'vbp', title: '集采投标', en: 'Volume-Based Procurement', weight: 12,
+    cond: s => PRODUCTS.some(p => !p.pol.includes('vbp') && (p.id === 'gen' || p.id === 'base')),
+    text: () => {
+      const p = PRODUCTS.find(x => !x.pol.includes('vbp') && (x.id === 'gen' || x.id === 'base')) || PRODUCTS[0];
+      return `${p.name} 所在品种组进入国家集采。规则是最低价中标，中标量价齐升，落标基本退出院内市场。`;
+    },
+    options: [
+      { label: '压到底价，抢中标', cost: 2, ap: 1,
+        run: s => { const p = PRODUCTS.find(x => !x.pol.includes('vbp') && (x.id === 'gen' || x.id === 'base'));
+          if (!p) return { text: '没有可投标品种。', tone: 'flat' };
+          if (Math.random() < 0.62) { p.pol.push('vbp'); p.priceEdge -= 0.04;
+            return { text: `${p.name} 中标。份额上限提高，但单价被压。`, tone: 'good' }; }
+          p.pol = p.pol.filter(x => x !== 'nrdl');
+          return { text: `${p.name} 落标，院内市场基本失守。`, tone: 'bad' }; } },
+      { label: '不投，保住价格体系', cost: 0,
+        run: s => { const p = PRODUCTS.find(x => !x.pol.includes('vbp') && (x.id === 'gen' || x.id === 'base'));
+          if (p) { p.priceEdge += 0.01; }
+          s.reputation = Math.max(0, s.reputation - 2);
+          return { text: '弃标。价格保住了，但上级对"放弃存量"有意见。评价 -2。', tone: 'flat' }; } },
+    ],
+  },
+  {
+    id: 'edl', title: '基药目录遴选', en: 'Essential Drug List', weight: 10,
+    cond: s => PRODUCTS.some(p => !p.pol.includes('edl') && (p.id === 'base' || p.id === 'herb')),
+    text: '新版基本药物目录开始遴选。进入目录意味着基层必须配备，但价格和利润空间都会被压。',
+    options: [
+      { label: '全力申报', cost: 2, ap: 1,
+        run: s => { const p = PRODUCTS.find(x => !x.pol.includes('edl') && (x.id === 'base' || x.id === 'herb'));
+          if (!p) return { text: '没有可申报品种。', tone: 'flat' };
+          if (Math.random() < 0.55) { p.pol.push('edl');
+            return { text: `${p.name} 进入基药目录，基层和连锁终端的配备率会明显提升。`, tone: 'good' }; }
+          return { text: `${p.name} 未入选，本轮申报白做。`, tone: 'flat' }; } },
+      { label: '不申报，保住院内外价差', cost: 0,
+        run: s => { s.reputation = Math.min(100, s.reputation + 1);
+          return { text: '放弃基药身份，保住价格体系。上级评价 +1（利润优先）。', tone: 'flat' }; } },
+    ],
+  },
+  {
+    id: 'drg', title: 'DRG 付费改革', en: 'DRG Payment Reform', weight: 12,
+    cond: s => PRODUCTS.some(p => p.id === 'bio' || p.price >= 200),
+    text: '医保局在辖区推行 DRG 按病种付费。高值品种一旦超出病组支付标准，医院要自己承担，科室开始压处方。',
+    options: [
+      { label: '申报特例单议，逐例争取', cost: 5, ap: 1,
+        run: s => {
+          const hi = PRODUCTS.filter(p => p.id === 'bio' || p.price >= 200);
+          hi.forEach(p => { p.priceEdge += 0.0; });
+          s.rel.external.association = Math.min(100, s.rel.external.association + 3);
+          return { text: '特例单议通道打通，高值品种没有被一刀切压掉。花费 5 万，行业协会好感 +3。', tone: 'good' }; } },
+      { label: '接受现实，转向门诊和院外', cost: 0,
+        run: s => { s.terminals.forEach(t => { if (t.type === 'hospital') t.potential = +(t.potential * 0.94).toFixed(1); });
+          const rt = s.terminals.find(t => t.type === 'retail');
+          if (rt) rt.potential = +(rt.potential * 1.1).toFixed(1);
+          return { text: '院内高值品类容量 -6%，连锁终端容量 +10%。处方在往院外走。', tone: 'flat' }; } },
+    ],
+  },
+  {
+    id: 'one-two', title: '一品两规', en: 'One Drug, Two Strengths', weight: 9,
+    cond: s => s.terminals.some(t => t.type === 'hospital'),
+    text: '一家医院严格执行"一品两规"：同一化学成分只保留两个品规。你的一个品种被列入清退名单。',
+    options: [
+      { label: '争取保留，做临床必需性论证', cost: 3, ap: 1,
+        run: s => { const t = pick(s.terminals.filter(x => x.type === 'hospital'));
+          if (!t) return { text: '无医院。', tone: 'flat' };
+          t.access = Math.min(100, t.access + 4); t.awareness = Math.min(100, t.awareness + 8);
+          return { text: `${t.name} 保留在目录内，认知 +8。`, tone: 'good' }; } },
+      { label: '放弃该院，把资源挪走', cost: 0,
+        run: s => { const t = pick(s.terminals.filter(x => x.type === 'hospital'));
+          if (t) t.access = Math.max(0, t.access - 18);
+          return { text: t ? `${t.name} 被清退，准入 -18。` : '无医院。', tone: 'bad' }; } },
+    ],
+  },
+);

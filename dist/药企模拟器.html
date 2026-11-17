@@ -572,6 +572,36 @@ table.tb tr:hover td { background: #FBFCFE; }
 .effbtn em { display: block; font-style: normal; font-size: 10px; color: var(--ink3); margin-top: 4px; }
 .effbtn:disabled { opacity: .42; cursor: not-allowed; }
 
+/* 难度选择 */
+.diffrow { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; max-width: 620px; margin-bottom: 14px; }
+.diffcard { border: 1px solid rgba(255,255,255,.18); border-radius: 9px; padding: 9px 11px; cursor: pointer; background: rgba(255,255,255,.05); }
+.diffcard:hover { background: rgba(255,255,255,.1); }
+.diffcard.on { background: #fff; border-color: #fff; }
+.diffcard b { display: block; font-size: 12.5px; color: #fff; margin-bottom: 3px; }
+.diffcard b em { font-style: normal; font-size: 9px; color: #8FB4E8; margin-left: 5px; letter-spacing: .5px; }
+.diffcard span { display: block; font-size: 10px; color: #A9C3E2; line-height: 1.55; }
+.diffcard.on b { color: #0A1B33; }
+.diffcard.on b em { color: #6E88A8; }
+.diffcard.on span { color: #46607F; }
+
+/* 治疗领域 / 政策身份 chip */
+.tachip { display: inline-block; font-size: 9.5px; padding: 0 4px; border-radius: 3px; background: #EEF1F5; color: #5B6B7C; margin-left: 5px; vertical-align: middle; }
+.polchip { display: inline-block; font-size: 9.5px; padding: 0 4px; border-radius: 3px; margin-left: 4px; vertical-align: middle; }
+.polchip.nrdl { background: #E9EFFA; color: #2E5FA6; }
+.polchip.vbp { background: #FBE9E6; color: #A33B2A; }
+.polchip.edl { background: #E9F5F0; color: #14684C; }
+.polchip.self { background: #F4F1EA; color: #8A7A55; }
+
+/* 关系页 */
+.relrow { padding: 9px 0; border-bottom: 1px dashed var(--line2); }
+.relrow:last-child { border-bottom: 0; }
+.relhead { display: flex; justify-content: space-between; align-items: baseline; font-size: 12.5px; margin-bottom: 5px; }
+.relhead b { font-weight: 600; }
+.relhead span { font-variant-numeric: tabular-nums; font-weight: 600; }
+.reldesc { font-size: 10.5px; color: var(--ink3); margin-top: 5px; line-height: 1.5; }
+.relfx { font-size: 10.5px; color: var(--ink3); margin-top: 2px; line-height: 1.5; }
+.relfx b { font-variant-numeric: tabular-nums; }
+
 </style>
 </head>
 <body>
@@ -620,22 +650,43 @@ const TYPE_COST = { hospital: 1.0, primary: 0.5, retail: 0.7, city: 1.0, region:
 /* 竞品（虚构） */
 const RIVALS = ['瑞和药业', '东岭制药', '长康生物', '博远医药'];
 
+/* ---------------- 治疗领域（参考 ATC 大类） ---------------- */
+const TA_LIST = [
+  { id: 'C', name: '心血管', en: 'Cardiovascular' },
+  { id: 'A', name: '消化代谢', en: 'Alimentary' },
+  { id: 'N', name: '神经精神', en: 'Neuro' },
+  { id: 'J', name: '抗感染', en: 'Anti-infective' },
+  { id: 'R', name: '呼吸', en: 'Respiratory' },
+  { id: 'L', name: '抗肿瘤', en: 'Oncology' },
+  { id: 'M', name: '免疫骨骼', en: 'Immunology' },
+  { id: 'G', name: '泌尿生殖', en: 'Genitourinary' },
+];
+const TA_NAME = {};
+TA_LIST.forEach(t => { TA_NAME[t.id] = t.name; });
+
+/* 政策身份：可以同时拥有多个，也可能一个都没有（自费） */
+const POLICIES = {
+  nrdl: { id: 'nrdl', name: '医保目录', short: '医保', mul: 1.16, access: 1.10, price: 0, note: '报销身份，院内准入和处方意愿都更好' },
+  vbp:  { id: 'vbp',  name: '集采中标', short: '集采', mul: 1.34, access: 1.14, price: -0.05, note: '以价换量，份额高但单价被压' },
+  edl:  { id: 'edl',  name: '基药目录', short: '基药', mul: 1.08, access: 1.06, price: 0.01, primary: 1.24, note: '基层配备考核品种，卫生院和连锁最好卖' },
+};
+
 /* ---------------- 产品 ---------------- */
 const PROD_ARCH = [
   { id: 'herb', kind: '独家中成药', driver: '学术', base: 0.030, awWeight: 1.30, priceEdge: 0.020,
-    color: '#0143B0', 医保: '乙类', price: 68,
+    color: '#0143B0', 医保: '乙类', price: 68, ta: ['C', 'N', 'A'], polWeight: { nrdl: 0.5, edl: 0.15, vbp: 0.02 },
     mix: { hospital: 0.34, primary: 0.06, retail: 0.38, city: 0.34, region: 0.34 },
     note: '高值独家，靠学术证据和专家共识撬动，起量慢、天花板高' },
   { id: 'base', kind: '基药 · 医保甲类', driver: '渠道', base: 0.055, awWeight: 0.80, priceEdge: 0.050,
-    color: '#2F6BC9', 医保: '甲类', price: 12,
+    color: '#2F6BC9', 医保: '甲类', price: 12, ta: ['A', 'C', 'J'], polWeight: { nrdl: 0.55, edl: 0.55, vbp: 0.25 },
     mix: { hospital: 0.24, primary: 0.56, retail: 0.22, city: 0.24, region: 0.24 },
     note: '基药放量品，吃配送覆盖和基层网络，价格是硬通货' },
   { id: 'bio', kind: '生物制剂', driver: '准入', base: 0.026, awWeight: 1.10, priceEdge: -0.010,
-    color: '#0E7C6B', 医保: '乙类（谈判）', price: 1280,
+    color: '#0E7C6B', 医保: '乙类（谈判）', price: 1280, ta: ['L', 'M', 'N'], polWeight: { nrdl: 0.3, edl: 0.02, vbp: 0.05 },
     mix: { hospital: 0.26, primary: 0.04, retail: 0.08, city: 0.26, region: 0.26 },
     note: '高值生物药，进院难、谈判门槛高，一旦进院几乎没有替代' },
   { id: 'gen', kind: '仿制化药', driver: '价格', base: 0.045, awWeight: 0.90, priceEdge: -0.030,
-    color: '#8A5A00', 医保: '乙类', price: 35,
+    color: '#8A5A00', 医保: '乙类', price: 35, ta: ['R', 'G', 'C'], polWeight: { nrdl: 0.5, edl: 0.2, vbp: 0.4 },
     mix: { hospital: 0.16, primary: 0.34, retail: 0.32, city: 0.16, region: 0.16 },
     note: '多家竞品在拼，没有价格和客情就是陪跑' },
 ];
@@ -666,11 +717,19 @@ function genProductNames() {
 function buildProducts() {
   const names = genProductNames();
   PRODUCTS.length = 0;
+  const usedTa = {};
   PROD_ARCH.forEach((a, i) => {
+    const cands = a.ta.filter(x => !usedTa[x]);
+    const ta = pickOne(cands.length ? cands : a.ta);
+    usedTa[ta] = 1;
+    const pol = [];
+    Object.keys(a.polWeight).forEach(k => { if (Math.random() < a.polWeight[k]) pol.push(k); });
+    if (pol.includes('vbp') && !pol.includes('nrdl') && Math.random() < 0.6) pol.push('nrdl');
     PRODUCTS.push({
       id: a.id, name: names[i].name, short: names[i].name.slice(0, 2),
       kind: a.kind, driver: a.driver, base: a.base, awWeight: a.awWeight,
       priceEdge: a.priceEdge, color: a.color, 医保: a.医保, price: a.price, note: a.note,
+      ta, pol,
     });
   });
   // 归一化品种结构
@@ -752,6 +811,20 @@ function fill(str) {
     .replace('{c5}', WORLD.cities[4]).replace('{c6}', WORLD.cities[5]);
 }
 
+function buildTaAff(type) {
+  const aff = {};
+  TA_LIST.forEach(t => { aff[t.id] = 0.55 + Math.random() * 0.2; });
+  const strong = {
+    hospital: ['C', 'A', 'N', 'L'],
+    primary: ['R', 'A', 'J', 'C'],
+    retail: ['C', 'A', 'R', 'G'],
+    city: ['C', 'A', 'N', 'L'],
+    region: ['C', 'A', 'N', 'L'],
+  }[type] || ['C', 'A'];
+  strong.sort(() => Math.random() - 0.5).slice(0, 2).forEach(k => { aff[k] = 1.15 + Math.random() * 0.2; });
+  return aff;
+}
+
 function buildTerminals() {
   TERM_SPECS.forEach((specs, act) => {
     TERMINALS[act].length = 0;
@@ -768,7 +841,10 @@ function buildTerminals() {
         name, type: s[1], potential: s[2], access: s[3],
         awareness: s[4], relation: s[5], comp: s[6], tier: s[7],
         pharm: s[8] || 0, stores: s[9] ? stores : 0,
-        ally: null, spend: 0, idle: 0, prof: pickOne(['academic', 'relation', 'price']),
+        ally: null, spend: 0, idle: 0,
+        prof: pickOne(['academic', 'relation', 'price']),
+        taAff: buildTaAff(s[1]),
+        phtNext: 0,
       });
     });
     ALLIANCES[act].length = 0;
@@ -892,6 +968,7 @@ const PLAYER_TAGS = [
   { id: 'frugal', name: '成本控', desc: '所有项目成本 -10%', eff: { cost: -0.1 } },
   { id: 'workaholic', name: '工作狂', desc: '每周精力 +1', eff: { ap: 1 } },
   { id: 'charisma', name: '人格魅力', desc: '上级评价获取 +30%', eff: { eval: 0.3 } },
+  { id: 'parachute', name: '空降兵', desc: '自带外部关系（客户 +15、商业 +10），但内部关系 -10', eff: { relExt: 12, relInt: -10 } },
 ];
 
 /* =========================================================
@@ -1421,6 +1498,145 @@ const AUDIT_EVENT = {
   ],
 };
 
+/* =========================================================
+   难度：药事会制度不同（参考现实：有的医院一年只开一两次）
+   ========================================================= */
+const DIFFICULTY = {
+  easy: {
+    id: 'easy', name: '简单', en: 'EASY',
+    desc: '药事会季度例会，周期固定可预期；窗口期内开发成功率和收益都更高。',
+    cycle: 12, jitter: 0, window: 3, inBonus: 0.18, outPenalty: -0.10, noPht: false,
+  },
+  normal: {
+    id: 'normal', name: '中等', en: 'NORMAL',
+    desc: '药事会不定期召开，只能从"窗口临近"的迹象判断；错过要等下轮。',
+    cycle: 0, jitter: 0, window: 3, inBonus: 0.08, outPenalty: -0.06, noPht: false,
+  },
+  hard: {
+    id: 'hard', name: '困难', en: 'HARD',
+    desc: '这家医院常年不开药事会，正式开发走不通。只能靠客情、病例、渠道一点点磨进院。',
+    cycle: 0, jitter: 0, window: 0, inBonus: 0, outPenalty: 0, noPht: true,
+  },
+};
+
+/* =========================================================
+   关系：公司内部部门 + 外部资源
+   ========================================================= */
+const REL_DEFS = {
+  internal: [
+    { id: 'compliance', name: '合规部', desc: '好感高 → 被抽查概率下降、合规培训效果更好' },
+    { id: 'finance', name: '财务部', desc: '好感高 → 费用上限上浮、报销更顺' },
+    { id: 'marketing', name: '市场部', desc: '好感高 → 区域学术会成本下降' },
+    { id: 'medical', name: '医学部', desc: '好感高 → 学术活动认知增益更高' },
+    { id: 'commercial', name: '商务部', desc: '好感高 → 渠道建设效果更好' },
+    { id: 'hr', name: '人力部', desc: '好感高 → 候选人质量更好、新人上手更快' },
+  ],
+  external: [
+    { id: 'hospital', name: '医院客户', desc: '好感高 → 客情与进院更快' },
+    { id: 'distributor', name: '商业公司', desc: '好感高 → 回款更顺、配送覆盖更广' },
+    { id: 'kol', name: '专家网络', desc: '好感高 → 病例与区域会效果更好' },
+    { id: 'association', name: '行业协会', desc: '好感高 → 合规事件的冲击更小' },
+  ],
+};
+
+
+
+/* =========================================================
+   政策身份事件（医保 / 集采 / 基药）与支付改革
+   ========================================================= */
+EVENTS.push(
+  {
+    id: 'nrdl', title: '医保目录谈判', en: 'NRDL Negotiation', weight: 13,
+    cond: s => PRODUCTS.some(p => !p.pol.includes('nrdl')),
+    text: () => {
+      const p = pickOne(PRODUCTS.filter(x => !x.pol.includes('nrdl')));
+      return `${p.name}（${TA_NAME[p.ta]}）进入今年国家医保目录谈判名单。以价换量，降价幅度决定了能不能进。`;
+    },
+    options: [
+      { label: '大幅降价，确保进目录', cost: 3, ap: 1,
+        run: s => { const p = pick(PRODUCTS.filter(x => !x.pol.includes('nrdl'))); if (!p) return { text: '本轮没有可谈品种。', tone: 'flat' };
+          p.pol.push('nrdl'); p.priceEdge -= 0.02; s.reputation = Math.min(100, s.reputation + 4);
+          return { text: `${p.name} 进入医保目录，份额上限抬升，单价小幅下调。上级评价 +4。`, tone: 'good' }; } },
+      { label: '守住价格，接受谈判失败', cost: 0,
+        run: s => { const p = pick(PRODUCTS.filter(x => !x.pol.includes('nrdl')));
+          if (p) p.priceEdge += 0.01;
+          return { text: p ? `${p.name} 谈判未成，继续自费。价格守住了，但院内推广更难。` : '无品种可谈。', tone: 'flat' }; } },
+    ],
+  },
+  {
+    id: 'vbp', title: '集采投标', en: 'Volume-Based Procurement', weight: 12,
+    cond: s => PRODUCTS.some(p => !p.pol.includes('vbp') && (p.id === 'gen' || p.id === 'base')),
+    text: () => {
+      const p = PRODUCTS.find(x => !x.pol.includes('vbp') && (x.id === 'gen' || x.id === 'base')) || PRODUCTS[0];
+      return `${p.name} 所在品种组进入国家集采。规则是最低价中标，中标量价齐升，落标基本退出院内市场。`;
+    },
+    options: [
+      { label: '压到底价，抢中标', cost: 2, ap: 1,
+        run: s => { const p = PRODUCTS.find(x => !x.pol.includes('vbp') && (x.id === 'gen' || x.id === 'base'));
+          if (!p) return { text: '没有可投标品种。', tone: 'flat' };
+          if (Math.random() < 0.62) { p.pol.push('vbp'); p.priceEdge -= 0.04;
+            return { text: `${p.name} 中标。份额上限提高，但单价被压。`, tone: 'good' }; }
+          p.pol = p.pol.filter(x => x !== 'nrdl');
+          return { text: `${p.name} 落标，院内市场基本失守。`, tone: 'bad' }; } },
+      { label: '不投，保住价格体系', cost: 0,
+        run: s => { const p = PRODUCTS.find(x => !x.pol.includes('vbp') && (x.id === 'gen' || x.id === 'base'));
+          if (p) { p.priceEdge += 0.01; }
+          s.reputation = Math.max(0, s.reputation - 2);
+          return { text: '弃标。价格保住了，但上级对"放弃存量"有意见。评价 -2。', tone: 'flat' }; } },
+    ],
+  },
+  {
+    id: 'edl', title: '基药目录遴选', en: 'Essential Drug List', weight: 10,
+    cond: s => PRODUCTS.some(p => !p.pol.includes('edl') && (p.id === 'base' || p.id === 'herb')),
+    text: '新版基本药物目录开始遴选。进入目录意味着基层必须配备，但价格和利润空间都会被压。',
+    options: [
+      { label: '全力申报', cost: 2, ap: 1,
+        run: s => { const p = PRODUCTS.find(x => !x.pol.includes('edl') && (x.id === 'base' || x.id === 'herb'));
+          if (!p) return { text: '没有可申报品种。', tone: 'flat' };
+          if (Math.random() < 0.55) { p.pol.push('edl');
+            return { text: `${p.name} 进入基药目录，基层和连锁终端的配备率会明显提升。`, tone: 'good' }; }
+          return { text: `${p.name} 未入选，本轮申报白做。`, tone: 'flat' }; } },
+      { label: '不申报，保住院内外价差', cost: 0,
+        run: s => { s.reputation = Math.min(100, s.reputation + 1);
+          return { text: '放弃基药身份，保住价格体系。上级评价 +1（利润优先）。', tone: 'flat' }; } },
+    ],
+  },
+  {
+    id: 'drg', title: 'DRG 付费改革', en: 'DRG Payment Reform', weight: 12,
+    cond: s => PRODUCTS.some(p => p.id === 'bio' || p.price >= 200),
+    text: '医保局在辖区推行 DRG 按病种付费。高值品种一旦超出病组支付标准，医院要自己承担，科室开始压处方。',
+    options: [
+      { label: '申报特例单议，逐例争取', cost: 5, ap: 1,
+        run: s => {
+          const hi = PRODUCTS.filter(p => p.id === 'bio' || p.price >= 200);
+          hi.forEach(p => { p.priceEdge += 0.0; });
+          s.rel.external.association = Math.min(100, s.rel.external.association + 3);
+          return { text: '特例单议通道打通，高值品种没有被一刀切压掉。花费 5 万，行业协会好感 +3。', tone: 'good' }; } },
+      { label: '接受现实，转向门诊和院外', cost: 0,
+        run: s => { s.terminals.forEach(t => { if (t.type === 'hospital') t.potential = +(t.potential * 0.94).toFixed(1); });
+          const rt = s.terminals.find(t => t.type === 'retail');
+          if (rt) rt.potential = +(rt.potential * 1.1).toFixed(1);
+          return { text: '院内高值品类容量 -6%，连锁终端容量 +10%。处方在往院外走。', tone: 'flat' }; } },
+    ],
+  },
+  {
+    id: 'one-two', title: '一品两规', en: 'One Drug, Two Strengths', weight: 9,
+    cond: s => s.terminals.some(t => t.type === 'hospital'),
+    text: '一家医院严格执行"一品两规"：同一化学成分只保留两个品规。你的一个品种被列入清退名单。',
+    options: [
+      { label: '争取保留，做临床必需性论证', cost: 3, ap: 1,
+        run: s => { const t = pick(s.terminals.filter(x => x.type === 'hospital'));
+          if (!t) return { text: '无医院。', tone: 'flat' };
+          t.access = Math.min(100, t.access + 4); t.awareness = Math.min(100, t.awareness + 8);
+          return { text: `${t.name} 保留在目录内，认知 +8。`, tone: 'good' }; } },
+      { label: '放弃该院，把资源挪走', cost: 0,
+        run: s => { const t = pick(s.terminals.filter(x => x.type === 'hospital'));
+          if (t) t.access = Math.max(0, t.access - 18);
+          return { text: t ? `${t.name} 被清退，准入 -18。` : '无医院。', tone: 'bad' }; } },
+    ],
+  },
+);
+
 </script>
 <script>
 /* =========================================================
@@ -1441,6 +1657,31 @@ function moraleOf(r) { return 0.55 + clamp(r.loyalty, 0, 100) / 100 * 0.55; }
 function assignIds(r) { return Object.keys(r.assign || {}); }
 function covers(r, tid) { return !!(r.assign && r.assign[tid]); }
 function playerMod() { return (S && S.player && S.player.mod) || {}; }
+
+/* ---------- 关系 ---------- */
+function relOf(group, id) { return (S.rel && S.rel[group] && S.rel[group][id] != null) ? S.rel[group][id] : 50; }
+function relMod(group, id) { return (relOf(group, id) - 50) / 50; }
+function relAdd(group, id, d) {
+  if (!S.rel || !S.rel[group] || S.rel[group][id] == null) return;
+  S.rel[group][id] = clamp(S.rel[group][id] + d, 0, 100);
+}
+function diffCfg() { return DIFFICULTY[S.diff] || DIFFICULTY.normal; }
+
+/* ---------- 政策身份 ---------- */
+function policyOf(p, type) {
+  let mul = 1, access = 1, price = 0;
+  (p.pol || []).forEach(k => {
+    const d = POLICIES[k];
+    if (!d) return;
+    let m = d.mul;
+    if (k === 'edl' && (type === 'primary' || type === 'retail')) m = d.primary;
+    mul *= m; access *= d.access; price += d.price;
+  });
+  if (!(p.pol || []).length && (type === 'primary' || type === 'retail')) mul *= 0.88;
+  return { mul, access, price };
+}
+
+function taOf(t, p) { return (t.taAff && t.taAff[p.ta]) || 0.7; }
 
 /* ---------- 建人 ---------- */
 function pickVisible(n, forceId) {
@@ -1727,27 +1968,29 @@ function computeStats() {
 
     const tmul = mulW > 0 ? mulS / mulW : 1;
     const am = allyMulOf(t);
-    const avail = 0.02 + 0.98 * Math.pow(clamp(t.access, 0, 100) / 100, 0.7);
     const mix = MIX[t.type] || MIX.hospital;
     const items = {};
     let total = 0;
 
     PRODUCTS.forEach(p => {
       const m = mix[p.id] != null ? mix[p.id] : 0.25;
+      const pol = policyOf(p, t.type);
+      const taF = taOf(t, p);
+      const avail = 0.02 + 0.98 * Math.pow(clamp(t.access * taF, 0, 100) / 100, 0.7) * pol.access;
       let share = p.base
         + t.awareness / 100 * 0.26 * p.awWeight
         + Math.min(cov[p.id] || 0, 1.3) * 0.115
         + t.relation / 100 * 0.11
         - t.comp * 0.16
-        + p.priceEdge;
-      share = clamp(share, 0, 0.62) * avail * tmul * am * orderMul;
+        + p.priceEdge + pol.price;
+      share = clamp(share, 0, 0.72) * avail * tmul * am * orderMul * pol.mul;
       const sales = t.potential * m * share;
-      items[p.id] = { share, sales, cov: cov[p.id] || 0 };
+      items[p.id] = { share, sales, cov: cov[p.id] || 0, ta: taF, pol };
       total += sales;
       st.byProduct[p.id] += sales;
     });
 
-    st.terms[t.id] = { cov, covAll, total, items, reps, am, avail, tmul };
+    st.terms[t.id] = { cov, covAll, total, items, reps, am, tmul };
     st.total += total;
   });
   return st;
@@ -1780,7 +2023,7 @@ function apMax() {
 }
 
 /* ---------- 新游戏 ---------- */
-function newGame(playerName, pathId, tagIds) {
+function newGame(playerName, pathId, tagIds, diffId) {
   generateWorld();
   const pm = { ap: 0, cov: 0, growth: 0, fail: 0, dev: 0, compliance: 0, cost: 0, eval: 0, exposure: 0 };
   (tagIds || []).forEach(id => {
@@ -1792,7 +2035,12 @@ function newGame(playerName, pathId, tagIds) {
   S = {
     playerName: playerName || '王磊',
     path: pathId || 'sales',
+    diff: diffId || 'normal',
     player: { path: pathId || 'sales', tags: (tagIds || []).slice(), mod: pm },
+    rel: {
+      internal: { compliance: 55, finance: 50, marketing: 50, medical: 50, commercial: 50, hr: 50 },
+      external: { hospital: 50, distributor: 50, kol: 50, association: 50 },
+    },
     level: 0,
     weekInMonth: 1,
     monthInAct: 1,
@@ -1830,6 +2078,15 @@ function newGame(playerName, pathId, tagIds) {
   a.assign[t0.id] = { p: PRODUCTS.map(p => p.id), pharm: true };
   b.assign[t1.id] = { p: PRODUCTS.slice(0, 2).map(p => p.id), pharm: false };
   S.team.push(a, b);
+  // 个人标签带来的初始关系
+  if (pm.relExt) {
+    relAdd('external', 'hospital', pm.relExt * 1.2);
+    relAdd('external', 'distributor', pm.relExt * 0.8);
+    relAdd('external', 'kol', pm.relExt * 0.6);
+    relAdd('external', 'association', pm.relExt * 0.4);
+  }
+  if (pm.relInt) ['compliance', 'finance', 'marketing', 'medical', 'commercial', 'hr'].forEach(k => relAdd('internal', k, pm.relInt));
+
   S.ap = apMax();
   log('info', `你接手了${WORLD.county}市场。两个代表，两张桌子，100 万预算。`);
   log('sys', '提示：先看「终端」，把代表放到能出量的地方；准入低于 25 的终端几乎不出量。');
@@ -1864,6 +2121,10 @@ function enterAct(level, carry) {
     assignIds(r).forEach(tid => { if (!S.terminals.some(x => x.id === tid)) delete r.assign[tid]; });
   });
   S.pending = [];
+  S.terminals.forEach(t => {
+    t.phtOpen = 0;
+    t.phtNext = 3 + Math.floor(Math.random() * 12);
+  });
   S.ap = apMax();
 }
 
@@ -1898,10 +2159,14 @@ function effOf(pid, t) {
   const pe = PROF_EFF[t.prof] || PROF_EFF.academic;
   const tf = tierF(t);
   const pm = playerMod();
-  if (pid === 'dept') return { aw: 12 * te.aw * pe.aw * tf, rel: 4 * te.rel * pe.rel };
-  if (pid === 'case') return { aw: 14 * te.aw * pe.aw * te.cs * tf, rel: 8 * te.rel * pe.rel * te.cs };
-  if (pid === 'relation') return { rel: 13 * te.rel * pe.rel * tf };
-  if (pid === 'channel') return { access: 8 * (pe.ch || 1), rel: 5 * te.rel * pe.rel };
+  const medF = 1 + relMod('internal', 'medical') * 0.15;
+  const comF = 1 + relMod('internal', 'commercial') * 0.18;
+  const kolF = 1 + relMod('external', 'kol') * 0.15;
+  const hosF = 1 + relMod('external', 'hospital') * 0.12;
+  if (pid === 'dept') return { aw: 12 * te.aw * pe.aw * tf * medF, rel: 4 * te.rel * pe.rel * hosF };
+  if (pid === 'case') return { aw: 14 * te.aw * pe.aw * te.cs * tf * medF * kolF, rel: 8 * te.rel * pe.rel * te.cs * hosF };
+  if (pid === 'relation') return { rel: 13 * te.rel * pe.rel * tf * hosF };
+  if (pid === 'channel') return { access: 8 * (pe.ch || 1) * comF, rel: 5 * te.rel * pe.rel * hosF };
   if (pid === 'dev') {
     const base = 14 + t.relation / 100 * 10;
     return { access: base * te.dev * pe.dev * (1 + (pm.dev || 0)) * allyMulOf(t) * (1 - clamp(t.access, 0, 100) / 140) };
@@ -1915,6 +2180,8 @@ function projectCost(p, n) {
   let c = p.cost * CFG.costScale[S.level] * n;
   if (p.id === 'dept' && S.flags.filing > 0) c *= 1.2;
   if (p.id === 'relation' && S.flags.lean > 0) c *= 0.8;
+  if (p.id === 'city') c *= (1 - relMod('internal', 'marketing') * 0.15);
+  if (p.id === 'dept' && S.flags.filing > 0) c *= 1;
   c *= (1 + (pm.cost || 0));
   return +c.toFixed(2);
 }
@@ -1941,6 +2208,8 @@ function failRateOf(p, t) {
 function launchProject(pid, tids) {
   const p = PROJECTS.find(x => x.id === pid);
   if (!p) return { ok: false, msg: '项目不存在' };
+  const dc = diffCfg();
+  if (pid === 'dev' && dc.noPht) return { ok: false, msg: '这家医院常年不开药事会，正式开发走不通——用客情、病例、渠道磨进院' };
 
   let list = [];
   if (p.multi === -1) list = [];
@@ -1999,7 +2268,10 @@ function launchProject(pid, tids) {
     msgs.push('区域学术会召开，全终端认知 +6，上级评价 +2。');
   } else if (p.delay > 0) {
     list.forEach(tid => {
-      S.pending.push({ pid, tid, at: S.totalWeek + p.delay * CFG.weeksPerMonth, cost: +(cost / n).toFixed(2) });
+      const t = termById(tid);
+      const inWin = t && t.phtOpen > 0;
+      const mul = pid === 'dev' && t ? (inWin ? 1 + dc.inBonus : 1 + dc.outPenalty) : 1;
+      S.pending.push({ pid, tid, at: S.totalWeek + p.delay * CFG.weeksPerMonth, cost: +(cost / n).toFixed(2), mul });
       queued++;
     });
     msgs.push(`${queued} 个终端的${p.name}已提交，${p.delay} 个月后出结果。`);
@@ -2016,15 +2288,26 @@ function launchProject(pid, tids) {
     if (list.length > 1) msgs.push(`${p.name}：${ok} 个终端成功，${failed} 个失败。`);
   }
 
+  // 关系变化
+  if (pid === 'compliance') relAdd('internal', 'compliance', 5);
+  if (pid === 'train') relAdd('internal', 'hr', 1.5);
+  if (pid === 'hire') relAdd('internal', 'hr', 1);
+  if (pid === 'city') { relAdd('internal', 'marketing', 2); relAdd('internal', 'medical', 1); relAdd('external', 'kol', 2); }
+  if (pid === 'channel') { relAdd('internal', 'commercial', 3); relAdd('external', 'distributor', 3); }
+  if (pid === 'relation') relAdd('external', 'hospital', 2);
+  if (pid === 'case') { relAdd('internal', 'medical', 2); relAdd('external', 'kol', 2); }
+  if (pid === 'dept') relAdd('internal', 'medical', 0.8);
+
   if (!msgs.length) msgs.push(`${p.name}执行完成。`);
   S.planThisMonth.push({ pid, tids: list, msg: msgs[0] });
   msgs.forEach(m => log('action', m));
   return { ok: true, msg: msgs.join(' ') };
 }
 
-function applyEffect(p, t, success) {
+function applyEffect(p, t, success, extraMul) {
   const k = success ? 1 : 0.35;
   const e = effOf(p.id, t);
+  const hard = diffCfg().noPht;
   switch (p.id) {
     case 'dept':
       t.awareness = Math.min(100, t.awareness + (e.aw || 0) * k);
@@ -2044,8 +2327,14 @@ function applyEffect(p, t, success) {
       t.relation = Math.min(100, t.relation + (e.rel || 0) * k);
       break;
     case 'dev':
-      t.access = Math.min(100, t.access + (e.access || 0) * (success ? rnd(0.9, 1.15) : 0.45));
+      t.access = Math.min(100, t.access + (e.access || 0) * (success ? rnd(0.9, 1.15) : 0.45) * (extraMul || 1));
       break;
+  }
+  if (hard) {
+    if (p.id === 'relation') t.access = Math.min(100, t.access + 2.5 * k);
+    else if (p.id === 'case') t.access = Math.min(100, t.access + 2 * k);
+    else if (p.id === 'dept') t.access = Math.min(100, t.access + 0.8 * k);
+    else if (p.id === 'channel') t.access = Math.min(100, t.access + 1.5 * k);
   }
   t.idle = 0;
 }
@@ -2056,6 +2345,7 @@ function hireCandidate(cid) {
   if (i < 0) return { ok: false, msg: '候选人不存在' };
   if (S.team.length >= CFG.teamCap[S.level]) return { ok: false, msg: '编制已满' };
   const c = S.candidates.splice(i, 1)[0];
+  c.loyalty = clamp(c.loyalty + relMod('internal', 'hr') * 8, 0, 100);
   S.team.push(c);
   log('good', `${c.name} 入职，任 ${ROLES[c.role].label}，月薪 ${c.salary.toFixed(1)} 万。`);
   return { ok: true, msg: `${c.name} 已入职` };
@@ -2112,7 +2402,7 @@ function resolvePending() {
     if (!p || !t) return;
     const f = failRateOf(p, t);
     const ok = Math.random() > f;
-    applyEffect(p, t, ok);
+    applyEffect(p, t, ok, item.mul);
     msgs.push(`${t.name}・${p.name}${ok ? '落地' : '失败'}`);
   });
   return msgs;
@@ -2171,10 +2461,30 @@ function endWeek() {
     r.ability = Math.min(100, r.ability + (r.ability < 70 ? 0.55 : 0.22) / 4 * (1 + r.mod.growth + (playerMod().growth || 0)));
   });
 
+  // 4.5) 药事会周期推进
+  const dc0 = diffCfg();
+  if (!dc0.noPht) {
+    S.terminals.forEach(t => {
+      if (t.phtOpen > 0) { t.phtOpen--; return; }
+      t.phtNext = (t.phtNext || 1) - 1;
+      if (t.phtNext <= 0) {
+        t.phtOpen = dc0.window;
+        t.phtNext = dc0.id === 'easy' ? dc0.cycle + rndInt(-1, 1) : 8 + Math.floor(Math.random() * 14);
+      }
+    });
+  }
+
+  // 4.6) 关系自然回落
+  ['internal', 'external'].forEach(g => Object.keys(S.rel[g]).forEach(k => {
+    const v = S.rel[g][k];
+    if (v > 50) S.rel[g][k] = Math.max(50, v - 0.25);
+    else if (v < 50) S.rel[g][k] = Math.min(50, v + 0.25);
+  }));
+
   // 5) 销售（周 = 月跑量 / 4）
   const st = computeStats();
   const weekSales = st.total / CFG.weeksPerMonth;
-  const gross = weekSales * CFG.grossRate;
+  const gross = weekSales * CFG.grossRate * (1 + relMod('external', 'distributor') * 0.08);
   const sal = salaryTotal() / CFG.weeksPerMonth;
   S.cash = +(S.cash + gross - sal).toFixed(2);
 
@@ -2186,7 +2496,7 @@ function endWeek() {
 
   // 7) 监管抽查（周概率 = 月概率 / 4）
   let incident = null;
-  const p = (0.015 + Math.pow(risk / 100, 2) * 0.5) / 4;
+  const p = (0.015 + Math.pow(risk / 100, 2) * 0.5) / 4 * (1 - relMod('internal', 'compliance') * 0.3);
   if (Math.random() < p) incident = resolveInspection(risk);
 
   // 8) 人员流失
@@ -2276,8 +2586,12 @@ function rollMonth() {
   d *= (1 + (playerMod().eval || 0));
   S.reputation = clamp(S.reputation + d, 0, 100);
   S.compliance = Math.min(100, S.compliance + (playerMod().compliance || 0));
+  if (S.compliance >= 85) relAdd('internal', 'compliance', 2);
+  else if (S.compliance < 60) relAdd('internal', 'compliance', -2);
+  if (S.reputation >= 70) ['finance', 'marketing', 'medical', 'commercial', 'hr'].forEach(k => relAdd('internal', k, 0.6));
+  if (S.cash < 20) relAdd('internal', 'finance', -1.5);
 
-  const cap = Math.max(200, ACTS[S.level].target * 2.5);
+  const cap = Math.max(200, ACTS[S.level].target * 2.5) * (1 + relMod('internal', 'finance') * 0.12);
   let up = 0;
   if (S.cash > cap) { up = +(S.cash - cap).toFixed(1); S.cash = cap; }
 
@@ -2470,7 +2784,7 @@ let PENDING = null;
 let MODAL = null;
 let PICKER = null;
 let ACT = { pid: null, sel: [] };
-let START = { stage: 'path', path: null, name: '王磊', tags: [] };
+let START = { stage: 'path', path: null, name: '王磊', tags: [], diff: 'normal' };
 let WEEK_RES = null;
 
 /* ---------- 工具 ---------- */
@@ -2616,7 +2930,7 @@ function topbar() {
 function nav() {
   const items = [
     ['overview', '经营总览', '◫'], ['terminals', '终端', '▤'], ['team', '团队', '◉'],
-    ['actions', '行动', '✦'], ['compliance', '合规', '⚠'], ['log', '记录', '≡'],
+    ['actions', '行动', '✦'], ['relations', '关系', '◎'], ['compliance', '合规', '⚠'], ['log', '记录', '≡'],
   ];
   const cand = S.candidates.length;
   return `<nav class="sidenav">
@@ -2637,6 +2951,7 @@ function mainView() {
     case 'terminals': return viewTerminals();
     case 'team': return viewTeam();
     case 'actions': return viewActions();
+    case 'relations': return viewRelations();
     case 'compliance': return viewCompliance();
     case 'log': return viewLog();
     default: return viewOverview();
@@ -2791,7 +3106,7 @@ function viewTerminals() {
           <span class="bar thin"><i style="width:${Math.min(100, sh * 2.2)}%"></i></span>
           <div class="t2" style="margin:5px 0 0;font-size:10.5px">
             <span>${reps.length ? reps.join('、') : '<span style="color:#B3261E">无代表驻点</span>'}</span>
-            <span>${t.idle >= 8 ? `<span style="color:#B3261E">闲置 ${t.idle} 周</span>` : t.pharm ? `院边 ${t.pharm}` : ''}</span>
+            <span>${t.idle >= 8 ? `<span style="color:#B3261E">闲置 ${t.idle} 周</span>` : phtText(t)}</span>
           </div>
         </div>`;
   }).join('')}
@@ -2803,6 +3118,19 @@ function viewTerminals() {
 function barRow(label, value, color) {
   const c = color || (value < 25 ? '#B3261E' : value < 55 ? '#B8730A' : '#0143B0');
   return `<div class="detail-row"><span class="lb">${label}</span><span class="bar"><i style="width:${Math.min(100, value)}%;background:${c}"></i></span><span class="vl">${f1(value)}</span></div>`;
+}
+
+function phtText(t) {
+  const dc = DIFFICULTY[S.diff];
+  if (dc.noPht) return '<span style="color:#B8730A">不开药事会</span>';
+  if (t.phtOpen > 0) return `<span style="color:#17795A">药事会窗口开放 · 剩 ${t.phtOpen} 周</span>`;
+  if (t.phtNext <= 4) return `<span style="color:#B8730A">药事会临近 · 约 ${t.phtNext} 周</span>`;
+  return `药事会约 ${t.phtNext} 周后`;
+}
+
+function polChips(p) {
+  if (!p.pol || !p.pol.length) return '<span class="polchip self">自费</span>';
+  return p.pol.map(k => `<span class="polchip ${k}">${POLICIES[k].short}</span>`).join('');
 }
 
 function effText(pid, t) {
@@ -2822,9 +3150,11 @@ function terminalDetail(t, c) {
   const prodRows = PRODUCTS.map(p => {
     const it = c.items[p.id];
     const who = c.reps.filter(x => x.p.includes(p.id)).map(x => x.name);
-    return `<tr><td><i style="display:inline-block;width:7px;height:7px;border-radius:2px;background:${p.color};margin-right:6px"></i>${p.name}</td>
+    const ta = it.ta || 0.7;
+    return `<tr><td><i style="display:inline-block;width:7px;height:7px;border-radius:2px;background:${p.color};margin-right:6px"></i>${p.name}
+        <span class="tachip">${TA_NAME[p.ta]}</span>${polChips(p)}</td>
+      <td class="r" style="color:${ta >= 1.1 ? '#17795A' : ta <= 0.65 ? '#B3261E' : '#8494A6'}">×${ta.toFixed(2)}</td>
       <td class="r">${f1(it.share * 100)}%</td><td class="r">${f1(it.sales)}</td>
-      <td class="r" style="color:#8494A6">${f1(it.cov)}</td>
       <td style="font-size:11px;color:${who.length ? '#4A5C70' : '#B3261E'}">${who.length ? who.join('、') : '无人负责'}</td></tr>`;
   }).join('');
 
@@ -2833,7 +3163,7 @@ function terminalDetail(t, c) {
   return `<section class="card">
     <div class="card-h">
       <div><h3 style="font-size:16px">${t.name} <em style="font-size:11px;color:#8494A6">${TYPE_LABEL[t.type]}${t.tier ? ' · ' + t.tier : ''}</em> ${allyBadge(t)}</h3>
-      <div class="hint">容量 ${f1(t.potential)} 万/月 · 竞品压力 ${f1(t.comp * 100)} · 闲置 ${t.idle} 周${t.idle >= 8 ? '（<span style="color:#B3261E">衰减加速</span>）' : ''}</div></div>
+      <div class="hint">容量 ${f1(t.potential)} 万/月 · 竞品压力 ${f1(t.comp * 100)} · 闲置 ${t.idle} 周${t.idle >= 8 ? '（<span style="color:#B3261E">衰减加速</span>）' : ''} · ${phtText(t)}</div></div>
       <div style="text-align:right"><div style="font-size:24px;font-weight:700;letter-spacing:-.5px">${f1(c.total)}<small style="font-size:11px;font-weight:400;color:#8494A6"> 万/月</small></div>
       <div class="hint">份额 ${f1(c.total / t.potential * 100)}% · 投入 ${f1(t.spend)} 万 · 费效 ${t.spend > 0 ? f1(c.total * 12 / Math.max(t.spend, 0.1)) + ' 倍' : '—'}</div></div>
     </div>
@@ -2857,7 +3187,7 @@ function terminalDetail(t, c) {
     <div class="card-h mt16" style="margin-bottom:6px"><h3 style="font-size:12px;color:#4A5C70">品种拆分<em>BY PRODUCT</em></h3>
       <span class="sub">效果随终端类型与画像浮动</span></div>
     <table class="tb">
-      <thead><tr><th>品种</th><th class="r">份额</th><th class="r">销售</th><th class="r">覆盖</th><th>负责代表</th></tr></thead>
+      <thead><tr><th>品种</th><th class="r">领域匹配</th><th class="r">份额</th><th class="r">销售</th><th>负责代表</th></tr></thead>
       <tbody>${prodRows}</tbody>
     </table>
 
@@ -3196,7 +3526,7 @@ function actionModal() {
     return `<label class="pickitem ${on ? 'on' : ''} ${disabledCh ? 'dis' : ''}">
         <input type="checkbox" ${on ? 'checked' : ''} ${disabledCh ? 'disabled' : ''} onchange="toggleActTarget('${t.id}')">
         <span class="nm">${t.name}</span>
-        <span class="mt">${effText(p.id, t)}</span>
+        <span class="mt">${p.id === 'dev' ? phtText(t) : effText(p.id, t)}</span>
         ${p.fail ? `<span class="fr" style="color:${fr > 0.3 ? '#B3261E' : '#B8730A'}">失败 ${f1(fr * 100)}%</span>` : ''}
       </label>`;
   }).join('')}
@@ -3229,6 +3559,70 @@ function replayPlan() {
   S.lastPlan.forEach(it => { const r = launchProject(it.pid, it.tids || []); if (r.ok) n++; });
   toast(n ? `已按上月计划执行 ${n} 项` : '精力或预算不足，未能执行', n ? 'good' : 'bad');
   render();
+}
+
+/* =========================================================
+   关系
+   ========================================================= */
+const REL_FX = {
+  compliance: v => `被抽查概率 ${(v * 30).toFixed(0)}%`,
+  finance: v => `费用上限 ${(v * 12).toFixed(0)}%`,
+  marketing: v => `区域会成本 ${(-v * 15).toFixed(0)}%`,
+  medical: v => `学术认知增益 ${(v * 15).toFixed(0)}%`,
+  commercial: v => `渠道准入 ${(v * 18).toFixed(0)}%`,
+  hr: v => `新人忠诚 +${(v * 8).toFixed(0)}`,
+  hospital: v => `客情 / 进院 ${(v * 12).toFixed(0)}%`,
+  distributor: v => `回款与配送 ${(v * 8).toFixed(0)}%`,
+  kol: v => `病例 / 会议增益 ${(v * 15).toFixed(0)}%`,
+  association: v => `合规冲击缓冲 ${(v * 20).toFixed(0)}%`,
+};
+const REL_HOW = {
+  compliance: '合规评分 ≥85 每月 +2，<60 每月 -2；合规培训 +5',
+  finance: '预算低于 20 万会掉；上级评价 ≥70 每月 +0.6',
+  marketing: '区域学术会 +2；上级评价 ≥70 每月 +0.6',
+  medical: '科室会 +0.8、病例征集 +2、区域会 +1',
+  commercial: '渠道建设 +3',
+  hr: '招聘 +1、团队培训 +1.5',
+  hospital: '客情维护 +2',
+  distributor: '渠道建设 +3',
+  kol: '病例征集 +2、区域学术会 +2',
+  association: 'DRG 特例单议 +3',
+};
+
+function relRow(def, group) {
+  const v = relOf(group, def.id);
+  const m = (v - 50) / 50;
+  const color = v >= 70 ? '#17795A' : v >= 45 ? '#0143B0' : v >= 30 ? '#B8730A' : '#B3261E';
+  return `<div class="relrow">
+    <div class="relhead"><b>${def.name}</b><span style="color:${color}">${f1(v)}</span></div>
+    <span class="bar thin"><i style="width:${v}%;background:${color}"></i></span>
+    <div class="reldesc">${def.desc}</div>
+    <div class="relfx">当前：<b style="color:${color}">${REL_FX[def.id](m)}</b>　·　${REL_HOW[def.id]}</div>
+  </div>`;
+}
+
+function viewRelations() {
+  return `
+  <div class="pagehead">
+    <div><h2>关系<span>RELATIONSHIPS</span></h2><p>公司内部看部门配合，外部看客户与渠道。关系每星期向 50 回落，要持续经营。</p></div>
+  </div>
+  <div class="grid-2">
+    <section class="card">
+      <div class="card-h"><h3>公司内部<em>INTERNAL</em></h3><span class="sub">目标：让流程站在你这边</span></div>
+      ${REL_DEFS.internal.map(d => relRow(d, 'internal')).join('')}
+    </section>
+    <section class="card">
+      <div class="card-h"><h3>外部资源<em>EXTERNAL</em></h3><span class="sub">目标：让客户替你说话</span></div>
+      ${REL_DEFS.external.map(d => relRow(d, 'external')).join('')}
+    </section>
+  </div>
+  <section class="card mt12">
+    <div class="card-h"><h3>关系怎么来<em>HOW IT MOVES</em></h3></div>
+    <div class="hint">
+      关系不是独立资源：合规做得好，合规部自然给你方便；区域会办得多，市场部和专家网络会记住你。<br>
+      开局选「空降兵」会自带一批外部关系，但内部各部门起点更低——空降的人，没人替你说话。
+    </div>
+  </section>`;
 }
 
 /* =========================================================
@@ -3338,9 +3732,13 @@ function renderStart() {
   app.innerHTML = `<div class="start"><div class="start-inner">
     <div class="kicker">${PATHS.find(p => p.id === START.path).name} · 个人能力配置</div>
     <h1 style="font-size:36px">你是谁<small>YOUR PROFILE</small></h1>
-    <div class="lead" style="margin:12px 0 16px">选 2 个个人标签，它们会一直影响你的管理半径、团队执行和项目成败。</div>
+    <div class="lead" style="margin:12px 0 14px">选 2 个个人标签，它们会一直影响你的管理半径、团队执行和项目成败。难度决定医院药事会的召开方式。</div>
     <div class="namebox" style="margin-bottom:14px">
       <input id="pname" placeholder="输入你的名字" value="${START.name}" maxlength="8" oninput="START.name=this.value">
+    </div>
+    <div class="diffrow">
+      ${['easy', 'normal', 'hard'].map(k => `<div class="diffcard ${START.diff === k ? 'on' : ''}" onclick="START.diff='${k}';renderStart()">
+        <b>${DIFFICULTY[k].name}<em>${DIFFICULTY[k].en}</em></b><span>${DIFFICULTY[k].desc}</span></div>`).join('')}
     </div>
     <div class="tagpick">
       ${PLAYER_TAGS.map(t => `<div class="tpick ${START.tags.includes(t.id) ? 'on' : ''}" onclick="togglePlayerTag('${t.id}')">
@@ -3371,7 +3769,7 @@ function startGame() {
   if (START.tags.length !== 2) { toast('请选择 2 个个人标签', 'bad'); return; }
   const el = document.getElementById('pname');
   const name = (el && el.value.trim()) || START.name || '王磊';
-  newGame(name, START.path, START.tags);
+  newGame(name, START.path, START.tags, START.diff);
   TAB = 'overview';
   SEL.terminal = S.terminals[0].id;
   render();
@@ -3581,7 +3979,7 @@ function winModal() {
 function restart() {
   MODAL = null; renderModal();
   S = null; PICKER = null; SEL = { terminal: null };
-  START = { stage: 'path', path: null, name: '王磊', tags: [] };
+  START = { stage: 'path', path: null, name: '王磊', tags: [], diff: 'normal' };
   render();
 }
 
