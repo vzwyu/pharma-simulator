@@ -1,0 +1,3676 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>药企模拟器 · Pharma Simulator</title>
+<style>
+/* =========================================================
+   上量 · 内资药企营销模拟  —  style.css
+   ========================================================= */
+
+:root {
+  --bg: #F4F6F9;
+  --panel: #FFFFFF;
+  --ink: #0F1A26;
+  --ink2: #4A5C70;
+  --ink3: #8494A6;
+  --line: #E3E9F0;
+  --line2: #F0F4F8;
+  --blue: #0143B0;
+  --blue2: #2F6BC9;
+  --blue-lt: #E9EFFA;
+  --up: #C0392B;
+  --down: #17795A;
+  --warn: #B8730A;
+  --danger: #B3261E;
+  --gold: #B8860B;
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0; padding: 0; height: 100%;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: "Microsoft YaHei", "微软雅黑", -apple-system, "Segoe UI", system-ui, sans-serif;
+  font-size: 13.5px;
+  -webkit-font-smoothing: antialiased;
+}
+
+button { font-family: inherit; cursor: pointer; }
+select { font-family: inherit; }
+::selection { background: #C9DAF5; }
+
+/* ---------------- 顶栏 ---------------- */
+.topbar {
+  height: 62px; background: #fff; border-bottom: 1px solid var(--line);
+  display: flex; align-items: center; gap: 20px; padding: 0 20px;
+  position: sticky; top: 0; z-index: 40;
+}
+.brand { display: flex; align-items: center; gap: 10px; min-width: 196px; }
+.brand-mark {
+  width: 34px; height: 34px; border-radius: 9px; background: var(--blue);
+  color: #fff; display: flex; align-items: center; justify-content: center;
+  font-size: 17px; font-weight: 700; letter-spacing: -1px;
+  box-shadow: 0 2px 8px rgba(1,67,176,.28);
+}
+.brand-t { line-height: 1.25; }
+.brand-t b { font-size: 15.5px; letter-spacing: .5px; }
+.brand-t span { display: block; font-size: 10px; color: var(--ink3); letter-spacing: .8px; }
+
+.who { display: flex; flex-direction: column; line-height: 1.35; padding-right: 8px; border-right: 1px solid var(--line); }
+.who b { font-size: 13.5px; }
+.who span { font-size: 11px; color: var(--ink3); }
+
+.kpis { display: flex; gap: 4px; flex: 1; overflow: hidden; }
+.kpi { padding: 4px 12px; border-radius: 8px; min-width: 92px; }
+.kpi:hover { background: var(--line2); }
+.kpi label { display: block; font-size: 10.5px; color: var(--ink3); letter-spacing: .3px; }
+.kpi strong { font-size: 16px; font-variant-numeric: tabular-nums; letter-spacing: -.2px; }
+.kpi strong small { font-size: 10px; font-weight: 400; color: var(--ink3); margin-left: 2px; }
+.kpi .d { font-size: 10.5px; margin-left: 4px; font-variant-numeric: tabular-nums; }
+.d.up { color: var(--up); }
+.d.down { color: var(--down); }
+
+.btn {
+  border: 1px solid var(--line); background: #fff; color: var(--ink);
+  padding: 8px 14px; border-radius: 8px; font-size: 13px; transition: .15s;
+}
+.btn:hover { border-color: #C6D2E0; background: #FAFCFF; }
+.btn:disabled { opacity: .45; cursor: not-allowed; }
+.btn.primary {
+  background: var(--blue); border-color: var(--blue); color: #fff;
+  font-weight: 600; box-shadow: 0 2px 10px rgba(1,67,176,.25);
+}
+.btn.primary:hover { background: #013a99; }
+.btn.sm { padding: 5px 10px; font-size: 12px; border-radius: 6px; }
+.btn.ghost { border-color: transparent; background: transparent; color: var(--blue); }
+.btn.ghost:hover { background: var(--blue-lt); }
+.btn.danger { color: var(--danger); border-color: #E8CFCC; }
+.btn.danger:hover { background: #FBF0EF; }
+.btn.block { width: 100%; }
+
+.turn-btn { padding: 9px 20px; font-size: 13.5px; white-space: nowrap; }
+.turn-btn .ap { font-size: 11px; opacity: .8; margin-left: 8px; }
+
+/* ---------------- 布局 ---------------- */
+.layout { display: flex; align-items: flex-start; }
+.sidenav {
+  width: 150px; flex: 0 0 150px; padding: 14px 10px; position: sticky; top: 62px;
+  height: calc(100vh - 62px); background: #fff; border-right: 1px solid var(--line);
+}
+.navitem {
+  display: flex; align-items: center; gap: 9px; padding: 9px 11px; border-radius: 8px;
+  font-size: 13px; color: var(--ink2); cursor: pointer; margin-bottom: 2px;
+  border: 1px solid transparent;
+}
+.navitem:hover { background: var(--line2); }
+.navitem.on { background: var(--blue-lt); color: var(--blue); font-weight: 600; }
+.navitem i { font-style: normal; font-size: 14px; width: 16px; text-align: center; opacity: .85; }
+.navitem .badge {
+  margin-left: auto; background: var(--danger); color: #fff; font-size: 10px;
+  padding: 1px 5px; border-radius: 8px; font-weight: 600;
+}
+.navfoot { margin-top: 18px; padding: 10px 11px; font-size: 10.5px; color: var(--ink3); line-height: 1.7; border-top: 1px solid var(--line2); }
+
+.main { flex: 1; min-width: 0; padding: 18px 22px 60px; max-width: 1240px; }
+
+.pagehead { display: flex; align-items: flex-end; justify-content: space-between; margin-bottom: 14px; gap: 16px; }
+.pagehead h2 { margin: 0; font-size: 17px; letter-spacing: .2px; }
+.pagehead h2 span { font-size: 11px; color: var(--ink3); font-weight: 400; margin-left: 8px; letter-spacing: .5px; }
+.pagehead p { margin: 4px 0 0; font-size: 12px; color: var(--ink2); }
+
+/* ---------------- 卡片 ---------------- */
+.card {
+  background: var(--panel); border: 1px solid var(--line); border-radius: 12px;
+  padding: 16px 18px; box-shadow: 0 1px 2px rgba(16,26,38,.04);
+}
+.card-h { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+.card-h h3 { margin: 0; font-size: 13.5px; font-weight: 600; letter-spacing: .2px; }
+.card-h h3 em { font-style: normal; font-size: 10px; color: var(--ink3); font-weight: 400; margin-left: 6px; letter-spacing: .5px; }
+.card-h .sub { font-size: 11.5px; color: var(--ink3); }
+
+.grid-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
+.grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.grid-32 { display: grid; grid-template-columns: 1.6fr 1fr; gap: 12px; }
+.mt12 { margin-top: 12px; }
+.mt16 { margin-top: 16px; }
+
+/* KPI 大卡 */
+.stat { background: #fff; border: 1px solid var(--line); border-radius: 12px; padding: 14px 16px; position: relative; overflow: hidden; }
+.stat label { display: block; font-size: 11px; color: var(--ink3); margin-bottom: 5px; }
+.stat label em { font-style: normal; font-size: 9.5px; letter-spacing: .4px; opacity: .8; margin-left: 4px; }
+.stat .v { font-size: 25px; font-weight: 700; letter-spacing: -.8px; font-variant-numeric: tabular-nums; line-height: 1.1; }
+.stat .v small { font-size: 11px; font-weight: 400; color: var(--ink3); margin-left: 3px; letter-spacing: 0; }
+.stat .foot { margin-top: 6px; font-size: 11px; color: var(--ink3); display: flex; align-items: center; gap: 6px; }
+.stat .spark { position: absolute; left: 0; right: 0; bottom: 0; width: 100%; height: 22px; display: block; }
+.stat.blue { border-top: 2px solid var(--blue); }
+.stat.warn { border-top: 2px solid var(--warn); }
+.stat.danger { border-top: 2px solid var(--danger); }
+
+.chip { display: inline-flex; align-items: center; gap: 3px; font-size: 10.5px; padding: 1px 6px; border-radius: 5px; font-variant-numeric: tabular-nums; }
+.chip.up { background: #FBECEA; color: var(--up); }
+.chip.down { background: #E9F5F0; color: var(--down); }
+.chip.flat { background: var(--line2); color: var(--ink3); }
+
+/* ---------------- 进度 / 条形 ---------------- */
+.bar { height: 6px; background: var(--line2); border-radius: 99px; overflow: hidden; }
+.bar > i { display: block; height: 100%; border-radius: 99px; background: var(--blue); transition: width .5s ease; }
+.bar.thin { height: 4px; }
+.bar > i.g { background: var(--down); }
+.bar > i.w { background: var(--warn); }
+.bar > i.r { background: var(--danger); }
+
+.proline { display: flex; align-items: center; gap: 10px; padding: 7px 0; border-bottom: 1px dashed var(--line2); font-size: 12px; }
+.proline:last-child { border-bottom: 0; }
+.proline .n { width: 82px; color: var(--ink2); flex: 0 0 82px; }
+.proline .b { flex: 1; }
+.proline .v { width: 96px; text-align: right; font-variant-numeric: tabular-nums; color: var(--ink2); flex: 0 0 96px; }
+.proline .k { width: 14px; text-align: center; flex: 0 0 14px; }
+.ok { color: var(--down); font-weight: 700; }
+.no { color: var(--ink3); }
+
+/* ---------------- 终端 ---------------- */
+.term-layout { display: grid; grid-template-columns: 320px 1fr; gap: 12px; align-items: start; }
+.term-list { display: flex; flex-direction: column; gap: 7px; max-height: calc(100vh - 200px); overflow: auto; padding-right: 2px; }
+.term-item {
+  border: 1px solid var(--line); background: #fff; border-radius: 10px; padding: 11px 12px; cursor: pointer; transition: .15s;
+}
+.term-item:hover { border-color: #C6D5E8; }
+.term-item.on { border-color: var(--blue); background: #FBFDFF; box-shadow: 0 0 0 2px rgba(1,67,176,.07); }
+.term-item .t1 { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
+.term-item .t1 b { font-size: 13px; font-weight: 600; }
+.term-item .t1 span { font-size: 10.5px; color: var(--ink3); }
+.term-item .t2 { display: flex; justify-content: space-between; margin: 7px 0 4px; font-size: 11px; color: var(--ink3); }
+.term-item .t2 b { color: var(--ink); font-size: 12.5px; font-variant-numeric: tabular-nums; }
+
+.detail-row { display: flex; align-items: center; gap: 8px; padding: 6px 0; font-size: 12px; }
+.detail-row .lb { width: 62px; color: var(--ink3); flex: 0 0 62px; }
+.detail-row .bar { flex: 1; }
+.detail-row .vl { width: 52px; text-align: right; font-variant-numeric: tabular-nums; color: var(--ink2); flex: 0 0 52px; }
+
+/* 表格 */
+table.tb { width: 100%; border-collapse: collapse; font-size: 12px; }
+table.tb th {
+  text-align: left; font-weight: 500; color: var(--ink3); font-size: 10.5px; letter-spacing: .3px;
+  padding: 6px 8px; border-bottom: 1px solid var(--line); white-space: nowrap;
+}
+table.tb td { padding: 8px; border-bottom: 1px solid var(--line2); font-variant-numeric: tabular-nums; }
+table.tb tr:last-child td { border-bottom: 0; }
+table.tb td.r, table.tb th.r { text-align: right; }
+table.tb tr:hover td { background: #FBFCFE; }
+.mono { font-variant-numeric: tabular-nums; }
+
+/* ---------------- 团队 ---------------- */
+.team-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 12px; }
+.rep {
+  border: 1px solid var(--line); border-radius: 12px; padding: 13px 14px; background: #fff; position: relative;
+}
+.rep:hover { border-color: #C6D5E8; }
+.rep .rh { display: flex; align-items: center; gap: 10px; }
+.avatar {
+  width: 34px; height: 34px; border-radius: 9px; background: var(--blue-lt); color: var(--blue);
+  display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 14px; flex: 0 0 34px;
+}
+.rep .rh b { font-size: 13.5px; }
+.rep .rh .meta { font-size: 10.5px; color: var(--ink3); }
+.tag { display: inline-block; font-size: 10px; padding: 1px 5px; border-radius: 4px; background: var(--line2); color: var(--ink2); margin-left: 5px; }
+.tag.risk { background: #FBECEA; color: var(--danger); }
+.tag.good { background: #E9F5F0; color: var(--down); }
+
+.rep .metrics { display: flex; gap: 14px; margin: 10px 0 8px; }
+.rep .metrics div { flex: 1; }
+.rep .metrics label { display: block; font-size: 10px; color: var(--ink3); }
+.rep .metrics b { font-size: 14px; font-variant-numeric: tabular-nums; }
+
+.rep .row { display: flex; gap: 6px; align-items: center; margin-top: 8px; }
+.rep select {
+  flex: 1; border: 1px solid var(--line); border-radius: 6px; padding: 5px 6px; font-size: 11.5px;
+  background: #fff; color: var(--ink); max-width: 100%;
+}
+.pills { display: flex; gap: 3px; flex-wrap: wrap; }
+.pill {
+  border: 1px solid var(--line); background: #fff; border-radius: 5px; padding: 4px 7px; font-size: 10.5px; color: var(--ink2);
+}
+.pill:hover { border-color: #C6D5E8; }
+.pill.on { background: var(--blue); border-color: var(--blue); color: #fff; }
+.pill.on.risk { background: var(--danger); border-color: var(--danger); }
+.pill.on.warn { background: var(--warn); border-color: var(--warn); }
+
+/* ---------------- 项目 ---------------- */
+.proj-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(258px, 1fr)); gap: 12px; }
+.proj { border: 1px solid var(--line); border-radius: 12px; padding: 14px; background: #fff; display: flex; flex-direction: column; }
+.proj h4 { margin: 0 0 2px; font-size: 13.5px; }
+.proj h4 em { font-style: normal; font-size: 9.5px; color: var(--ink3); font-weight: 400; margin-left: 5px; letter-spacing: .4px; }
+.proj p { margin: 6px 0 10px; font-size: 11.5px; color: var(--ink2); line-height: 1.65; flex: 1; }
+.proj .pp { display: flex; gap: 8px; font-size: 11px; color: var(--ink3); margin-bottom: 10px; }
+.proj .pp b { color: var(--ink); font-variant-numeric: tabular-nums; }
+.proj select { width: 100%; border: 1px solid var(--line); border-radius: 6px; padding: 6px; font-size: 11.5px; margin-bottom: 8px; }
+
+/* ---------------- 合规 ---------------- */
+.gauge-wrap { padding: 8px 0 4px; }
+.gauge-track { position: relative; height: 14px; border-radius: 99px; background: #EDF1F6; overflow: hidden; }
+.gauge-fill { height: 100%; border-radius: 99px; transition: width .5s ease; }
+.gauge-tick { position: absolute; top: 0; width: 1px; height: 100%; background: #fff; opacity: .9; }
+
+.gauge-scale { position: relative; height: 14px; margin-top: 6px; font-size: 10px; color: var(--ink3); }
+.gauge-scale span { position: absolute; transform: translateX(-50%); white-space: nowrap; }
+.gauge-scale span:first-child { transform: none; }
+
+.riskrow { display: flex; align-items: center; gap: 10px; padding: 8px 0; border-bottom: 1px solid var(--line2); font-size: 12px; }
+.riskrow:last-child { border-bottom: 0; }
+.riskrow .nm { width: 110px; flex: 0 0 110px; }
+.riskrow .bar { flex: 1; }
+.riskrow .vv { width: 46px; text-align: right; flex: 0 0 46px; font-variant-numeric: tabular-nums; }
+
+/* ---------------- 日志 ---------------- */
+.loglist { display: flex; flex-direction: column; }
+.logi { display: flex; gap: 12px; padding: 9px 0; border-bottom: 1px solid var(--line2); font-size: 12px; line-height: 1.65; }
+.logi .t { width: 52px; flex: 0 0 52px; color: var(--ink3); font-size: 10.5px; padding-top: 2px; font-variant-numeric: tabular-nums; }
+.logi .x { flex: 1; color: var(--ink2); }
+.logi.good .x { color: #14684C; }
+.logi.bad .x { color: #9E2A21; }
+.logi.sales .x { color: var(--ink); font-weight: 600; }
+.logi.sys .x { color: var(--blue); }
+
+/* ---------------- 模态 ---------------- */
+#modal-root { position: fixed; inset: 0; pointer-events: none; z-index: 100; }
+.mask {
+  position: absolute; inset: 0; background: rgba(11,20,31,.42); backdrop-filter: blur(2px);
+  pointer-events: auto; display: flex; align-items: center; justify-content: center; padding: 24px;
+  animation: fadein .18s ease;
+}
+@keyframes fadein { from { opacity: 0 } to { opacity: 1 } }
+.modal {
+  background: #fff; border-radius: 14px; width: 100%; max-width: 560px; max-height: 88vh; overflow: auto;
+  box-shadow: 0 24px 70px rgba(9,18,30,.28); animation: pop .2s cubic-bezier(.2,.8,.3,1);
+}
+@keyframes pop { from { transform: translateY(10px) scale(.985); opacity: 0 } to { transform: none; opacity: 1 } }
+.modal.wide { max-width: 760px; }
+.modal-h { padding: 18px 22px 0; }
+.modal-h h3 { margin: 0; font-size: 16px; }
+.modal-h .en { font-size: 10px; color: var(--ink3); letter-spacing: .8px; margin-top: 3px; }
+.modal-b { padding: 14px 22px 4px; font-size: 13px; line-height: 1.8; color: var(--ink2); }
+.modal-b p { margin: 0 0 10px; }
+.modal-f { padding: 12px 22px 18px; display: flex; gap: 8px; justify-content: flex-end; flex-wrap: wrap; }
+.modal-f .btn { min-width: 96px; }
+
+.opt {
+  display: block; width: 100%; text-align: left; border: 1px solid var(--line); background: #fff;
+  border-radius: 9px; padding: 11px 13px; margin-bottom: 8px; transition: .15s;
+}
+.opt:hover { border-color: var(--blue); background: #FBFCFF; }
+.opt b { display: block; font-size: 13px; font-weight: 600; margin-bottom: 2px; }
+.opt span { font-size: 11px; color: var(--ink3); }
+
+.rep-row { display: flex; justify-content: space-between; padding: 7px 0; border-bottom: 1px dashed var(--line2); font-size: 12.5px; }
+.rep-row:last-child { border-bottom: 0; }
+.rep-row b { font-variant-numeric: tabular-nums; }
+.rep-row .up { color: var(--up); }
+.rep-row .down { color: var(--down); }
+
+/* 开始页 */
+.start {
+  position: fixed; inset: 0; z-index: 200; background: linear-gradient(135deg, #0A1B33 0%, #0B2B5C 45%, #0143B0 100%);
+  display: flex; align-items: center; justify-content: center; padding: 30px; overflow: auto;
+}
+.start-inner { max-width: 780px; width: 100%; color: #fff; }
+.start .kicker { font-size: 11px; letter-spacing: 3px; color: #8FB4E8; margin-bottom: 10px; }
+.start h1 { font-size: 54px; margin: 0; letter-spacing: 6px; font-weight: 800; }
+.start h1 small { font-size: 13px; letter-spacing: 4px; font-weight: 400; color: #9CC0EC; margin-left: 14px; vertical-align: middle; }
+.start .lead { font-size: 14px; line-height: 1.95; color: #C8DAF1; margin: 18px 0 22px; max-width: 620px; }
+.start .rules { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 24px; }
+.start .rule { background: rgba(255,255,255,.07); border: 1px solid rgba(255,255,255,.14); border-radius: 10px; padding: 13px 14px; }
+.start .rule b { display: block; font-size: 12.5px; margin-bottom: 5px; }
+.start .rule span { font-size: 11px; color: #A9C3E2; line-height: 1.65; }
+.start .namebox { display: flex; gap: 10px; align-items: center; }
+.start input {
+  background: rgba(255,255,255,.1); border: 1px solid rgba(255,255,255,.24); color: #fff;
+  border-radius: 8px; padding: 11px 14px; font-size: 14px; width: 200px; font-family: inherit;
+}
+.start input::placeholder { color: #7F9BC0; }
+.start .btn-start {
+  background: #fff; color: var(--blue); border: 0; padding: 12px 30px; border-radius: 8px;
+  font-size: 14px; font-weight: 700; letter-spacing: 1px;
+}
+.start .btn-start:hover { background: #EAF1FB; }
+.start .fine { font-size: 10.5px; color: #7C97B9; margin-top: 14px; line-height: 1.7; }
+
+/* toast */
+#toast-root { position: fixed; left: 50%; bottom: 34px; transform: translateX(-50%); z-index: 300; display: flex; flex-direction: column; gap: 8px; align-items: center; pointer-events: none; }
+.toast {
+  background: #16202B; color: #fff; padding: 9px 16px; border-radius: 8px; font-size: 12.5px;
+  box-shadow: 0 8px 26px rgba(0,0,0,.22); animation: tin .2s ease;
+}
+.toast.bad { background: #8E231B; }
+.toast.good { background: #125B44; }
+@keyframes tin { from { opacity: 0; transform: translateY(6px) } to { opacity: 1; transform: none } }
+
+/* misc */
+.hint { font-size: 11px; color: var(--ink3); line-height: 1.7; }
+.hint b { color: var(--ink2); }
+.empty { text-align: center; padding: 34px 10px; color: var(--ink3); font-size: 12px; }
+.flex { display: flex; }
+.between { justify-content: space-between; }
+.center { align-items: center; }
+.gap8 { gap: 8px; }
+.gap12 { gap: 12px; }
+.w100 { width: 100%; }
+
+@media (max-width: 1180px) {
+  .grid-4 { grid-template-columns: repeat(2, 1fr); }
+  .term-layout { grid-template-columns: 1fr; }
+  .kpis .kpi:nth-child(n+4) { display: none; }
+}
+
+/* =========================================================
+   v2 组件：多选、矩阵、医共体、行动选择
+   ========================================================= */
+.modal.wide { max-width: 840px; }
+
+/* 代表卡片：管理当量 */
+.loadrow { display: flex; align-items: center; gap: 8px; font-size: 10.5px; color: var(--ink3); margin-top: 10px; }
+.loadrow .bar { flex: 1; }
+.loadrow b { font-variant-numeric: tabular-nums; font-size: 11px; }
+
+/* 多选下拉 */
+.msel { position: relative; margin-top: 8px; }
+.msel-btn {
+  width: 100%; display: flex; align-items: center; gap: 6px;
+  border: 1px solid var(--line); background: #fff; border-radius: 7px;
+  padding: 6px 9px; font-size: 11.5px; color: var(--ink2); text-align: left;
+}
+.msel-btn:hover { border-color: #C6D5E8; }
+.msel-btn b { color: var(--ink); font-size: 12px; }
+.msel-btn i { margin-left: auto; font-style: normal; color: var(--ink3); }
+.msel-pop {
+  position: absolute; z-index: 60; top: calc(100% + 4px); left: 0; right: 0;
+  background: #fff; border: 1px solid var(--line); border-radius: 9px;
+  box-shadow: 0 14px 34px rgba(16,26,38,.16); padding: 5px; max-height: 268px; overflow: auto;
+}
+.msel-item {
+  display: flex; align-items: center; gap: 7px; padding: 5px 6px;
+  border-radius: 6px; font-size: 11.5px; cursor: pointer;
+}
+.msel-item:hover { background: var(--line2); }
+.msel-item input { margin: 0; }
+.msel-item span { flex: 1; }
+.msel-item em { font-style: normal; font-size: 9.5px; color: var(--ink3); }
+.msel-foot {
+  padding: 7px 6px 4px; font-size: 11px; color: var(--blue);
+  cursor: pointer; border-top: 1px solid var(--line2); margin-top: 4px;
+}
+
+/* 终端 chip */
+.chips { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 8px; min-height: 22px; }
+.chip-term {
+  display: inline-flex; align-items: center; gap: 3px; font-size: 10.5px;
+  background: var(--blue-lt); color: var(--blue); border-radius: 5px;
+  padding: 3px 6px; cursor: pointer; white-space: nowrap;
+}
+.chip-term:hover { background: #DCE7F8; }
+.chip-term i { font-style: normal; font-size: 9px; background: rgba(1,67,176,.12); border-radius: 3px; padding: 0 3px; }
+.chip-term i.ph { background: rgba(23,121,90,.14); color: #17795A; }
+
+/* 医共体 */
+.badge-ally {
+  display: inline-block; font-size: 10px; font-weight: 400; padding: 1px 6px;
+  border-radius: 4px; background: #EEF3FB; color: #2E5FA6; margin-left: 6px; vertical-align: middle;
+}
+.ally-note {
+  margin-top: 10px; padding: 9px 12px; background: #F7F9FC;
+  border-left: 2px solid #B9CCE8; border-radius: 0 7px 7px 0;
+  font-size: 11.5px; line-height: 1.8; color: var(--ink2);
+}
+
+/* 团队明细矩阵 */
+.mxreps { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 10px; }
+.mxreps .pill em { font-style: normal; font-size: 9.5px; }
+.mxtable-wrap { border: 1px solid var(--line); border-radius: 9px; overflow: auto; max-height: 400px; }
+.mxtable { width: 100%; border-collapse: collapse; font-size: 12px; }
+.mxtable th {
+  position: sticky; top: 0; background: #fff; z-index: 2;
+  font-size: 10.5px; color: var(--ink3); font-weight: 500;
+  padding: 8px; border-bottom: 1px solid var(--line); text-align: center; white-space: nowrap;
+}
+.mxtable th.mxname { text-align: left; }
+.mxtable th.pcol { width: 84px; }
+.mxtable th i { display: inline-block; width: 6px; height: 6px; border-radius: 2px; margin-right: 4px; vertical-align: middle; }
+.mxtable td { padding: 5px 8px; border-bottom: 1px solid var(--line2); text-align: center; }
+.mxtable tr.on { background: #FBFDFF; }
+.mxtable tr:last-child td { border-bottom: 0; }
+.mxname { text-align: left !important; cursor: pointer; user-select: none; }
+.mxname b { display: block; font-size: 12.5px; font-weight: 600; }
+.mxname span { font-size: 10px; color: var(--ink3); }
+.mxcell { width: 74px; }
+.mx {
+  width: 22px; height: 22px; border-radius: 5px; border: 1px solid #D5DFEA;
+  background: #fff; color: transparent; font-size: 11px; line-height: 1;
+  transition: .12s;
+}
+.mx:hover { border-color: #B9CCE8; }
+.mx.on { background: var(--blue); border-color: var(--blue); color: #fff; }
+.mx.ph.on { background: #17795A; border-color: #17795A; }
+.mxsub { display: block; font-size: 9px; color: var(--ink3); margin-top: 1px; }
+.mxsum {
+  display: flex; justify-content: space-between; gap: 16px; flex-wrap: wrap;
+  margin-top: 10px; font-size: 11.5px; color: var(--ink2);
+  background: #F7F9FC; border-radius: 8px; padding: 9px 12px;
+}
+.mxsum b { color: var(--ink); font-variant-numeric: tabular-nums; }
+
+/* 行动：终端选择 */
+.picklist { border: 1px solid var(--line); border-radius: 9px; max-height: 300px; overflow: auto; }
+.pickitem {
+  display: flex; align-items: center; gap: 9px; padding: 8px 11px;
+  border-bottom: 1px solid var(--line2); font-size: 12px; cursor: pointer;
+}
+.pickitem:last-child { border-bottom: 0; }
+.pickitem:hover { background: #FBFCFE; }
+.pickitem.on { background: #F4F8FE; }
+.pickitem.dis { opacity: .38; cursor: not-allowed; }
+.pickitem input { margin: 0; }
+.pickitem .nm { flex: 0 0 168px; font-weight: 600; font-size: 12.5px; }
+.pickitem .mt { flex: 1; color: var(--ink3); font-size: 11px; }
+.pickitem .fr { font-size: 11px; font-variant-numeric: tabular-nums; }
+.warn-line { margin-top: 8px; font-size: 11.5px; color: #B3261E; background: #FBF0EF; border-radius: 6px; padding: 6px 9px; }
+
+/* 事件来源标签 */
+.evtag { display: inline-block; font-size: 10px; padding: 2px 7px; border-radius: 4px; background: #EEF1F5; color: #5B6B7C; margin-bottom: 8px; }
+.evtag.mgmt { background: #FDF3E4; color: #9A5E06; }
+.opt.mgmt { border-left: 2px solid #E2B96A; }
+.opt.mgmt:hover { border-color: #C99A3E; background: #FFFCF6; }
+
+/* 矩阵 v3：下拉选人 + 产出/投入 */
+.mxreps { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; margin-bottom: 10px; flex-wrap: wrap; }
+.mxlegend { display: flex; gap: 13px; flex-wrap: wrap; font-size: 11.5px; color: var(--ink2); }
+.lg { display: inline-flex; align-items: center; gap: 5px; }
+.lg i { width: 8px; height: 8px; border-radius: 3px; display: inline-block; }
+.lg em { font-style: normal; font-size: 10px; color: var(--ink3); font-variant-numeric: tabular-nums; }
+.mxhint { font-size: 10.5px; color: var(--ink3); }
+.mxsel {
+  width: 100%; border: 1px solid var(--line); border-radius: 5px;
+  padding: 3px 1px; font-size: 11px; font-family: inherit; background: #fff;
+  color: var(--ink2); text-align: center; cursor: pointer;
+}
+.mxsel:focus { outline: none; border-color: var(--blue); }
+.mxsel.ph { }
+.mxnum b { font-size: 12.5px; font-variant-numeric: tabular-nums; }
+.mxnum span { display: block; font-size: 9px; color: var(--ink3); font-weight: 400; }
+.mxnum.dim b { color: #B7C2CF; }
+.ally-dot { display: inline-block; width: 5px; height: 5px; border-radius: 50%; background: #2E5FA6; margin-left: 5px; vertical-align: middle; }
+.mxtable th.pcol { width: 92px; }
+.mxtable td.mxcell { width: 92px; }
+
+/* 代表标签 */
+.tag.tagv { background: #EEF3FB; color: #2E5FA6; font-weight: 500; }
+.tag.ghost { background: #F6F2E9; color: #8A7A55; border: 1px dashed #DFD5BE; }
+.taggrid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px 22px; }
+.taggrid div { font-size: 11.5px; color: var(--ink2); line-height: 1.65; }
+.taggrid b { display: inline-block; min-width: 62px; color: var(--ink); font-weight: 600; }
+
+/* 观察线索 & 猜标签 */
+.tag.tagx { background: #E9F5F0; color: #14684C; border: 1px solid #CFE7DC; }
+.observe {
+  margin-top: 8px; font-size: 10.5px; color: #6B5E3A; line-height: 1.7;
+  background: #FBF8F0; border-left: 2px solid #E3D3A8; border-radius: 0 6px 6px 0;
+  padding: 5px 8px;
+}
+.observe b { color: #8A7A55; margin-right: 6px; font-weight: 600; }
+.ggrid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; max-height: 380px; overflow: auto; padding-right: 4px; }
+.gitem {
+  display: flex; align-items: center; justify-content: space-between; gap: 8px;
+  border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; background: #fff;
+}
+.gitem:hover { border-color: #C6D5E8; }
+.gitem.hit { background: #F3FAF7; border-color: #CFE7DC; }
+.gitem.miss { opacity: .5; }
+.gt b { display: block; font-size: 12.5px; font-weight: 600; }
+.gt span { display: block; font-size: 10px; color: var(--ink3); line-height: 1.5; margin-top: 1px; }
+.gitem em { font-style: normal; font-size: 10.5px; white-space: nowrap; }
+.gitem em.ok { color: #14684C; }
+.gitem em.no { color: #8494A6; }
+
+/* 开局：路线与个人标签 */
+.start .pathgrid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin: 20px 0 24px; }
+.pathcard { background: rgba(255,255,255,.07); border: 1px solid rgba(255,255,255,.16); border-radius: 12px; padding: 16px 16px 14px; cursor: pointer; transition: .15s; }
+.pathcard:hover { background: rgba(255,255,255,.13); }
+.pathcard.off { opacity: .42; cursor: not-allowed; }
+.pathcard.off:hover { background: rgba(255,255,255,.07); }
+.pcn { font-size: 16px; font-weight: 700; color: #fff; }
+.pcn em { font-style: normal; font-size: 9.5px; color: #8FB4E8; margin-left: 6px; letter-spacing: 1px; }
+.pcd { font-size: 11.5px; color: #A9C3E2; line-height: 1.7; margin: 8px 0 14px; min-height: 58px; }
+.pcb { font-size: 11.5px; color: #fff; opacity: .9; }
+.tagpick { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; max-width: 620px; }
+.tpick { border: 1px solid rgba(255,255,255,.18); border-radius: 9px; padding: 9px 12px; cursor: pointer; background: rgba(255,255,255,.05); transition: .15s; }
+.tpick:hover { background: rgba(255,255,255,.1); }
+.tpick.on { background: #fff; border-color: #fff; }
+.tpick b { display: block; font-size: 12.5px; color: #fff; margin-bottom: 2px; }
+.tpick span { font-size: 10.5px; color: #A9C3E2; line-height: 1.5; }
+.tpick.on b { color: #0A1B33; }
+.tpick.on span { color: #46607F; }
+
+/* 周会 */
+.wkhead { display: flex; gap: 10px; }
+.wkhead > div { flex: 1; background: #F7F9FC; border-radius: 8px; padding: 8px 10px; }
+.wkhead b { display: block; font-size: 16px; margin-top: 2px; font-variant-numeric: tabular-nums; }
+.wklist { margin-top: 10px; border: 1px solid var(--line); border-radius: 9px; overflow: hidden; }
+.wkrow { display: flex; align-items: center; gap: 10px; padding: 7px 11px; border-bottom: 1px solid var(--line2); font-size: 12px; }
+.wkrow:last-child { border-bottom: 0; }
+.wkrow .nm { width: 62px; font-weight: 600; flex: 0 0 62px; }
+.wkrow .tg { flex: 1; color: var(--ink3); font-size: 10.5px; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.wkrow .out { width: 68px; text-align: right; font-variant-numeric: tabular-nums; }
+.wkrow .ex { width: 78px; text-align: right; font-size: 11px; }
+
+/* 行动效果按钮 */
+.effgrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(178px, 1fr)); gap: 8px; }
+.effbtn { text-align: left; border: 1px solid var(--line); background: #fff; border-radius: 9px; padding: 9px 11px; transition: .15s; }
+.effbtn:hover { border-color: var(--blue); background: #FBFCFF; }
+.effbtn b { display: block; font-size: 12.5px; }
+.effbtn span { display: block; font-size: 10.5px; color: var(--ink2); margin-top: 2px; }
+.effbtn em { display: block; font-style: normal; font-size: 10px; color: var(--ink3); margin-top: 4px; }
+.effbtn:disabled { opacity: .42; cursor: not-allowed; }
+
+</style>
+</head>
+<body>
+<div id="app"></div>
+<div id="modal-root"></div>
+<div id="toast-root"></div>
+<script>
+/* =========================================================
+   药企模拟器 · Pharma Simulator
+   data.js — 配置、随机世界生成、标签、项目、事件
+   ========================================================= */
+
+const CFG = {
+  startCash: 120,         // 起始预算（万元）
+  grossRate: 0.58,        // 销售额 → 可支配市场费用
+  apBase: 1,              // 每周基础管理精力
+  apPerRep: 0.17,         // 每名下属每周额外精力
+  apCap: 4,
+  teamCap: [6, 10, 15, 22],
+  costScale: [1, 1.9, 3.6, 8],
+  salaryScale: [1, 1.3, 1.7, 2.2],
+  weeksPerMonth: 4,
+  repCap: 2.0,
+};
+
+/* =========================================================
+   随机世界生成
+   ========================================================= */
+const CH_A = '青安临宁丰平昌江源德兴和顺泰恒瑞嘉益';
+const CH_B = '阳川州城溪陵谷坪山水原泉岭浦';
+
+function rndInt(a, b) { return a + Math.floor(Math.random() * (b - a + 1)); }
+function pickOne(arr) { return arr[Math.floor(Math.random() * arr.length)]; }
+function genPlace(suffix) {
+  let n, g = 0;
+  do { n = pickOne(CH_A) + pickOne(CH_B); g++; } while (g < 3 && WORLD._used[n]);
+  WORLD._used[n] = 1;
+  return n + suffix;
+}
+
+const WORLD = { _used: {} };
+
+const TYPE_LABEL = { hospital: '医院', primary: '基层', retail: '零售', city: '城市市场', region: '大区' };
+const TYPE_COST = { hospital: 1.0, primary: 0.5, retail: 0.7, city: 1.0, region: 1.0 };
+
+/* 竞品（虚构） */
+const RIVALS = ['瑞和药业', '东岭制药', '长康生物', '博远医药'];
+
+/* ---------------- 产品 ---------------- */
+const PROD_ARCH = [
+  { id: 'herb', kind: '独家中成药', driver: '学术', base: 0.030, awWeight: 1.30, priceEdge: 0.020,
+    color: '#0143B0', 医保: '乙类', price: 68,
+    mix: { hospital: 0.34, primary: 0.06, retail: 0.38, city: 0.34, region: 0.34 },
+    note: '高值独家，靠学术证据和专家共识撬动，起量慢、天花板高' },
+  { id: 'base', kind: '基药 · 医保甲类', driver: '渠道', base: 0.055, awWeight: 0.80, priceEdge: 0.050,
+    color: '#2F6BC9', 医保: '甲类', price: 12,
+    mix: { hospital: 0.24, primary: 0.56, retail: 0.22, city: 0.24, region: 0.24 },
+    note: '基药放量品，吃配送覆盖和基层网络，价格是硬通货' },
+  { id: 'bio', kind: '生物制剂', driver: '准入', base: 0.026, awWeight: 1.10, priceEdge: -0.010,
+    color: '#0E7C6B', 医保: '乙类（谈判）', price: 1280,
+    mix: { hospital: 0.26, primary: 0.04, retail: 0.08, city: 0.26, region: 0.26 },
+    note: '高值生物药，进院难、谈判门槛高，一旦进院几乎没有替代' },
+  { id: 'gen', kind: '仿制化药', driver: '价格', base: 0.045, awWeight: 0.90, priceEdge: -0.030,
+    color: '#8A5A00', 医保: '乙类', price: 35,
+    mix: { hospital: 0.16, primary: 0.34, retail: 0.32, city: 0.16, region: 0.16 },
+    note: '多家竞品在拼，没有价格和客情就是陪跑' },
+];
+
+const PROD_POOL = {
+  herbPre: ['参', '芪', '丹', '葛', '术', '苓', '芍'],
+  herbMid: ['通脉', '心宁', '益气', '化瘀', '养阴', '安神'],
+  herbForm: ['胶囊', '颗粒', '片'],
+  chemPre: ['贝', '洛', '瑞', '沙', '替', '缬', '唑'],
+  chemMid: ['格', '米', '维', '普', '拉', '啶'],
+  chemForm: ['片', '胶囊', '缓释片'],
+};
+
+const PRODUCTS = [];
+const MIX = { hospital: {}, primary: {}, retail: {}, city: {}, region: {} };
+
+function genProductNames() {
+  const used = {};
+  const out = [];
+  const nm = (k, f) => { let n, g = 0; do { n = f(); g++; } while (used[n] && g < 6); used[n] = 1; return n; };
+  out.push({ id: 'herb', name: nm('h', () => pickOne(PROD_POOL.herbPre) + pickOne(PROD_POOL.herbMid) + pickOne(PROD_POOL.herbForm)) });
+  out.push({ id: 'base', name: nm('b', () => pickOne(PROD_POOL.chemPre) + pickOne(PROD_POOL.chemMid) + pickOne(PROD_POOL.chemForm)) });
+  out.push({ id: 'bio', name: nm('x', () => '注射用重组人源化单抗 JY-' + rndInt(10, 99)) });
+  out.push({ id: 'gen', name: nm('g', () => pickOne(PROD_POOL.chemPre) + pickOne(PROD_POOL.chemMid) + pickOne(PROD_POOL.chemForm)) });
+  return out;
+}
+
+function buildProducts() {
+  const names = genProductNames();
+  PRODUCTS.length = 0;
+  PROD_ARCH.forEach((a, i) => {
+    PRODUCTS.push({
+      id: a.id, name: names[i].name, short: names[i].name.slice(0, 2),
+      kind: a.kind, driver: a.driver, base: a.base, awWeight: a.awWeight,
+      priceEdge: a.priceEdge, color: a.color, 医保: a.医保, price: a.price, note: a.note,
+    });
+  });
+  // 归一化品种结构
+  Object.keys(MIX).forEach(tp => {
+    const sum = PROD_ARCH.reduce((s, a) => s + (a.mix[tp] || 0), 0);
+    PROD_ARCH.forEach(a => { MIX[tp][a.id] = (a.mix[tp] || 0) / sum; });
+  });
+}
+
+/* ---------------- 终端模板 ---------------- */
+/* [名称, 类型, 潜力, 准入, 认知, 客情, 竞品, 等级, 院边药店, 门店数] */
+const TERM_SPECS = [
+  [
+    ['{county}人民医院', 'hospital', 55, 40, 12, 18, 0.52, '二级甲等', 6, 0],
+    ['{county}中医院', 'hospital', 40, 25, 10, 15, 0.50, '二级甲等', 4, 0],
+    ['{county}妇幼保健院', 'hospital', 20, 12, 8, 10, 0.45, '二级', 2, 0],
+    ['{town1}卫生院', 'primary', 15, 55, 15, 25, 0.32, '一级', 0, 0],
+    ['{town2}卫生院', 'primary', 10, 45, 12, 18, 0.30, '一级', 0, 0],
+    ['{county}大药房（{stores}家）', 'retail', 28, 30, 18, 30, 0.42, '连锁', 0, 16],
+  ],
+  [
+    ['{city}中心医院', 'hospital', 78, 12, 8, 10, 0.62, '三级甲等', 8, 0],
+    ['{city}第一人民医院', 'hospital', 62, 10, 6, 8, 0.60, '三级甲等', 6, 0],
+    ['{city}中医院', 'hospital', 48, 18, 12, 15, 0.56, '三级甲等', 5, 0],
+    ['{city}妇幼保健院', 'hospital', 32, 8, 6, 8, 0.50, '三级甲等', 3, 0],
+    ['{county}人民医院', 'hospital', 55, 62, 38, 45, 0.50, '二级甲等', 6, 0],
+    ['{county}中医院', 'hospital', 40, 48, 32, 38, 0.48, '二级甲等', 4, 0],
+    ['{county2}人民医院', 'hospital', 42, 22, 10, 14, 0.52, '二级甲等', 4, 0],
+    ['{county2}中医院', 'hospital', 30, 18, 8, 12, 0.48, '二级甲等', 3, 0],
+    ['{city}连锁药房（{stores2}家）', 'retail', 43, 35, 22, 32, 0.44, '连锁', 0, 96],
+    ['{city}基层医疗集团（{stores3}家）', 'primary', 60, 50, 25, 35, 0.36, '基层网络', 0, 0],
+  ],
+  [
+    ['{c1}（省会）', 'city', 420, 6, 4, 5, 0.64, '省会', 0, 0],
+    ['{city}', 'city', 490, 30, 18, 24, 0.54, '样板地市', 0, 0],
+    ['{c2}', 'city', 240, 8, 5, 6, 0.52, '地市', 0, 0],
+    ['{c3}', 'city', 200, 5, 4, 5, 0.50, '地市', 0, 0],
+    ['{c4}', 'city', 180, 8, 5, 6, 0.52, '地市', 0, 0],
+    ['{c5}', 'city', 160, 6, 4, 5, 0.50, '地市', 0, 0],
+    ['{c6}', 'city', 130, 4, 3, 4, 0.48, '地市', 0, 0],
+    ['县域基层网络（{stores4}家）', 'region', 180, 22, 12, 16, 0.38, '基层网络', 0, 0],
+  ],
+  [
+    ['华东大区', 'region', 1800, 10, 5, 6, 0.58, '重点', 0, 0],
+    ['华南大区', 'region', 1100, 6, 4, 5, 0.55, '成长', 0, 0],
+    ['华北大区', 'region', 1400, 8, 4, 5, 0.58, '重点', 0, 0],
+    ['华中大区', 'region', 1200, 7, 4, 5, 0.56, '重点', 0, 0],
+    ['西南大区', 'region', 950, 5, 3, 4, 0.52, '成长', 0, 0],
+    ['西北 · 东北大区', 'region', 750, 4, 3, 4, 0.50, '潜力', 0, 0],
+  ],
+];
+
+const ALLY_SPECS = [
+  [
+    { id: 'a1', name: '{county}第一医共体', lead: 0, members: [0, 3, 4] },
+    { id: 'a2', name: '{county}中医医共体', lead: 1, members: [1, 2] },
+  ],
+  [
+    { id: 'b1', name: '{city}城区医共体', lead: 0, members: [0, 1, 9] },
+    { id: 'b2', name: '{county}医共体', lead: 4, members: [4, 5, 6, 7] },
+    { id: 'b3', name: '{city}中医医联体', lead: 2, members: [2, 3] },
+  ],
+  [],
+  [],
+];
+
+const TERMINALS = [[], [], [], []];
+const ALLIANCES = [[], [], [], []];
+
+function fill(str) {
+  return String(str)
+    .replace('{county}', WORLD.county)
+    .replace('{county2}', WORLD.county2)
+    .replace('{city}', WORLD.city)
+    .replace('{town1}', WORLD.town1)
+    .replace('{town2}', WORLD.town2)
+    .replace('{c1}', WORLD.cities[0]).replace('{c2}', WORLD.cities[1])
+    .replace('{c3}', WORLD.cities[2]).replace('{c4}', WORLD.cities[3])
+    .replace('{c5}', WORLD.cities[4]).replace('{c6}', WORLD.cities[5]);
+}
+
+function buildTerminals() {
+  TERM_SPECS.forEach((specs, act) => {
+    TERMINALS[act].length = 0;
+    specs.forEach((s, i) => {
+      const stores = s[2] === 28 ? rndInt(14, 24)
+        : s[2] === 43 ? rndInt(80, 160)
+          : s[2] === 180 ? rndInt(260, 380) : 0;
+      let name = fill(s[0]);
+      name = name.replace('{stores}', stores)
+        .replace('{stores2}', stores).replace('{stores3}', rndInt(36, 58))
+        .replace('{stores4}', stores);
+      TERMINALS[act].push({
+        id: 't' + act + '-' + i,
+        name, type: s[1], potential: s[2], access: s[3],
+        awareness: s[4], relation: s[5], comp: s[6], tier: s[7],
+        pharm: s[8] || 0, stores: s[9] ? stores : 0,
+        ally: null, spend: 0, idle: 0, prof: pickOne(['academic', 'relation', 'price']),
+      });
+    });
+    ALLIANCES[act].length = 0;
+    (ALLY_SPECS[act] || []).forEach(a => {
+      const members = a.members.map(i => TERMINALS[act][i].id);
+      ALLIANCES[act].push({ id: a.id, name: fill(a.name), lead: TERMINALS[act][a.lead].id, members });
+      members.forEach(mid => { TERMINALS[act].find(t => t.id === mid).ally = a.id; });
+    });
+  });
+}
+
+/* ---------------- 四幕 ---------------- */
+const ACTS = [
+  { level: 0, title: '第一幕 · 县域', region: '', org: '', rank: '县区经理', target: 38, shareTarget: 0.20, brief: '', quote: '' },
+  { level: 1, title: '第二幕 · 地市', region: '', org: '', rank: '地区经理', target: 90, shareTarget: 0.18, brief: '', quote: '' },
+  { level: 2, title: '第三幕 · 省区', region: '', org: '', rank: '大区经理', target: 400, shareTarget: 0.19, brief: '', quote: '' },
+  { level: 3, title: '第四幕 · 全国', region: '全国', org: '营销中心', rank: '营销总监', target: 1800, shareTarget: 0.24, brief: '', quote: '' },
+];
+
+function buildActs() {
+  const co = WORLD.company;
+  ACTS[0].region = WORLD.county;
+  ACTS[0].org = co + ' · ' + WORLD.city + '办事处';
+  ACTS[0].brief = `报到第一天，办事处只有两张桌子、一台打印机和两个还在跑市场的代表。${WORLD.county} 38 万人口，三个县级医院、两个卫生院、一个连锁药房。可支配预算 120 万，编制 6 人。`;
+  ACTS[0].quote = '“县域市场没有奇迹，只有一家一家医院啃下来。”——省区总监 周立群';
+  ACTS[1].region = WORLD.city;
+  ACTS[1].org = co + ' · ' + WORLD.city + '区域';
+  ACTS[1].brief = `${WORLD.county}做成了省内的样板县。公司把${WORLD.city}市区连同两个县一起交给你，团队编制扩到 10 人。市中心医院是三甲，门槛高、盘子大，也是所有竞品的必争之地。`;
+  ACTS[1].quote = '“进了三甲，才有资格谈品牌。”——' + WORLD.city + '中心医院 药剂科主任';
+  ACTS[2].region = WORLD.province;
+  ACTS[2].org = co + ' · ' + WORLD.province + '省区';
+  ACTS[2].brief = '八个地市，编制 15 人。省级平台的打法和县域完全不同——拼的是准入节奏、医保身份和学术话语权。';
+  ACTS[2].quote = '“省级市场不是加法，是乘法。做对一个地市，其他七个会自己找上门。”';
+  ACTS[3].org = co + ' · 营销中心';
+  ACTS[3].brief = '六大区、二十八个省区、一千两百人的销售体系，编制 22 人。你签的每一份文件都会变成一线的动作。合规、增长、利润，三件事同时压在你桌上。';
+  ACTS[3].quote = '“到这个位置，你要管的不是销量，是别人敢不敢按你说的做。”';
+}
+
+const COMPANIES = ['江右药业', '润泽医药', '南岭制药', '恒岳医药'];
+
+function generateWorld() {
+  WORLD._used = {};
+  WORLD.company = pickOne(COMPANIES);
+  WORLD.province = genPlace('省');
+  WORLD.city = genPlace('市');
+  WORLD.county = genPlace('县');
+  WORLD.county2 = genPlace('县');
+  WORLD.town1 = genPlace('镇');
+  WORLD.town2 = genPlace('镇');
+  WORLD.cities = [];
+  for (let i = 0; i < 6; i++) WORLD.cities.push(genPlace('市'));
+  buildProducts();
+  buildTerminals();
+  buildActs();
+}
+
+/* =========================================================
+   代表标签
+   ========================================================= */
+/* eff 键位：cap 当量上限 / cov 覆盖 / aw 认知 / rel 客情 / ct 合规倾向
+   growth 成长 / salary 薪资 / exposure 风险积累 / fail 失败率
+   ally 医共体协同 / loyalty0 初始忠诚 / loyalty 每月忠诚漂移 / rebate 带金收益 */
+const VISIBLE_TAGS = [
+  { id: 'grinder', name: '拼命三郎', weight: 16, ability: [48, 64], loyalty: [55, 75], ct: [55, 72],
+    eff: { cap: 0.7, growth: 0.4, rel: -0.1 }, desc: '当量上限 +0.7，成长快；跑得广但关系做不细' },
+  { id: 'scholar', name: '学术派', weight: 16, ability: [52, 70], loyalty: [65, 85], ct: [82, 95],
+    eff: { ct: 14, aw: 0.45, rel: -0.15, exposure: -0.3 }, desc: '合规 +14，认知推进 +45%，风险积累 -30%；不擅应酬' },
+  { id: 'rookie', name: '应届生', weight: 14, ability: [28, 42], loyalty: [70, 90], ct: [72, 92],
+    eff: { cap: -0.5, salary: -0.25, growth: 1.1, aw: -0.1 }, desc: '薪资 -25%，学得快；当量上限 -0.5' },
+  { id: 'oldfox', name: '老江湖', weight: 15, ability: [68, 86], loyalty: [45, 65], ct: [28, 50],
+    eff: { rel: 0.5, ct: -12, exposure: 0.25, aw: -0.15 }, desc: '客情 +50%，但合规 -12，风险积累 +25%' },
+  { id: 'connector', name: '关系户', weight: 13, ability: [38, 55], loyalty: [60, 82], ct: [50, 70],
+    eff: { rel: 0.75, ally: 0.02, cov: -0.05, aw: -0.2 }, desc: '客情 +75%，医共体协同更强；专业底子薄' },
+  { id: 'analyst', name: '数据控', weight: 12, ability: [50, 68], loyalty: [58, 78], ct: [70, 88],
+    eff: { cov: 0.08, aw: 0.2, rel: -0.2 }, desc: '覆盖 +8%，认知 +20%；不爱应酬' },
+  { id: 'ironman', name: '铁人', weight: 12, ability: [45, 62], loyalty: [65, 85], ct: [60, 78],
+    eff: { cap: 0.4, loyalty0: 8 }, desc: '当量上限 +0.4，出勤稳定，忠诚高' },
+  { id: 'parachute', name: '空降兵', weight: 10, ability: [58, 76], loyalty: [40, 58], ct: [55, 72],
+    eff: { cov: 0.1, salary: 0.15, loyalty0: -10 }, desc: '覆盖 +10%，但薪资 +15%、忠诚偏低' },
+  { id: 'local', name: '本地人', weight: 13, ability: [42, 60], loyalty: [62, 84], ct: [55, 75],
+    eff: { ally: 0.03, rel: 0.2 }, desc: '医共体协同 +0.03，客情推进 +20%；入职时就能确认' },
+];
+
+const HIDDEN_TAGS = [
+  { id: 'fragile', name: '玻璃心', weight: 10, eff: { loyalty: -0.6 }, desc: '忠诚持续下滑' },
+  { id: 'slippery', name: '老油条', weight: 10, eff: { cov: 0.06, exposure: 0.2 }, desc: '效率略高，但风险积累更快' },
+  { id: 'purist', name: '学术洁癖', weight: 8, eff: { rebate: -0.4, exposure: -0.4 }, desc: '拒绝带金，风险低' },
+  { id: 'jobhunt', name: '骑驴找马', weight: 7, eff: { jobhunt: 1 }, desc: '在岗满 10 个月后忠诚快速下滑' },
+  { id: 'charmer', name: '会来事', weight: 10, eff: { rel: 0.35, ct: -6 }, desc: '客情推进快，合规感弱' },
+  { id: 'introvert', name: '闷葫芦', weight: 10, eff: { aw: 0.3, rel: -0.3 }, desc: '讲得清产品，处不好关系' },
+  { id: 'perfect', name: '强迫症', weight: 9, eff: { fail: -0.06, cov: -0.04 }, desc: '执行细致，动作偏慢' },
+  { id: 'nightowl', name: '夜猫子', weight: 9, eff: { cap: 0.3, loyalty: -0.2 }, desc: '能熬夜，稳定性差' },
+  { id: 'family', name: '家有老小', weight: 9, eff: { loyalty: 0.4, cap: -0.2 }, desc: '稳定但不愿出差' },
+  { id: 'drinker', name: '酒量好', weight: 9, eff: { rel: 0.3, ct: -4 }, desc: '酒桌上谈事，客情快，边界松' },
+  { id: 'exrival', name: '前竞品', weight: 8, eff: { aw: 0.18, cov: 0.04 }, desc: '从对手过来，懂打法、上手快' },
+  { id: 'badnav', name: '路痴', weight: 8, eff: { cap: -0.25 }, desc: '跑不远，半径小' },
+  { id: 'procrast', name: '拖延症', weight: 8, eff: { fail: 0.05 }, desc: '交办的事经常拖到最后一刻' },
+  { id: 'book', name: '客户资源', weight: 7, eff: { cov: 0.1, loyalty: -0.3 }, desc: '手里有客户，但随时能带走' },
+  { id: 'niceguy', name: '老好人', weight: 9, eff: { rel: 0.2, cov: -0.04, ct: 4 }, desc: '谁都不得罪，也压不动量' },
+  { id: 'paperwork', name: '报表控', weight: 8, eff: { fail: -0.04, aw: 0.08 }, desc: '材料做得漂亮，执行少出错' },
+  { id: 'moody', name: '情绪化', weight: 8, eff: { cov: 0.05, loyalty: -0.25 }, desc: '状态好时很猛，状态差时掉链子' },
+  { id: 'sidegig', name: '兼职', weight: 6, eff: { cov: -0.08, loyalty: -0.45 }, desc: '心思不在本职上' },
+  { id: 'chronic', name: '慢性病', weight: 6, eff: { cap: -0.3, loyalty: 0.25 }, desc: '跑不动，但求稳' },
+];
+
+/* =========================================================
+   玩家：成长路线 + 个人标签
+   ========================================================= */
+const PATHS = [
+  { id: 'sales', name: '营销线', en: 'SALES', desc: '带团队、抢份额、拼准入。从县域一路做到全国营销总监。', ready: true },
+  { id: 'academic', name: '学术线', en: 'MEDICAL', desc: '从医学事务做起，用证据和共识影响处方。', ready: false },
+  { id: 'market', name: '市场线', en: 'MARKETING', desc: '产品策略、市场准入、品牌建设。', ready: false },
+];
+
+const PLAYER_TAGS = [
+  { id: 'iron', name: '铁腕', desc: '全员覆盖 +5%，团队忠诚每月 -0.15', eff: { cov: 0.05, loyalty: -0.15 } },
+  { id: 'mentor', name: '师长', desc: '代表能力成长 +45%', eff: { growth: 0.45 } },
+  { id: 'data', name: '数据狂', desc: '所有项目失败率 -5pt', eff: { fail: -0.05 } },
+  { id: 'network', name: '关系通', desc: '准入开发效果 +12%', eff: { dev: 0.12 } },
+  { id: 'clean', name: '合规派', desc: '合规评分每月 +0.5，风险积累 -10%', eff: { compliance: 0.5, exposure: -0.1 } },
+  { id: 'frugal', name: '成本控', desc: '所有项目成本 -10%', eff: { cost: -0.1 } },
+  { id: 'workaholic', name: '工作狂', desc: '每周精力 +1', eff: { ap: 1 } },
+  { id: 'charisma', name: '人格魅力', desc: '上级评价获取 +30%', eff: { eval: 0.3 } },
+];
+
+/* =========================================================
+   角色 / 打法 / 项目
+   ========================================================= */
+const NAMES_SURNAME = '王李张刘陈杨黄赵周吴徐孙马朱胡郭何高林罗郑梁谢宋唐许韩冯邓曹彭曾萧田董袁潘蒋蔡余杜叶程苏魏吕丁任沈姚卢姜崔钟谭陆汪范金石廖贾夏韦方白邹孟熊秦邱江尹薛段雷侯龙史陶黎贺顾毛郝龚邵万钱严覃武戴莫孔向汤'.split('');
+const NAMES_GIVEN = ['伟', '芳', '娜', '敏', '静', '丽', '强', '磊', '军', '洋', '勇', '艳', '杰', '娟', '涛', '明', '超', '霞', '平', '刚', '建国', '志强', '晓东', '海燕', '雪梅', '立新', '文博', '雨欣', '浩然', '子涵', '佳怡', '振宇', '思远', '雅雯', '鹏飞', '慧敏', '国栋', '玉兰', '长春', '建平', '小军', '亚楠', '婷婷', '鑫', '楠', '琳', '晨', '阳', '悦', '斌', '翔', '秋萍', '红梅', '俊杰', '建军', '卫东'];
+
+const ROLES = {
+  '代表': { salary: 1.2, cov: 1.55, label: '医药代表', en: 'Sales Rep' },
+  '高级代表': { salary: 1.7, cov: 1.75, label: '高级代表', en: 'Senior Rep' },
+  '学术专员': { salary: 1.5, cov: 0.85, label: '学术专员', en: 'MSL' },
+  '渠道经理': { salary: 1.6, cov: 1.00, label: '渠道经理', en: 'Channel Manager' },
+};
+
+const TACTICS = [
+  { id: 'standard', name: '规范拜访', en: 'Standard Visit', cov: 1.00, mul: 1.00, exposure: 0, loyalty: 0.5, aw: 1.0, rel: 1.0, desc: '按合规手册拜访，节奏稳，天花板低。' },
+  { id: 'push', name: '冲刺压货', en: 'Push Volume', cov: 1.22, mul: 1.06, exposure: 4, loyalty: -1.6, aw: 0.9, rel: 0.8, desc: '加大拜访频次与进货压力，短期上量，代表会累。' },
+  { id: 'data', name: '统方渗透', en: 'Rx Data', cov: 1.06, mul: 1.16, exposure: 9, loyalty: -0.5, aw: 2.6, rel: 1.2, desc: '拿处方数据精准打击。数据来源本身不合规。' },
+  { id: 'rebate', name: '带金销售', en: 'Rebate', cov: 1.55, mul: 1.32, exposure: 15, loyalty: -0.8, aw: 1.2, rel: 1.9, desc: '短期最猛，风险敞口最大的玩法。一旦被查，全线崩。' },
+];
+
+/* 项目：effect 为“基准效果”，实际按终端类型与终端画像缩放（见 engine.effOf） */
+const PROJECTS = [
+  { id: 'dept', name: '科室会', en: 'Dept. Meeting', cost: 1.2, ap: 1, multi: 3, fail: 0.16, delay: 0,
+    base: { aw: 12, rel: 4 }, desc: '在选定终端各开一场科室会：认知、客情按终端类型浮动。',
+    help: '性价比最高的学术动作。同一终端连续开会，边际效应递减。' },
+  { id: 'case', name: '病例征集', en: 'Case Collection', cost: 4.5, ap: 1, multi: 2, fail: 0.22, delay: 2,
+    base: { aw: 14, rel: 8 }, desc: '真实世界病例收集，2 个月后结算；在医院效果远好于零售。',
+    help: '合规且能沉淀证据，是进院和医保谈判的硬材料。周期长，别指望当月见效。' },
+  { id: 'dev', name: '医院开发', en: 'Access Development', cost: 3.5, ap: 1, multi: 2, fail: 0.28, delay: 1,
+    base: { access: 20 }, desc: '提交药事会申请，1 个月后出结果；难度与医院等级挂钩。',
+    help: '准入低于 25 的终端几乎不出量，开发是唯一的破局动作。' },
+  { id: 'channel', name: '渠道建设', en: 'Channel Build', cost: 3.0, ap: 1, multi: 2, fail: 0.15, delay: 1,
+    base: { access: 8, rel: 5 }, desc: '谈配送、铺货、店员培训，1 个月后生效；只对基层与零售有效。',
+    help: '基层和零售靠覆盖吃饭，渠道不通，学术再强也没用。' },
+  { id: 'relation', name: '客情维护', en: 'Key Account Care', cost: 2.0, ap: 1, multi: 3, fail: 0.10, delay: 0,
+    base: { rel: 13 }, desc: '客情 +13 起，关系型终端更高；风险敞口 +2。',
+    help: '客情是准入和处方的润滑剂，但边界要自己把握。' },
+  { id: 'city', name: '区域学术会', en: 'Regional Symposium', cost: 9.0, ap: 1, multi: 0, fail: 0.20, delay: 0,
+    base: { aw: 6 }, desc: '全区域认知度 +6，上级评价 +2。',
+    help: '一次覆盖所有终端，终端越多越划算。' },
+  { id: 'hire', name: '招聘', en: 'Recruit', cost: 0.8, ap: 1, multi: -1, fail: 0, delay: 0,
+    desc: '获取 2 名候选人，可择优录用。', help: '人是唯一能复制的能力。' },
+  { id: 'train', name: '团队培训', en: 'Team Training', cost: 2.6, ap: 1, multi: -1, fail: 0, delay: 0,
+    desc: '全员能力 +4，忠诚 +3，合规倾向 +2。', help: '长期收益最高，短期看不见数字。' },
+  { id: 'compliance', name: '合规培训', en: 'Compliance Training', cost: 1.8, ap: 1, multi: -1, fail: 0, delay: 0,
+    desc: '合规分 +6，全员风险敞口 -14。', help: '风险堆高之后的唯一解药。' },
+];
+
+/* 周会要求 */
+const WEEKLY_ORDERS = [
+  { id: 'push', name: '冲量', desc: '本周全员加拜访密度：覆盖 +12%，风险 +2', tone: 'risk' },
+  { id: 'academic', name: '抓学术', desc: '本周主抓科室会与病例：认知 +3', tone: '' },
+  { id: 'relation', name: '做客情', desc: '本周重点维护关键客户：客情 +3', tone: '' },
+  { id: 'compliance', name: '抓合规', desc: '本周只做规范动作：风险 -10，覆盖 -5%', tone: 'safe' },
+];
+
+const PUNISH = [
+  { min: 0, text: '约谈提醒', cash: 0, comp: -3, rep: -2 },
+  { min: 30, text: '通报批评', cash: 8, comp: -10, rep: -6 },
+  { min: 55, text: '品种停采', cash: 18, comp: -16, rep: -12 },
+  { min: 75, text: '移交司法', cash: 40, comp: -26, rep: -22 },
+];
+
+/* =========================================================
+   市场事件
+   ========================================================= */
+const EVENTS = [
+  {
+    id: 'pht', title: '药事会窗口', en: 'P&T Committee Window', weight: 12,
+    cond: s => s.terminals.some(t => t.access < 70),
+    text: '一家重点终端下月召开药事会，本轮议题包含目录调整。药剂科暗示"材料要齐、要经得起问"。',
+    options: [
+      { label: '全力备料，提交完整循证材料', cost: 3, ap: 0,
+        run: s => { const t = pick(s.terminals.filter(x => x.access < 70)); if (!t) return { text: '窗口已过。', tone: 'flat' };
+          t.access = Math.min(100, t.access + 18); t.awareness = Math.min(100, t.awareness + 6); t.idle = 0;
+          return { text: `${t.name} 准入 +18，进入目录。`, tone: 'good' }; } },
+      { label: '先走关系，材料后补', cost: 1.5, ap: 0,
+        run: s => { const t = pick(s.terminals.filter(x => x.access < 70)); if (!t) return { text: '无人可走。', tone: 'flat' };
+          t.access = Math.min(100, t.access + 10); s.riskMod = Math.min(60, s.riskMod + 8);
+          return { text: `${t.name} 准入 +10，风险 +8。`, tone: 'bad' }; } },
+      { label: '放弃本轮', cost: 0, run: () => ({ text: '按兵不动。竞品抢走了两个议题名额。', tone: 'flat' }) },
+    ],
+  },
+  {
+    id: 'med-ins', title: '医保总额控费', en: 'Global Budget Cap', weight: 13,
+    cond: s => s.terminals.some(t => t.type === 'hospital'),
+    text: '医保局对辖区医院下达总额控费指标：药占比超标的医院要被扣减次月额度。你的一家重点医院正在名单上。',
+    options: [
+      { label: '配合控费，主动压量', cost: 0,
+        run: s => { const t = pick(s.terminals.filter(x => x.type === 'hospital')); if (!t) return { text: '无医院。', tone: 'flat' };
+          t.potential = +(t.potential * 0.9).toFixed(1); s.compliance = Math.min(100, s.compliance + 3);
+          return { text: `${t.name} 品类容量 -10%（${t.potential.toFixed(1)} 万/月），合规 +3。`, tone: 'flat' }; } },
+      { label: '提交临床必需性论证，争取豁免', cost: 4, ap: 1,
+        run: s => { const t = pick(s.terminals.filter(x => x.type === 'hospital')); if (!t) return { text: '无医院。', tone: 'flat' };
+          t.potential = +(t.potential * 1.05).toFixed(1); t.awareness = Math.min(100, t.awareness + 12);
+          return { text: `${t.name} 论证通过，容量 +5% 且认知 +12，花了 4 万。`, tone: 'good' }; } },
+      { label: '转到院外渠道消化', cost: 2,
+        run: s => { const t = s.terminals.find(x => x.type === 'retail'); if (!t) return { text: '无零售终端。', tone: 'flat' };
+          t.potential = +(t.potential * 1.12).toFixed(1); s.riskMod = Math.min(60, s.riskMod + 8);
+          return { text: `${t.name} 容量 +12%，但处方外流被记了一笔。风险 +8。`, tone: 'bad' }; } },
+    ],
+  },
+  {
+    id: 'new-wing', title: '新院区开诊', en: 'New Campus', weight: 9,
+    cond: s => s.terminals.some(t => t.type === 'hospital'),
+    text: '一家医院的新院区下月开诊，编制床位翻倍。药剂科重新梳理供应商，老关系不一定带得过去。',
+    options: [
+      { label: '抢在开诊前重新做准入', cost: 6, ap: 1,
+        run: s => { const t = pick(s.terminals.filter(x => x.type === 'hospital')); if (!t) return { text: '无医院。', tone: 'flat' };
+          t.potential = +(t.potential * 1.28).toFixed(1); t.access = Math.max(45, t.access * 0.85); t.idle = 0;
+          return { text: `${t.name} 容量 +28%（${t.potential.toFixed(1)} 万/月），准入重谈到 ${t.access.toFixed(0)}。`, tone: 'good' }; } },
+      { label: '沿用老关系，先不动', cost: 0,
+        run: s => { const t = pick(s.terminals.filter(x => x.type === 'hospital')); if (!t) return { text: '无医院。', tone: 'flat' };
+          t.potential = +(t.potential * 1.2).toFixed(1); t.access = Math.max(0, t.access * 0.6);
+          return { text: `${t.name} 容量 +20%，但准入被重置到 ${t.access.toFixed(0)}，得重新做工作。`, tone: 'flat' }; } },
+    ],
+  },
+  {
+    id: 'expert', title: '学科带头人引进', en: 'Key Opinion Leader', weight: 10,
+    cond: s => s.terminals.some(t => t.type === 'hospital'),
+    text: '一家医院从外省引进了一位学科带头人，据说门诊量很大，对用药方案有很强的话语权。',
+    options: [
+      { label: '第一时间做学术拜访', cost: 2, ap: 1,
+        run: s => { const t = pick(s.terminals.filter(x => x.type === 'hospital')); if (!t) return { text: '无医院。', tone: 'flat' };
+          t.awareness = Math.min(100, t.awareness + 16); t.relation = Math.min(100, t.relation + 10);
+          return { text: `${t.name} 认知 +16，客情 +10。`, tone: 'good' }; } },
+      { label: '等代表日常跟进', cost: 0,
+        run: s => { const t = pick(s.terminals.filter(x => x.type === 'hospital')); if (!t) return { text: '无医院。', tone: 'flat' };
+          t.awareness = Math.min(100, t.awareness + 4);
+          return { text: `${t.name} 认知 +4。慢了一步，竞品已经先到了。`, tone: 'flat' }; } },
+    ],
+  },
+  {
+    id: 'pht-delay', title: '药事会延期', en: 'P&T Postponed', weight: 8,
+    cond: s => s.pending.length > 0,
+    text: '医院通知：本轮药事会因故延期，已受理的材料顺延到下一次会议。',
+    options: [
+      { label: '接受延期', cost: 0,
+        run: s => { s.pending.forEach(p => { p.at += 1; });
+          return { text: '在途项目全部顺延 1 个月。', tone: 'bad' }; } },
+      { label: '找关系争取提前上会', cost: 3, ap: 1,
+        run: s => { s.riskMod = Math.min(60, s.riskMod + 6);
+          return { text: '材料被插进了临时议题。风险 +6。', tone: 'flat' }; } },
+    ],
+  },
+  {
+    id: 'pharm-crack', title: '院边药店整顿', en: 'Pharmacy Cleanup', weight: 8,
+    cond: s => s.terminals.some(t => t.pharm > 0),
+    text: '卫健委整顿院边药店：不得直接承接院内处方，不得悬挂医院标识。你承接的几家院边店被点名。',
+    options: [
+      { label: '撤出院边店，交回连锁', cost: 0,
+        run: s => { let n = 0;
+          s.team.forEach(r => { Object.keys(r.assign).forEach(tid => {
+            if (r.assign[tid].pharm) { r.assign[tid].pharm = false; n++; }
+          }); });
+          return { text: `${n} 个院边药店承接关系被解除，连锁代表维护压力回升。`, tone: 'bad' }; } },
+      { label: '改成"健康咨询点"继续做', cost: 2,
+        run: s => { s.riskMod = Math.min(60, s.riskMod + 10); s.compliance = Math.max(0, s.compliance - 5);
+          return { text: '换了个招牌继续。风险 +10，合规 -5。', tone: 'bad' }; } },
+    ],
+  },
+  {
+    id: 'ally-lead', title: '医共体牵头遴选', en: 'Alliance Leadership', weight: 7,
+    cond: s => (ALLIANCES[s.level] || []).length > 0,
+    text: '县域医共体重新遴选牵头单位。牵头医院可以统一目录，成员单位的用药结构会跟着变。',
+    options: [
+      { label: '全力支持现有牵头医院', cost: 3, ap: 1,
+        run: s => { const al = pick(ALLIANCES[s.level]); if (!al) return { text: '无医共体。', tone: 'flat' };
+          al.members.forEach(mid => { const t = termById(mid); if (t) { t.access = Math.min(100, t.access + 5); } });
+          s.reputation = Math.min(100, s.reputation + 2);
+          return { text: `${al.name} 成员准入各 +5，上级评价 +2。`, tone: 'good' }; } },
+      { label: '押注另一家医院', cost: 3, ap: 1,
+        run: s => { const al = pick(ALLIANCES[s.level]); if (!al) return { text: '无医共体。', tone: 'flat' };
+          const t = pick(s.terminals.filter(x => x.type === 'hospital' && !al.members.includes(x.id)));
+          if (t) { t.access = Math.min(100, t.access + 20); t.potential = +(t.potential * 1.1).toFixed(1); }
+          s.riskMod = Math.min(60, s.riskMod + 6);
+          return { text: t ? `${t.name} 准入 +20，容量 +10%。赌对了就是翻盘。` : '没人可押。', tone: 'flat' }; } },
+    ],
+  },
+  {
+    id: 'letter', title: '匿名举报信', en: 'Anonymous Letter', weight: 10,
+    cond: s => teamRisk() > 35,
+    text: '公司纪检邮箱收到一封匿名信，指向你辖区"存在不当利益输送"。信里点了两个终端名字，没点名到人。',
+    options: [
+      { label: '主动自查，移送线索', cost: 0, ap: 1,
+        run: s => { s.riskMod = Math.max(-20, s.riskMod - 25); s.compliance = Math.min(100, s.compliance + 4); s.reputation = Math.max(0, s.reputation - 3);
+          return { text: '自查报告上交，风险 -25，合规 +4，上级评价 -3。', tone: 'flat' }; } },
+      { label: '压下去，内部消化', cost: 1.5,
+        run: s => { s.riskMod = Math.min(60, s.riskMod + 10); s.compliance = Math.max(0, s.compliance - 8);
+          return { text: '信被"处理"掉了。合规 -8，风险 +10。', tone: 'bad' }; } },
+    ],
+  },
+  {
+    id: 'inspect', title: '医保飞检', en: 'NHSA Inspection', weight: 9,
+    cond: s => s.totalMonth > 3,
+    text: '省医保局飞行检查组进驻，重点查"不合理用药"和"处方外流"。抽到你辖区两家终端。',
+    options: [
+      { label: '配合检查，全员合规口径', cost: 0.5, ap: 1,
+        run: s => { if (teamRisk() < 45) { s.reputation = Math.min(100, s.reputation + 4); s.compliance = Math.min(100, s.compliance + 3); s.riskMod = Math.max(-20, s.riskMod - 10);
+            return { text: '检查通过，无违规记录。上级评价 +4。', tone: 'good' }; }
+          s.compliance = Math.max(0, s.compliance - 12); s.cash -= 12;
+          return { text: '查出两笔无适应症处方，罚款 12 万，合规 -12。', tone: 'bad' }; } },
+      { label: '临时清账，统一口径', cost: 2,
+        run: s => { s.riskMod = Math.max(-20, s.riskMod - 12); s.compliance = Math.max(0, s.compliance - 5);
+          return { text: '账平了，但检查组记下了"配合度异常"。合规 -5。', tone: 'bad' }; } },
+    ],
+  },
+  {
+    id: 'compmeet', title: '竞品开城市会', en: 'Rival Symposium', weight: 12,
+    cond: () => true,
+    text: () => `${pickOne(RIVALS)}办了一场 300 人的学术会，主推同类品种，请了两位省级主委站台。你的客户被请去了一半。`,
+    options: [
+      { label: '跟进办一场，规格不低于对手', cost: 8, ap: 1,
+        run: s => { s.terminals.forEach(t => t.awareness = Math.min(100, t.awareness + 4));
+          s.terminals.forEach(t => t.comp = Math.min(0.85, t.comp + 0.02));
+          return { text: '全区域认知 +4，竞品压力 +0.02。', tone: 'flat' }; } },
+      { label: '不打对台，做小范围深度沟通', cost: 2, ap: 1,
+        run: s => { s.terminals.forEach(t => t.relation = Math.min(100, t.relation + 4));
+          return { text: '全区域客情 +4。', tone: 'good' }; } },
+      { label: '不管，按原节奏走', cost: 0,
+        run: s => { s.terminals.forEach(t => t.awareness = Math.max(0, t.awareness - 5));
+          return { text: '全区域认知 -5。客户在会上被对手洗了一遍。', tone: 'bad' }; } },
+    ],
+  },
+  {
+    id: 'director', title: '院长换届', en: 'Leadership Change', weight: 8,
+    cond: s => s.totalMonth > 3,
+    text: '一家重点终端的院长调任，新院长是从外院空降的，据说对供应商"零基础、重新筛"。',
+    options: [
+      { label: '第一时间登门汇报', cost: 1, ap: 1,
+        run: s => { const t = pick(s.terminals); if (!t) return { text: '无终端。', tone: 'flat' };
+          t.relation = Math.max(10, Math.round(t.relation * 0.6) + 15);
+          return { text: `${t.name} 客情重置为 ${t.relation.toFixed(1)}。`, tone: 'flat' }; } },
+      { label: '先观察，让代表跟进', cost: 0,
+        run: s => { const t = pick(s.terminals); if (!t) return { text: '无终端。', tone: 'flat' };
+          t.relation = Math.round(t.relation * 0.35); t.access = Math.max(0, t.access - 8);
+          return { text: `${t.name} 客情跌至 ${t.relation.toFixed(1)}，准入 -8。`, tone: 'bad' }; } },
+    ],
+  },
+  {
+    id: 'poach', title: '对手挖人', en: 'Talent Poaching', weight: 10,
+    cond: s => s.team.length >= 2,
+    text: '竞品的 HR 在你辖区活动，开出了 30% 的涨幅。你最好的代表昨天接到了一通电话。',
+    options: [
+      { label: '加薪挽留（月薪 +25%）', cost: 0,
+        run: s => { const r = s.team.slice().sort((a, b) => b.ability - a.ability)[0];
+          if (!r) return { text: '无人在岗。', tone: 'flat' };
+          r.salary = +(r.salary * 1.25).toFixed(2); r.loyalty = Math.min(100, r.loyalty + 18);
+          return { text: `${r.name} 留任，月薪上调至 ${r.salary.toFixed(1)} 万。`, tone: 'good' }; } },
+      { label: '放走，招新人重练', cost: 0,
+        run: s => { const r = s.team.slice().sort((a, b) => b.ability - a.ability)[0];
+          if (!r) return { text: '无人在岗。', tone: 'flat' };
+          s.team = s.team.filter(x => x.id !== r.id);
+          return { text: `${r.name} 离职，带队经验流失。`, tone: 'bad' }; } },
+    ],
+  },
+  {
+    id: 'payment', title: '账期拉长', en: 'Payment Terms', weight: 9,
+    cond: s => s.totalMonth > 3,
+    text: '商业公司通知：受医院回款影响，本月起账期由 60 天延至 90 天。你的费用池要垫一层。',
+    options: [
+      { label: '接受，压缩本季活动', cost: 6, run: () => ({ text: '垫付 6 万，本季度学术活动预算被挤占。', tone: 'bad' }) },
+      { label: '换一家商业公司谈', cost: 2, ap: 1,
+        run: s => { s.reputation = Math.min(100, s.reputation + 2); return { text: '花 2 万切换配送商，账期维持 60 天。上级评价 +2。', tone: 'good' }; } },
+    ],
+  },
+  {
+    id: 'media', title: '媒体暗访', en: 'Undercover Reporter', weight: 7,
+    cond: s => s.totalMonth > 4,
+    text: '有记者以"患者家属"身份在门诊区待了三天，打听代表和医生的往来。',
+    options: [
+      { label: '全员暂停线下拜访一周', cost: 3,
+        run: s => { s.riskMod = Math.max(-20, s.riskMod - 18); s.terminals.forEach(t => t.awareness = Math.max(0, t.awareness - 3));
+          return { text: '风险 -18，全区域认知 -3。躲过一劫。', tone: 'good' }; } },
+      { label: '照常跑，身正不怕影子斜', cost: 0,
+        run: s => { if (teamRisk() < 40) { s.reputation = Math.min(100, s.reputation + 3); return { text: '记者跟了三天没抓到东西。上级评价 +3。', tone: 'good' }; }
+          s.compliance = Math.max(0, s.compliance - 10); s.cash -= 8;
+          return { text: '报道发出，公关费用 8 万，合规 -10。', tone: 'bad' }; } },
+    ],
+  },
+  {
+    id: 'tender', title: '集采续标', en: 'VBP Renewal', weight: 8,
+    cond: s => s.totalMonth > 5,
+    text: '价格敏感型品种进入续标。规则是"最低价中标"，报价空间被压到极限。',
+    options: [
+      { label: '跟价中标，保份额弃利润', cost: 0,
+        run: s => { s.terminals.forEach(t => t.comp = Math.min(0.85, t.comp + 0.04));
+          return { text: '中标。份额守住，但竞品压力 +0.04。', tone: 'flat' }; } },
+      { label: '不跟，放弃院内市场', cost: 0,
+        run: s => { s.terminals.forEach(t => t.awareness = Math.max(0, t.awareness - 6));
+          return { text: '弃标。认知 -6。', tone: 'bad' }; } },
+    ],
+  },
+  {
+    id: 'annual', title: '全国年会名额', en: 'National Congress', weight: 8,
+    cond: s => s.reputation > 55,
+    text: '总部给了省区两个全国学术年会名额，可以带客户去，也可以派自己的人去。',
+    options: [
+      { label: '带 4 位核心专家去', cost: 4, ap: 1,
+        run: s => { const t = pick(s.terminals); if (t) { t.relation = Math.min(100, t.relation + 12); t.awareness = Math.min(100, t.awareness + 8); }
+          s.reputation = Math.min(100, s.reputation + 3);
+          return { text: '客情 +12、认知 +8，上级评价 +3。', tone: 'good' }; } },
+      { label: '派学术专员去学习', cost: 2,
+        run: s => { const r = s.team.find(x => x.role === '学术专员') || s.team[0];
+          if (r) { r.ability = Math.min(100, r.ability + 6); r.loyalty = Math.min(100, r.loyalty + 8); }
+          return { text: '学术能力 +6，忠诚 +8。', tone: 'good' }; } },
+    ],
+  },
+  {
+    id: 'kickback', title: '代表的"私活"', en: 'Side Deal', weight: 8,
+    cond: s => teamRisk() > 30 && s.team.length > 2,
+    text: '你发现一名代表在私下代理竞品的品种，用你的客户资源走货。被问到时他说"大家都这么干"。',
+    options: [
+      { label: '立即停职，走公司流程', cost: 0, ap: 1,
+        run: s => { const r = pick(s.team.filter(x => x.exposure > 20)) || pick(s.team);
+          if (r) s.team = s.team.filter(x => x.id !== r.id);
+          s.riskMod = Math.max(-20, s.riskMod - 12); s.compliance = Math.min(100, s.compliance + 3); s.reputation = Math.min(100, s.reputation + 3);
+          return { text: '人员清退，风险 -12，风气立住了。', tone: 'good' }; } },
+      { label: '私下警告，保留人力', cost: 0,
+        run: s => { s.riskMod = Math.min(60, s.riskMod + 12); s.compliance = Math.max(0, s.compliance - 6);
+          return { text: '人留下了，风险 +12，合规 -6。', tone: 'bad' }; } },
+    ],
+  },
+  {
+    id: 'candidate', title: '主动投简历', en: 'Inbound Resume', weight: 9,
+    cond: s => s.team.length < CFG.teamCap[s.level],
+    text: '一位在三甲做了五年、手里有客户资源的代表主动投了简历，期望薪资高于编制标准。',
+    options: [
+      { label: '破格录用', cost: 2,
+        run: s => { if (s.team.length >= CFG.teamCap[s.level]) return { text: '编制已满。', tone: 'flat' };
+          const r = makeRep(s, { abilityBoost: 12, salaryBoost: 1.3, traitId: 'oldfox' });
+          s.team.push(r); return { text: `${r.name} 入职（能力 ${r.ability.toFixed(1)}）。`, tone: 'good' }; } },
+      { label: '按标准薪资谈', cost: 0,
+        run: s => { if (Math.random() < 0.45 && s.team.length < CFG.teamCap[s.level]) {
+            const r = makeRep(s); s.team.push(r); return { text: `${r.name} 接受标准 offer。`, tone: 'good' }; }
+          return { text: '对方拒了，去了竞品。', tone: 'flat' }; } },
+    ],
+  },
+  {
+    id: 'rectify', title: '卫健委整顿', en: 'Health Commission', weight: 7,
+    cond: s => s.totalMonth > 3,
+    text: '卫健委下发通知，要求所有代表备案、不得在门诊区活动。',
+    options: [
+      { label: '全员备案，转学术路径', cost: 1.5, ap: 1,
+        run: s => { s.compliance = Math.min(100, s.compliance + 6); s.riskMod = Math.max(-20, s.riskMod - 10);
+          s.terminals.forEach(t => t.awareness = Math.max(0, t.awareness - 2));
+          return { text: '合规 +6，认知 -2（拜访受限）。', tone: 'good' }; } },
+      { label: '换个名目继续跑', cost: 0,
+        run: s => { s.riskMod = Math.min(60, s.riskMod + 14); s.compliance = Math.max(0, s.compliance - 8);
+          return { text: '换汤不换药。风险 +14，合规 -8。', tone: 'bad' }; } },
+    ],
+  },
+  {
+    id: 'pricecut', title: '竞品降价', en: 'Price War', weight: 10,
+    cond: () => true,
+    text: () => `${pickOne(RIVALS)}把同类品种的院内价下调 18%，同时给商业公司加了 5 个点的返利。`,
+    options: [
+      { label: '申请专项政策跟价', cost: 3, ap: 1,
+        run: s => { s.terminals.forEach(t => t.comp = Math.min(0.85, t.comp + 0.03));
+          s.reputation = Math.min(100, s.reputation + 2);
+          return { text: '拿到专项折扣。竞品压力 +0.03，上级评价 +2。', tone: 'flat' }; } },
+      { label: '不跟价，打差异化', cost: 0,
+        run: s => { s.terminals.forEach(t => t.comp = Math.min(0.9, t.comp + 0.06));
+          return { text: '竞品压力 +0.06。', tone: 'bad' }; } },
+    ],
+  },
+  {
+    id: 'star', title: '冒尖的新人', en: 'Rising Star', weight: 9,
+    cond: s => s.team.length >= 3,
+    text: '一个入职不到一年的代表，把一家原本放弃的终端做进了前三。',
+    options: [
+      { label: '提拔为组长，让他带人', cost: 1, ap: 1,
+        run: s => { const r = s.team.slice().sort((a, b) => (b.ability + b.loyalty) - (a.ability + a.loyalty))[0];
+          if (!r) return { text: '无人可提。', tone: 'flat' };
+          r.role = '高级代表'; r.ability = Math.min(100, r.ability + 8); r.loyalty = Math.min(100, r.loyalty + 12); r.salary = +(r.salary * 1.2).toFixed(2);
+          s.team.forEach(x => x.loyalty = Math.min(100, x.loyalty + 2));
+          return { text: `${r.name} 升任高级代表，全员忠诚 +2。`, tone: 'good' }; } },
+      { label: '先给奖金，稳住再说', cost: 2,
+        run: s => { const r = s.team.slice().sort((a, b) => (b.ability + b.loyalty) - (a.ability + a.loyalty))[0];
+          if (r) r.loyalty = Math.min(100, r.loyalty + 6);
+          return { text: '发了 2 万奖金，忠诚 +6。', tone: 'flat' }; } },
+    ],
+  },
+  {
+    id: 'audit', title: '集团合规审计', en: 'Corporate Audit', weight: 8,
+    cond: s => s.totalMonth > 4,
+    text: '集团法务与合规部年度审计，抽到你辖区。要求提供近 12 个月的学术活动台账、讲者协议和费用凭证。',
+    options: [
+      { label: '开诚布公，补齐台账', cost: 2, ap: 1,
+        run: s => { if (s.compliance > 70) { s.reputation = Math.min(100, s.reputation + 5); s.compliance = Math.min(100, s.compliance + 4);
+            return { text: '审计无重大发现，合规 +4，上级评价 +5。', tone: 'good' }; }
+          s.compliance = Math.max(0, s.compliance - 15); s.cash -= 10;
+          return { text: '查出 3 场活动无签到表，罚款 10 万，合规 -15。', tone: 'bad' }; } },
+      { label: '让代表自己想办法补', cost: 0,
+        run: s => { s.riskMod = Math.min(60, s.riskMod + 15); s.compliance = Math.max(0, s.compliance - 10);
+          return { text: '台账补上了，但笔迹太像。风险 +15，合规 -10。', tone: 'bad' }; } },
+    ],
+  },
+];
+
+/* =========================================================
+   管理事件（来自公司 / 上级）
+   ========================================================= */
+const MGMT_EVENTS = [
+  {
+    id: 'm-grid', title: '网格化管理', en: 'Territory Grid', weight: 14, mgmt: true,
+    text: '总部下发《代表网格化管理细则》：每名代表负责的医院不超过 2 家，超出部分必须重新划分。省区要求本月内落地。',
+    options: [
+      { label: '严格执行', desc: '按细则重划：每人最多 2 家，超出部分转给他人或空缺',
+        run: s => { const cut = trimAssignments(2);
+          s.reputation = Math.min(100, s.reputation + 6); s.compliance = Math.min(100, s.compliance + 2);
+          if (!cut) return { text: '核查后所有代表都在 2 家以内，无需调整。上级评价 +6，合规 +2。', tone: 'good' };
+          return { text: `重划完成，${cut} 个终端转为无人负责，短期销量会掉。上级评价 +6，合规 +2。`, tone: 'flat' }; } },
+      { label: '选择执行', desc: '只处理超过 3 家的代表，其余不动',
+        run: s => { const cut = trimAssignments(3);
+          s.reputation = Math.min(100, s.reputation + 1); s.riskMod = Math.min(60, s.riskMod + 4);
+          return { text: cut ? `部分调整，${cut} 个终端被释放。上级评价 +1，风险 +4。` : '本来就都没超 3 家，等于没动。上级评价 +1，风险 +4。', tone: 'flat' }; } },
+      { label: '不执行', desc: '维持现状，报一份"已按要求调整"的说明',
+        run: s => { s.reputation = Math.max(0, s.reputation - 6); s.riskMod = Math.min(60, s.riskMod + 8);
+          s.flags.auditAt = s.totalMonth + 3; s.flags.auditWhy = '网格化管理落实';
+          return { text: '说明交上去了。上级评价 -6，风险 +8。三个月内会有一次专项核查。', tone: 'bad' }; } },
+    ],
+  },
+  {
+    id: 'm-cost', title: '费用压缩', en: 'Budget Cut', weight: 13, mgmt: true,
+    text: 'CFO 在经营分析会上点名：辖区销售费用率高出大盘 4 个点。要求本月起压缩 15%，且不得影响学术活动场次。',
+    options: [
+      { label: '严格执行', desc: '按 15% 扣减，学术场次不动，砍客情与差旅',
+        run: s => { const c = totalSales() * CFG.grossRate * 0.15;
+          s.cash -= c; s.compliance = Math.min(100, s.compliance + 3); s.reputation = Math.min(100, s.reputation + 5);
+          s.flags.lean = 8;
+          return { text: `预算扣减 ${c.toFixed(1)} 万。上级评价 +5，未来 2 个月客情类项目成本 -20%。`, tone: 'good' }; } },
+      { label: '选择执行', desc: '扣 8%，剩余从下季度额度里腾',
+        run: s => { const c = totalSales() * CFG.grossRate * 0.08;
+          s.cash -= c; s.reputation = Math.min(100, s.reputation + 1);
+          return { text: `预算扣减 ${c.toFixed(1)} 万。上级评价 +1。`, tone: 'flat' }; } },
+      { label: '不执行', desc: '把费用挪到"市场调研"科目，账面上看不出来',
+        run: s => { s.reputation = Math.max(0, s.reputation - 7); s.riskMod = Math.min(60, s.riskMod + 10); s.compliance = Math.max(0, s.compliance - 4);
+          return { text: '费用保住了。上级评价 -7，合规 -4，风险 +10。财务迟早会对上账。', tone: 'bad' }; } },
+    ],
+  },
+  {
+    id: 'm-filing', title: '学术活动备案', en: 'Activity Filing', weight: 12, mgmt: true,
+    text: '合规部要求：所有科室会、病例会必须提前 5 个工作日在系统备案，附会议议程与讲者资质。未备案的费用不予报销。',
+    options: [
+      { label: '严格执行', desc: '全部备案，科室会成本 +20%',
+        run: s => { s.flags.filing = 16; s.compliance = Math.min(100, s.compliance + 5); s.reputation = Math.min(100, s.reputation + 3);
+          return { text: '全员培训备案流程。合规 +5，上级评价 +3。未来 4 个月科室会成本 +20%。', tone: 'good' }; } },
+      { label: '选择执行', desc: '大场次备案，小科室会口头报备',
+        run: s => { s.flags.filing = 8; s.compliance = Math.min(100, s.compliance + 1); s.riskMod = Math.min(60, s.riskMod + 4);
+          return { text: '部分备案。合规 +1，风险 +4。', tone: 'flat' }; } },
+      { label: '不执行', desc: '照常办，反正以前也没人查',
+        run: s => { s.reputation = Math.max(0, s.reputation - 4); s.riskMod = Math.min(60, s.riskMod + 9);
+          s.flags.auditAt = s.totalMonth + 2; s.flags.auditWhy = '学术活动备案';
+          return { text: '活动照办。上级评价 -4，风险 +9。两个月内会被抽一次活动台账。', tone: 'bad' }; } },
+    ],
+  },
+  {
+    id: 'm-pledge', title: '合规承诺书', en: 'Compliance Pledge', weight: 11, mgmt: true,
+    text: '集团要求全员签署《医药代表合规承诺书》，并现场考试。省区把签署率纳入本月考核。',
+    options: [
+      { label: '严格执行', desc: '全员签署 + 考试，占用 1 点精力',
+        run: s => { s.compliance = Math.min(100, s.compliance + 7); s.team.forEach(r => { r.exposure = Math.max(0, r.exposure - 10); r.ct = Math.min(100, r.ct + 3); });
+          s.reputation = Math.min(100, s.reputation + 4); s.ap = Math.max(0, s.ap - 1);
+          return { text: '签署率 100%，考试全员通过。合规 +7，全员风险 -10，上级评价 +4。', tone: 'good' }; } },
+      { label: '选择执行', desc: '只让核心代表签，其余代签',
+        run: s => { s.compliance = Math.min(100, s.compliance + 2); s.riskMod = Math.min(60, s.riskMod + 3);
+          return { text: '报的 100%。合规 +2，风险 +3。', tone: 'flat' }; } },
+      { label: '不执行', desc: '拖着，等省区催',
+        run: s => { s.reputation = Math.max(0, s.reputation - 5); s.compliance = Math.max(0, s.compliance - 5);
+          return { text: '拖过了这个月。上级评价 -5，合规 -5。', tone: 'bad' }; } },
+    ],
+  },
+  {
+    id: 'm-report', title: '周报真实性抽查', en: 'Report Audit', weight: 10, mgmt: true,
+    text: '省区抽查近三个月周报，要求提供拜访记录与客户签字。你的代表交上来的记录里，有几家医院的拜访时间对不上。',
+    options: [
+      { label: '严格执行', desc: '主动说明问题，重做记录并自罚',
+        run: s => { s.reputation = Math.max(0, s.reputation - 3); s.compliance = Math.min(100, s.compliance + 6);
+          s.team.forEach(r => r.ct = Math.min(100, r.ct + 2));
+          return { text: '问题主动上报，重做记录。上级评价 -3，合规 +6。', tone: 'flat' }; } },
+      { label: '选择执行', desc: '改掉最明显的几处，其余照旧',
+        run: s => { s.riskMod = Math.min(60, s.riskMod + 6); s.compliance = Math.max(0, s.compliance - 3);
+          return { text: '改了几处对不上的。风险 +6，合规 -3。', tone: 'bad' }; } },
+      { label: '不执行', desc: '统一口径，让他们把签字补上',
+        run: s => { s.riskMod = Math.min(60, s.riskMod + 12); s.compliance = Math.max(0, s.compliance - 7);
+          s.flags.auditAt = s.totalMonth + 2; s.flags.auditWhy = '周报真实性';
+          return { text: '签字补上了。风险 +12，合规 -7。两个月内会有一次飞行核查。', tone: 'bad' }; } },
+    ],
+  },
+  {
+    id: 'm-rotate', title: '代表轮岗', en: 'Rotation Order', weight: 9, mgmt: true,
+    text: '公司要求核心终端代表两年必须轮岗，防止"客户变私产"。你手上最好的几个代表，都在轮岗名单里。',
+    options: [
+      { label: '严格执行', desc: '能力最强的两人轮岗，客情短期归零',
+        run: s => { const tops = s.team.slice().sort((a, b) => b.ability - a.ability).slice(0, 2);
+          tops.forEach(r => { Object.keys(r.assign).forEach(tid => {
+            const t = termById(tid); if (t) t.relation = Math.max(0, t.relation - 22); }); });
+          s.reputation = Math.min(100, s.reputation + 7); s.compliance = Math.min(100, s.compliance + 3);
+          return { text: `${tops.map(r => r.name).join('、')} 完成轮岗。客情大幅回落，上级评价 +7。`, tone: 'flat' }; } },
+      { label: '选择执行', desc: '只轮岗一人，其余报"客户结构特殊"',
+        run: s => { const top = s.team.slice().sort((a, b) => b.ability - a.ability)[0];
+          if (top) Object.keys(top.assign).forEach(tid => { const t = termById(tid); if (t) t.relation = Math.max(0, t.relation - 12); });
+          s.reputation = Math.min(100, s.reputation + 2); s.riskMod = Math.min(60, s.riskMod + 4);
+          return { text: '轮岗一人，其余打了报告。上级评价 +2，风险 +4。', tone: 'flat' }; } },
+      { label: '不执行', desc: '一个都不动，理由写"在谈大项目"',
+        run: s => { s.reputation = Math.max(0, s.reputation - 8); s.riskMod = Math.min(60, s.riskMod + 6);
+          return { text: '一个没动。上级评价 -8，风险 +6。这几个人从此只有你能管。', tone: 'bad' }; } },
+    ],
+  },
+];
+
+const AUDIT_EVENT = {
+  id: 'm-audit', title: '专项核查', en: 'Targeted Audit', weight: 100, mgmt: true,
+  text: '总部专项核查组进驻，调取近半年的费用凭证、活动台账与拜访记录。',
+  options: [
+    { label: '全面配合', desc: '材料照实提供', cost: 2, ap: 1,
+      run: s => { if (s.compliance >= 72) { s.compliance = Math.min(100, s.compliance + 3); s.reputation = Math.min(100, s.reputation + 3);
+          return { text: '核查未发现重大问题。合规 +3，上级评价 +3。', tone: 'good' }; }
+        s.compliance = Math.max(0, s.compliance - 14); s.cash -= 14; s.reputation = Math.max(0, s.reputation - 5);
+        return { text: '查出费用与台账不符，罚款 14 万。合规 -14，上级评价 -5。', tone: 'bad' }; } },
+    { label: '紧急补材料', desc: '通宵补台账', cost: 4, ap: 1,
+      run: s => { s.riskMod = Math.min(60, s.riskMod + 8); s.cash -= 4;
+        return { text: '材料补上了，但核查组记下了时间线异常。风险 +8，花费 4 万。', tone: 'bad' }; } },
+  ],
+};
+
+</script>
+<script>
+/* =========================================================
+   engine.js — 游戏状态与结算逻辑（周回合制）
+   ========================================================= */
+
+const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+const rnd = (a, b) => a + Math.random() * (b - a);
+const pick = arr => (arr && arr.length ? arr[Math.floor(Math.random() * arr.length)] : null);
+const uid = (() => { let n = 0; return () => 'r' + (++n); })();
+
+let S = null;
+
+/* ---------- 基础查询 ---------- */
+function termById(id) { return S.terminals.find(t => t.id === id) || null; }
+function tacticOf(r) { return TACTICS.find(x => x.id === r.tactic) || TACTICS[0]; }
+function moraleOf(r) { return 0.55 + clamp(r.loyalty, 0, 100) / 100 * 0.55; }
+function assignIds(r) { return Object.keys(r.assign || {}); }
+function covers(r, tid) { return !!(r.assign && r.assign[tid]); }
+function playerMod() { return (S && S.player && S.player.mod) || {}; }
+
+/* ---------- 建人 ---------- */
+function pickVisible(n, forceId) {
+  const out = [];
+  if (forceId) {
+    const t = VISIBLE_TAGS.find(x => x.id === forceId);
+    if (t) out.push(t);
+  }
+  while (out.length < n) {
+    const pool = VISIBLE_TAGS.filter(x => !out.includes(x));
+    if (!pool.length) break;
+    out.push(weightedPick(pool));
+  }
+  return out;
+}
+
+function makeRep(state, opt) {
+  opt = opt || {};
+  const visN = opt.traitId ? 2 : (Math.random() < 0.62 ? 2 : 1);
+  const vis = pickVisible(visN, opt.traitId);
+  const primary = vis[0];
+
+  const hidN = 1 + (Math.random() < 0.55 ? 1 : 0) + (Math.random() < 0.18 ? 1 : 0);
+  const hid = [];
+  for (let i = 0; i < hidN; i++) {
+    const pool = HIDDEN_TAGS.filter(x => !hid.includes(x));
+    if (!pool.length) break;
+    hid.push(weightedPick(pool));
+  }
+
+  const mod = {
+    cap: 0, cov: 0, aw: 0, rel: 0, ct: 0, growth: 0, salary: 0,
+    exposure: 0, fail: 0, ally: 0, loyalty0: 0, loyalty: 0, rebate: 0, jobhunt: 0,
+  };
+  vis.concat(hid).forEach(t => {
+    Object.keys(t.eff || {}).forEach(k => { mod[k] = (mod[k] || 0) + t.eff[k]; });
+  });
+
+  const ability = opt.ability != null ? opt.ability
+    : clamp(rnd(primary.ability[0], primary.ability[1]) + (opt.abilityBoost || 0), 20, 95);
+
+  let name, guard = 0;
+  do {
+    name = pick(NAMES_SURNAME) + pick(NAMES_GIVEN);
+    guard++;
+  } while (state && state.team.some(r => r.name === name) && guard < 40);
+
+  const role = opt.role || (Math.random() < 0.12 ? '学术专员' : '代表');
+  const baseSalary = ROLES[role].salary * CFG.salaryScale[state ? state.level : 0];
+  const salary = +(baseSalary * (0.85 + ability / 200) * (1 + mod.salary) * (opt.salaryBoost || 1)).toFixed(2);
+
+  return {
+    id: uid(), name, role,
+    tags: vis.map(t => t.id),
+    hidden: hid.map(t => t.id),
+    revealed: [],
+    guesses: [],
+    mod,
+    ability: +ability.toFixed(1),
+    loyalty: +clamp(rnd(primary.loyalty[0], primary.loyalty[1]) + mod.loyalty0, 10, 100).toFixed(1),
+    ct: +clamp(rnd(primary.ct[0], primary.ct[1]) + mod.ct, 0, 100).toFixed(1),
+    exposure: 0,
+    salary,
+    assign: {},
+    tactic: 'standard',
+    months: 0,
+    lastWeek: { sales: 0, expo: 0 },
+  };
+}
+
+function weightedPick(arr) {
+  const total = arr.reduce((a, b) => a + (b.weight || 1), 0);
+  let r = Math.random() * total;
+  for (const it of arr) { r -= (it.weight || 1); if (r <= 0) return it; }
+  return arr[arr.length - 1];
+}
+
+/* ---------- 标签推断 ---------- */
+function hiddenMod(r) {
+  const m = {};
+  (r.hidden || []).forEach(id => {
+    const t = HIDDEN_TAGS.find(x => x.id === id);
+    if (!t) return;
+    Object.keys(t.eff || {}).forEach(k => { m[k] = (m[k] || 0) + t.eff[k]; });
+  });
+  return m;
+}
+
+function observations(r) {
+  const m = hiddenMod(r);
+  const out = [];
+  if (r.mod && r.mod.jobhunt && r.months >= 8) out.push('最近明显心不在焉');
+  if (m.cap <= -0.15) out.push('跑动半径明显小于同岗');
+  if (m.cap >= 0.2) out.push('跑动范围比同岗大');
+  if (m.cov <= -0.03) out.push('实际覆盖达不到能力应有水平');
+  if (m.cov >= 0.04) out.push('产出转化率高于同岗');
+  if (m.fail >= 0.04) out.push('交办的动作经常出岔子');
+  if (m.fail <= -0.03) out.push('执行细致，很少失手');
+  if (r.months >= 3 && m.loyalty <= -0.2) out.push('近几个月状态在往下走');
+  if (r.months >= 3 && m.loyalty >= 0.25) out.push('很稳，不爱动');
+  if (m.exposure >= 0.15) out.push('风险积累比打法预期快');
+  if (m.exposure <= -0.2) out.push('做事比同岗保守');
+  if (m.rel >= 0.2) out.push('客户关系推进异常顺利');
+  if (m.rel <= -0.25) out.push('跟客户始终处不熟');
+  if (m.aw >= 0.15) out.push('产品讲得比一般代表清楚');
+  if (m.ally >= 0.02) out.push('和地方上的关系网很熟');
+  if (m.rebate <= -0.2) out.push('对某些推广方式明显排斥');
+  if (m.salary >= 0.1) out.push('要价明显高于同岗');
+  return out.slice(0, 3);
+}
+
+function unknownCount(r) {
+  return Math.max(0, (r.hidden || []).length - (r.revealed || []).length);
+}
+
+function guessTag(rid, tagId) {
+  const r = S.team.find(x => x.id === rid);
+  if (!r) return { ok: false, msg: '没有这个人' };
+  r.guesses = r.guesses || [];
+  if (r.guesses.length >= 2) return { ok: false, msg: '每个人最多猜 2 次' };
+  if (r.guesses.some(g => g.tag === tagId)) return { ok: false, msg: '这个已经猜过了' };
+  if ((r.revealed || []).includes(tagId)) return { ok: false, msg: '已经确认过' };
+  if (S.ap < 1) return { ok: false, msg: '精力不足，猜人也要花时间' };
+
+  const t = HIDDEN_TAGS.find(x => x.id === tagId);
+  if (!t) return { ok: false, msg: '标签不存在' };
+
+  S.ap -= 1;
+  const hit = (r.hidden || []).includes(tagId);
+  r.guesses.push({ tag: tagId, ok: hit });
+
+  if (hit) {
+    r.revealed = (r.revealed || []).concat(tagId);
+    r.mod.cap += 0.25;
+    r.mod.cov += 0.05;
+    r.mod.aw += 0.05;
+    log('good', `【带人】你看准了 ${r.name} 是「${t.name}」。管理当量上限 +0.25，覆盖 +5%。`);
+    return { ok: true, hit: true, tag: t, msg: `猜中了，他确实是「${t.name}」` };
+  }
+
+  r.mod.cov -= 0.06;
+  r.loyalty = clamp(r.loyalty - 7, 0, 100);
+  log('bad', `【带人】你把 ${r.name} 当成「${t.name}」，判断错了。忠诚 -7，覆盖 -6%。`);
+  return { ok: true, hit: false, tag: t, msg: `猜错了，他不是「${t.name}」` };
+}
+
+/* ---------- 分配 ---------- */
+function setAssign(rid, tid, on) {
+  const r = S.team.find(x => x.id === rid);
+  if (!r) return;
+  if (on) PRODUCTS.forEach(p => setCellRep(tid, p.id, rid));
+  else delete r.assign[tid];
+}
+
+function setCellRep(tid, pid, rid) {
+  S.team.forEach(r => {
+    const a = r.assign[tid];
+    if (!a || r.id === rid) return;
+    a.p = a.p.filter(x => x !== pid);
+    if (!a.p.length && !a.pharm) delete r.assign[tid];
+  });
+  if (!rid) return;
+  const r = S.team.find(x => x.id === rid);
+  if (!r) return;
+  if (!r.assign[tid]) r.assign[tid] = { p: [], pharm: false };
+  if (!r.assign[tid].p.includes(pid)) r.assign[tid].p.push(pid);
+}
+
+function setPharmRep(tid, rid) {
+  const t = termById(tid);
+  if (!t || !t.pharm) return;
+  S.team.forEach(r => {
+    const a = r.assign[tid];
+    if (!a) return;
+    a.pharm = false;
+    if (!a.p.length) delete r.assign[tid];
+  });
+  if (!rid) return;
+  const r = S.team.find(x => x.id === rid);
+  if (!r) return;
+  if (!r.assign[tid]) r.assign[tid] = { p: [], pharm: false };
+  r.assign[tid].pharm = true;
+}
+
+function trimAssignments(maxHosp) {
+  let cut = 0;
+  S.team.forEach(r => {
+    const ids = assignIds(r).filter(id => { const t = termById(id); return t && t.type === 'hospital'; });
+    if (ids.length <= maxHosp) return;
+    ids.sort((a, b) => (termById(b).potential) - (termById(a).potential));
+    ids.slice(maxHosp).forEach(id => { delete r.assign[id]; cut++; });
+  });
+  return cut;
+}
+
+/* ---------- 负荷与功率 ---------- */
+function repCapOf(r) { return clamp(CFG.repCap + (r.mod ? r.mod.cap : 0), 0.8, 4); }
+
+function repLoad(r) {
+  let L = 0;
+  assignIds(r).forEach(tid => {
+    const t = termById(tid); if (!t) return;
+    const a = r.assign[tid];
+    L += (TYPE_COST[t.type] || 1) + 0.08 * Math.max(0, a.p.length - 1) + (a.pharm ? 0.12 : 0);
+  });
+  (ALLIANCES[S.level] || []).forEach(al => {
+    const n = al.members.filter(m => covers(r, m)).length;
+    if (n >= 2) L += 0.2 * (n - 1);
+  });
+  return L;
+}
+
+function repBase(r) {
+  const pm = playerMod();
+  return (r.ability / 100) * ROLES[r.role].cov * moraleOf(r) * tacticOf(r).cov
+    * (1 + (r.mod ? r.mod.cov : 0)) * (1 + (pm.cov || 0));
+}
+
+function tacticMulOf(r) {
+  const t = tacticOf(r);
+  return t.mul * (t.id === 'rebate' ? (1 + (r.mod ? r.mod.rebate : 0)) : 1);
+}
+
+function allyMulOf(t) {
+  if (!t.ally) return 1;
+  const al = (ALLIANCES[S.level] || []).find(a => a.id === t.ally);
+  if (!al) return 1;
+  let best = 1;
+  S.team.forEach(r => {
+    if (!covers(r, t.id)) return;
+    const n = al.members.filter(m => covers(r, m)).length;
+    if (n >= 2) best = Math.max(best, 1 + 0.06 * (n - 1) + (r.mod ? r.mod.ally : 0));
+  });
+  return Math.min(1.2, best);
+}
+
+function allianceOf(t) {
+  if (!t.ally) return null;
+  return (ALLIANCES[S.level] || []).find(a => a.id === t.ally) || null;
+}
+
+/* ---------- 全量统计 ---------- */
+function computeStats() {
+  const st = { terms: {}, total: 0, byProduct: {}, pharmTaken: 0, retailEff: 1, retailId: null };
+  PRODUCTS.forEach(p => { st.byProduct[p.id] = 0; });
+
+  const retail = S.terminals.find(t => t.type === 'retail');
+  let pharmTaken = 0;
+  S.terminals.forEach(t => {
+    if (t.pharm > 0 && S.team.some(r => covers(r, t.id) && r.assign[t.id].pharm)) pharmTaken += t.pharm;
+  });
+  st.pharmTaken = pharmTaken;
+  if (retail) {
+    st.retailId = retail.id;
+    st.retailEff = Math.min(1.8, Math.max(1, retail.stores / Math.max(retail.stores * 0.4, retail.stores - pharmTaken)));
+  }
+  const retailEff = st.retailEff;
+  const orderMul = S.orderMul || 1;
+
+  const info = S.team.map(r => {
+    const L = repLoad(r);
+    const base = repBase(r);
+    const cap = repCapOf(r);
+    const overload = L > cap ? Math.pow(cap / L, 0.6) : 1;
+    return { r, L, base, overload, mul: tacticMulOf(r) };
+  });
+
+  S.terminals.forEach(t => {
+    const cov = {};
+    PRODUCTS.forEach(p => { cov[p.id] = 0; });
+    let covAll = 0, mulW = 0, mulS = 0;
+    const reps = [];
+    info.forEach(({ r, L, base, overload, mul }) => {
+      const a = r.assign[t.id];
+      if (!a) return;
+      const w = TYPE_COST[t.type] || 1;
+      let pw = base * (w / Math.max(L, 0.001)) * overload;
+      if (t.type === 'retail') pw *= retailEff;
+      (a.p || []).forEach(pid => { cov[pid] = (cov[pid] || 0) + pw; });
+      covAll += pw;
+      mulW += pw; mulS += pw * mul;
+      reps.push({ id: r.id, name: r.name, pw, p: a.p.slice(), pharm: a.pharm });
+    });
+
+    const tmul = mulW > 0 ? mulS / mulW : 1;
+    const am = allyMulOf(t);
+    const avail = 0.02 + 0.98 * Math.pow(clamp(t.access, 0, 100) / 100, 0.7);
+    const mix = MIX[t.type] || MIX.hospital;
+    const items = {};
+    let total = 0;
+
+    PRODUCTS.forEach(p => {
+      const m = mix[p.id] != null ? mix[p.id] : 0.25;
+      let share = p.base
+        + t.awareness / 100 * 0.26 * p.awWeight
+        + Math.min(cov[p.id] || 0, 1.3) * 0.115
+        + t.relation / 100 * 0.11
+        - t.comp * 0.16
+        + p.priceEdge;
+      share = clamp(share, 0, 0.62) * avail * tmul * am * orderMul;
+      const sales = t.potential * m * share;
+      items[p.id] = { share, sales, cov: cov[p.id] || 0 };
+      total += sales;
+      st.byProduct[p.id] += sales;
+    });
+
+    st.terms[t.id] = { cov, covAll, total, items, reps, am, avail, tmul };
+    st.total += total;
+  });
+  return st;
+}
+
+function calcTerminal(t) { return computeStats().terms[t.id]; }
+function totalSales() { return S.terminals.reduce((a, t) => a + computeStats().terms[t.id].total, 0); }
+function marketSize() { return S.terminals.reduce((a, t) => a + t.potential, 0); }
+
+function teamRisk() {
+  if (!S.team.length) return clamp(S.riskMod, 0, 100);
+  const avg = S.team.reduce((a, r) => a + r.exposure, 0) / S.team.length;
+  return clamp(avg + S.riskMod, 0, 100);
+}
+
+function salaryTotal() { return S.team.reduce((a, r) => a + r.salary, 0); }
+
+function recentAvg(n) {
+  const h = S.history.slice(-n);
+  if (!h.length) return 0;
+  return h.reduce((a, x) => a + x.sales, 0) / h.length;
+}
+
+function apMax() {
+  const pm = playerMod();
+  let base = CFG.apBase + Math.floor(S.team.length * CFG.apPerRep);
+  if (S.team.length >= 10) base += 1;
+  if (S.team.length >= 17) base += 1;
+  return Math.min(CFG.apCap, base) + (pm.ap || 0);
+}
+
+/* ---------- 新游戏 ---------- */
+function newGame(playerName, pathId, tagIds) {
+  generateWorld();
+  const pm = { ap: 0, cov: 0, growth: 0, fail: 0, dev: 0, compliance: 0, cost: 0, eval: 0, exposure: 0 };
+  (tagIds || []).forEach(id => {
+    const t = PLAYER_TAGS.find(x => x.id === id);
+    if (!t) return;
+    Object.keys(t.eff).forEach(k => { pm[k] = (pm[k] || 0) + t.eff[k]; });
+  });
+
+  S = {
+    playerName: playerName || '王磊',
+    path: pathId || 'sales',
+    player: { path: pathId || 'sales', tags: (tagIds || []).slice(), mod: pm },
+    level: 0,
+    weekInMonth: 1,
+    monthInAct: 1,
+    totalWeek: 1,
+    totalMonth: 1,
+    year: 2026,
+    cash: CFG.startCash,
+    ap: 0,
+    compliance: 92,
+    reputation: 55,
+    riskMod: 0,
+    team: [],
+    terminals: [],
+    candidates: [],
+    pending: [],
+    log: [],
+    history: [],
+    flags: {},
+    over: null,
+    lastReport: null,
+    wk: { sales: 0, gross: 0, salary: 0, resolved: [], incident: null },
+    lastMonth: { cash: CFG.startCash, compliance: 92, reputation: 55 },
+    weekLog: [],
+    order: null,
+    orderMul: 1,
+    actExtended: false,
+    planThisMonth: [],
+    lastPlan: [],
+    pendingPromotion: null,
+  };
+  enterAct(0, false);
+  const a = makeRep(S, { traitId: 'grinder', ability: 58, role: '代表' });
+  const b = makeRep(S, { traitId: 'scholar', ability: 55, role: '代表' });
+  const t0 = S.terminals[0], t1 = S.terminals[1];
+  a.assign[t0.id] = { p: PRODUCTS.map(p => p.id), pharm: true };
+  b.assign[t1.id] = { p: PRODUCTS.slice(0, 2).map(p => p.id), pharm: false };
+  S.team.push(a, b);
+  S.ap = apMax();
+  log('info', `你接手了${WORLD.county}市场。两个代表，两张桌子，100 万预算。`);
+  log('sys', '提示：先看「终端」，把代表放到能出量的地方；准入低于 25 的终端几乎不出量。');
+  return S;
+}
+
+function enterAct(level, carry) {
+  const act = ACTS[level];
+  if (carry) (S.career = S.career || []).push({ level: S.level, history: S.history });
+  S.level = level;
+  S.monthInAct = 1;
+  S.weekInMonth = 1;
+  S.actExtended = false;
+  S.history = [];
+
+  const prev = {};
+  if (carry) S.terminals.forEach(t => { prev[t.id] = t; });
+
+  S.terminals = TERMINALS[level].map(def => {
+    const t = Object.assign({}, def);
+    const p = prev[t.id];
+    if (p) {
+      t.access = p.access; t.awareness = p.awareness; t.relation = p.relation;
+      t.comp = p.comp; t.spend = p.spend || 0; t.idle = p.idle || 0;
+    }
+    return t;
+  });
+
+  S.team.forEach(r => {
+    const baseSalary = ROLES[r.role].salary * CFG.salaryScale[level];
+    r.salary = +(baseSalary * (0.85 + r.ability / 200) * (1 + r.mod.salary)).toFixed(2);
+    assignIds(r).forEach(tid => { if (!S.terminals.some(x => x.id === tid)) delete r.assign[tid]; });
+  });
+  S.pending = [];
+  S.ap = apMax();
+}
+
+/* ---------- 日志 ---------- */
+function log(type, text, week) {
+  S.log.unshift({ m: S.totalMonth, w: S.weekInMonth, type, text });
+  if (S.log.length > 300) S.log.length = 300;
+}
+
+/* ---------- 项目效果：按终端类型 / 画像缩放 ---------- */
+const TYPE_EFF = {
+  hospital: { aw: 1.00, rel: 1.00, dev: 1.00, cs: 1.30, ch: 0 },
+  primary: { aw: 0.72, rel: 1.15, dev: 0.90, cs: 0.50, ch: 1.25 },
+  retail: { aw: 0.78, rel: 1.25, dev: 0.85, cs: 0.35, ch: 1.30 },
+  city: { aw: 1.00, rel: 1.00, dev: 1.00, cs: 1.00, ch: 0.9 },
+  region: { aw: 1.00, rel: 1.00, dev: 1.00, cs: 1.00, ch: 0.9 },
+};
+const PROF_EFF = {
+  academic: { aw: 1.3, rel: 0.9, dev: 1.0, ch: 1.0 },
+  relation: { aw: 0.9, rel: 1.3, dev: 1.1, ch: 1.0 },
+  price: { aw: 0.85, rel: 1.0, dev: 0.95, ch: 1.25 },
+};
+function tierF(t) {
+  if (t.type !== 'hospital') return 1;
+  if (t.tier && t.tier.indexOf('三甲') >= 0) return 1.15;
+  if (t.tier && t.tier.indexOf('甲') >= 0) return 1.0;
+  return 0.9;
+}
+
+function effOf(pid, t) {
+  const te = TYPE_EFF[t.type] || TYPE_EFF.hospital;
+  const pe = PROF_EFF[t.prof] || PROF_EFF.academic;
+  const tf = tierF(t);
+  const pm = playerMod();
+  if (pid === 'dept') return { aw: 12 * te.aw * pe.aw * tf, rel: 4 * te.rel * pe.rel };
+  if (pid === 'case') return { aw: 14 * te.aw * pe.aw * te.cs * tf, rel: 8 * te.rel * pe.rel * te.cs };
+  if (pid === 'relation') return { rel: 13 * te.rel * pe.rel * tf };
+  if (pid === 'channel') return { access: 8 * (pe.ch || 1), rel: 5 * te.rel * pe.rel };
+  if (pid === 'dev') {
+    const base = 14 + t.relation / 100 * 10;
+    return { access: base * te.dev * pe.dev * (1 + (pm.dev || 0)) * allyMulOf(t) * (1 - clamp(t.access, 0, 100) / 140) };
+  }
+  return {};
+}
+
+/* ---------- 项目 ---------- */
+function projectCost(p, n) {
+  const pm = playerMod();
+  let c = p.cost * CFG.costScale[S.level] * n;
+  if (p.id === 'dept' && S.flags.filing > 0) c *= 1.2;
+  if (p.id === 'relation' && S.flags.lean > 0) c *= 0.8;
+  c *= (1 + (pm.cost || 0));
+  return +c.toFixed(2);
+}
+
+function projectAP(p, n) { return p.ap + Math.floor((n - 1) / 2); }
+
+function failRateOf(p, t) {
+  if (!p.fail) return 0;
+  const st = computeStats().terms[t.id];
+  const pm = playerMod();
+  let f = p.fail + (pm.fail || 0);
+  if (!st || st.covAll < 0.15) f += 0.12;
+  f -= t.relation / 100 * 0.18;
+  f += t.comp * 0.12;
+  f += teamRisk() / 100 * 0.14;
+  if (st) f -= (st.am - 1) * 0.6;
+  let bestFail = 0;
+  S.team.forEach(r => { if (covers(r, t.id) && r.mod.fail < bestFail) bestFail = r.mod.fail; });
+  f += bestFail;
+  if (t.idle > 8) f += 0.05;
+  return clamp(f, 0.03, 0.7);
+}
+
+function launchProject(pid, tids) {
+  const p = PROJECTS.find(x => x.id === pid);
+  if (!p) return { ok: false, msg: '项目不存在' };
+
+  let list = [];
+  if (p.multi === -1) list = [];
+  else if (p.multi === 0) list = S.terminals.map(t => t.id);
+  else {
+    list = (tids || []).filter(id => S.terminals.some(t => t.id === id));
+    if (!list.length) return { ok: false, msg: '请选择终端' };
+    if (list.length > p.multi) return { ok: false, msg: `最多选择 ${p.multi} 个终端` };
+  }
+
+  if (pid === 'channel') {
+    list = list.filter(id => ['primary', 'retail', 'city', 'region'].includes(termById(id).type));
+    if (!list.length) return { ok: false, msg: '渠道建设只对基层与零售有效' };
+  }
+
+  const n = p.multi === -1 ? 1 : list.length;
+  const cost = projectCost(p, n);
+  const ap = projectAP(p, n);
+  if (S.ap < ap) return { ok: false, msg: `精力不足（需要 ${ap} 点）` };
+  if (S.cash < cost) return { ok: false, msg: '预算不足' };
+
+  S.cash = +(S.cash - cost).toFixed(2);
+  S.ap -= ap;
+  if (list.length) {
+    const per = cost / list.length;
+    list.forEach(tid => { const t = termById(tid); if (t) { t.spend = +(t.spend + per).toFixed(2); t.idle = 0; } });
+  }
+
+  const msgs = [];
+  let queued = 0;
+
+  if (p.multi === -1) {
+    switch (pid) {
+      case 'hire':
+        S.candidates.push(makeRep(S), makeRep(S));
+        msgs.push('收到 2 份简历，可在「团队」页面试。');
+        break;
+      case 'train':
+        S.team.forEach(r => {
+          r.ability = Math.min(100, r.ability + 4 * (1 + (playerMod().growth || 0)));
+          r.loyalty = Math.min(100, r.loyalty + 3);
+          r.ct = Math.min(100, r.ct + 2);
+        });
+        msgs.push('团队培训完成，全员能力 +4，忠诚 +3。');
+        break;
+      case 'compliance':
+        S.compliance = Math.min(100, S.compliance + 6);
+        S.riskMod = Math.max(-20, S.riskMod - 6);
+        S.team.forEach(r => { r.exposure = Math.max(0, r.exposure - 14); });
+        msgs.push('合规培训完成，合规分 +6，全员风险 -14。');
+        break;
+    }
+  } else if (p.multi === 0) {
+    S.terminals.forEach(t => { t.awareness = Math.min(100, t.awareness + 6); t.idle = 0; });
+    S.reputation = Math.min(100, S.reputation + 2);
+    msgs.push('区域学术会召开，全终端认知 +6，上级评价 +2。');
+  } else if (p.delay > 0) {
+    list.forEach(tid => {
+      S.pending.push({ pid, tid, at: S.totalWeek + p.delay * CFG.weeksPerMonth, cost: +(cost / n).toFixed(2) });
+      queued++;
+    });
+    msgs.push(`${queued} 个终端的${p.name}已提交，${p.delay} 个月后出结果。`);
+  } else {
+    let ok = 0, failed = 0;
+    list.forEach(tid => {
+      const t = termById(tid);
+      const f = failRateOf(p, t);
+      const success = Math.random() > f;
+      if (success) ok++; else failed++;
+      applyEffect(p, t, success);
+      if (list.length === 1 && failed) msgs.push(`${p.name}在 ${t.name} 失败（成功率 ${((1 - f) * 100).toFixed(0)}%）。`);
+    });
+    if (list.length > 1) msgs.push(`${p.name}：${ok} 个终端成功，${failed} 个失败。`);
+  }
+
+  if (!msgs.length) msgs.push(`${p.name}执行完成。`);
+  S.planThisMonth.push({ pid, tids: list, msg: msgs[0] });
+  msgs.forEach(m => log('action', m));
+  return { ok: true, msg: msgs.join(' ') };
+}
+
+function applyEffect(p, t, success) {
+  const k = success ? 1 : 0.35;
+  const e = effOf(p.id, t);
+  switch (p.id) {
+    case 'dept':
+      t.awareness = Math.min(100, t.awareness + (e.aw || 0) * k);
+      t.relation = Math.min(100, t.relation + (e.rel || 0) * (success ? 1 : 0.2));
+      break;
+    case 'case':
+      t.awareness = Math.min(100, t.awareness + (e.aw || 0) * k);
+      t.relation = Math.min(100, t.relation + (e.rel || 0) * k);
+      S.compliance = Math.min(100, S.compliance + 1);
+      break;
+    case 'relation':
+      t.relation = Math.min(100, t.relation + (e.rel || 0) * k);
+      S.riskMod = Math.min(60, S.riskMod + (success ? 2 : 1));
+      break;
+    case 'channel':
+      t.access = Math.min(100, t.access + (e.access || 0) * k);
+      t.relation = Math.min(100, t.relation + (e.rel || 0) * k);
+      break;
+    case 'dev':
+      t.access = Math.min(100, t.access + (e.access || 0) * (success ? rnd(0.9, 1.15) : 0.45));
+      break;
+  }
+  t.idle = 0;
+}
+
+/* ---------- 人选 ---------- */
+function hireCandidate(cid) {
+  const i = S.candidates.findIndex(c => c.id === cid);
+  if (i < 0) return { ok: false, msg: '候选人不存在' };
+  if (S.team.length >= CFG.teamCap[S.level]) return { ok: false, msg: '编制已满' };
+  const c = S.candidates.splice(i, 1)[0];
+  S.team.push(c);
+  log('good', `${c.name} 入职，任 ${ROLES[c.role].label}，月薪 ${c.salary.toFixed(1)} 万。`);
+  return { ok: true, msg: `${c.name} 已入职` };
+}
+
+function fireRep(rid) {
+  const r = S.team.find(x => x.id === rid);
+  if (!r) return;
+  S.team = S.team.filter(x => x.id !== rid);
+  S.reputation = Math.max(0, S.reputation - 2);
+  log('bad', `${r.name} 办理离职。上级评价 -2。`);
+}
+
+/* ---------- 周会要求 ---------- */
+function applyOrder(id) {
+  const o = WEEKLY_ORDERS.find(x => x.id === id);
+  if (!o) return;
+  let sum = 0, n = 0;
+  S.team.forEach(r => {
+    let c = 0.35 + r.loyalty / 160;
+    const tg = r.tags || [], hd = r.revealed || [];
+    const has = k => tg.includes(k) || hd.includes(k);
+    if (has('grinder')) c += 0.1;
+    if (has('ironman')) c += 0.12;
+    if (has('rookie')) c += 0.08;
+    if (has('oldfox')) c -= 0.08;
+    if (has('parachute')) c -= 0.1;
+    if (r.hidden.includes('procrast')) c -= 0.1;
+    if (r.hidden.includes('niceguy')) c += 0.05;
+    if (r.hidden.includes('sidegig')) c -= 0.2;
+    c = clamp(c, 0, 1.2);
+    sum += c; n++;
+  });
+  const power = n ? sum / n : 0;
+  S.order = { id, power };
+  S.orderMul = id === 'push' ? 1 + 0.12 * power : id === 'compliance' ? 0.95 : 1;
+  log('info', `周会：要求全员「${o.name}」，执行度 ${(power * 100).toFixed(0)}%。`);
+}
+
+/* ---------- 周末结算 ---------- */
+function monthTarget() {
+  const act = ACTS[S.level];
+  const ramp = 0.25 + 0.75 * Math.min(1, (S.monthInAct - 1) / 9);
+  return act.target * ramp;
+}
+
+function resolvePending() {
+  const msgs = [];
+  const due = S.pending.filter(p => p.at <= S.totalWeek);
+  S.pending = S.pending.filter(p => p.at > S.totalWeek);
+  due.forEach(item => {
+    const p = PROJECTS.find(x => x.id === item.pid);
+    const t = termById(item.tid);
+    if (!p || !t) return;
+    const f = failRateOf(p, t);
+    const ok = Math.random() > f;
+    applyEffect(p, t, ok);
+    msgs.push(`${t.name}・${p.name}${ok ? '落地' : '失败'}`);
+  });
+  return msgs;
+}
+
+function endWeek() {
+  // 1) 在途项目
+  const resolved = resolvePending();
+  resolved.forEach(m => log('action', m));
+
+  // 2) 周会要求落地
+  const order = S.order;
+  if (order) {
+    S.team.forEach(r => {
+      assignIds(r).forEach(tid => {
+        const t = termById(tid); if (!t) return;
+        if (order.id === 'academic') t.awareness = Math.min(100, t.awareness + 3 * order.power);
+        if (order.id === 'relation') t.relation = Math.min(100, t.relation + 3 * order.power);
+      });
+      if (order.id === 'push') r.exposure = clamp(r.exposure + 2 * order.power, 0, 100);
+      if (order.id === 'compliance') r.exposure = Math.max(0, r.exposure - 12 * order.power);
+    });
+  }
+
+  // 3) 市场自然衰减（按周，闲置越久掉得越快）
+  S.terminals.forEach(t => {
+    const covered = S.team.some(r => covers(r, t.id));
+    const idleF = 1 + Math.min(20, t.idle) * 0.14;
+    t.awareness = Math.max(0, t.awareness - (covered ? 1.5 : 2.6) / 4 * idleF);
+    t.relation = Math.max(0, t.relation - 1.8 / 4 * idleF);
+    if (t.access > 0) t.access = Math.max(0, t.access - 0.3 / 4 * idleF);
+    t.comp = Math.min(0.9, t.comp + 0.006 / 4);
+    t.idle++;
+  });
+
+  // 4) 代表行为（周）
+  S.team.forEach(r => {
+    r.months += 0.25;
+    const tac = tacticOf(r);
+    const ids = assignIds(r);
+    const L = Math.max(repLoad(r), 0.001);
+    const rcap = repCapOf(r);
+    const overload = L > rcap ? Math.pow(rcap / L, 0.6) : 1;
+    const base = repBase(r);
+    ids.forEach(tid => {
+      const t = termById(tid); if (!t) return;
+      const w = TYPE_COST[t.type] || 1;
+      const pw = base * (w / L) * overload;
+      t.awareness = Math.min(100, t.awareness + pw * 3.4 / 4 * (1 + r.mod.aw) * tac.aw);
+      t.relation = Math.min(100, t.relation + pw * 3.6 / 4 * (1 + r.mod.rel) * tac.rel);
+    });
+    r.exposure = clamp(r.exposure + tac.exposure / 4 * (1 + r.mod.exposure + (playerMod().exposure || 0)), 0, 100);
+    let loy = (tac.loyalty + r.mod.loyalty + (playerMod().loyalty || 0)) / 4 + (r.loyalty < 50 ? -0.3 : 0.075);
+    if (r.mod.jobhunt && r.months >= 10) loy -= 0.55;
+    r.loyalty = clamp(r.loyalty + loy, 0, 100);
+    r.ability = Math.min(100, r.ability + (r.ability < 70 ? 0.55 : 0.22) / 4 * (1 + r.mod.growth + (playerMod().growth || 0)));
+  });
+
+  // 5) 销售（周 = 月跑量 / 4）
+  const st = computeStats();
+  const weekSales = st.total / CFG.weeksPerMonth;
+  const gross = weekSales * CFG.grossRate;
+  const sal = salaryTotal() / CFG.weeksPerMonth;
+  S.cash = +(S.cash + gross - sal).toFixed(2);
+
+  // 6) 风险
+  S.riskMod = S.riskMod * 0.968;
+  S.team.forEach(r => { r.exposure = r.exposure * 0.985; });
+  const risk = teamRisk();
+  if (risk < 15 && S.compliance < 96) S.compliance = Math.min(96, S.compliance + 0.2);
+
+  // 7) 监管抽查（周概率 = 月概率 / 4）
+  let incident = null;
+  const p = (0.015 + Math.pow(risk / 100, 2) * 0.5) / 4;
+  if (Math.random() < p) incident = resolveInspection(risk);
+
+  // 8) 人员流失
+  let leaver = null;
+  S.team.forEach(r => {
+    if (leaver) return;
+    if (r.loyalty < 32 && Math.random() < (32 - r.loyalty) / 600) leaver = r;
+  });
+  if (leaver) {
+    S.team = S.team.filter(x => x.id !== leaver.id);
+    log('bad', `${leaver.name} 递了辞职信，去了竞品。忠诚度过低是根因。`);
+  }
+
+  // 9) 政策时效
+  ['filing', 'lean'].forEach(k => { if (S.flags[k] > 0) S.flags[k]--; });
+
+  // 10) 累计到本月
+  S.wk.sales += weekSales;
+  S.wk.gross += gross;
+  S.wk.salary += sal;
+  S.wk.resolved = S.wk.resolved.concat(resolved);
+  if (incident) S.wk.incident = incident;
+
+  const snap = {
+    week: S.weekInMonth,
+    sales: +weekSales.toFixed(1),
+    risk: +risk.toFixed(1),
+    reps: S.team.map(r => ({ name: r.name, output: 0, expo: r.exposure })),
+  };
+  // 每名代表的周产出（按其覆盖终端销量占比粗算）
+  const byRep = {};
+  S.terminals.forEach(t => {
+    const c = st.terms[t.id];
+    const sum = c.reps.reduce((a, x) => a + x.pw, 0) || 1;
+    c.reps.forEach(x => { byRep[x.id] = (byRep[x.id] || 0) + c.total * (x.pw / sum); });
+  });
+  S.team.forEach(r => {
+    const e = snap.reps.find(x => x.name === r.name);
+    if (e) e.output = +((byRep[r.id] || 0) / CFG.weeksPerMonth).toFixed(1);
+    r.lastWeek = { output: e ? e.output : 0, expo: r.exposure };
+  });
+
+  // 11) 推进时间
+  S.order = null;
+  S.orderMul = 1;
+  S.totalWeek++;
+  S.weekInMonth++;
+  S.ap = apMax();
+
+  let monthReport = null;
+  let promotion = null;
+  if (S.weekInMonth > CFG.weeksPerMonth) {
+    monthReport = rollMonth();
+    promotion = checkPromotion();
+    S.pendingPromotion = promotion;
+  }
+
+  return { week: snap, monthReport, promotion, incident };
+}
+
+function rollMonth() {
+  const sales = S.wk.sales;
+  const prev = S.history.length ? S.history[S.history.length - 1] : null;
+  const share = sales / marketSize();
+  const st = computeStats();
+  const before = S.lastMonth || { compliance: S.compliance, reputation: S.reputation };
+
+  S.history.push({
+    m: S.totalMonth, sales: +sales.toFixed(1), share: +share.toFixed(4),
+    cash: S.cash, compliance: S.compliance, rep: S.reputation,
+    team: S.team.length, risk: +teamRisk().toFixed(1),
+    prod: Object.assign({}, st.byProduct),
+  });
+  if (S.history.length > 40) S.history.shift();
+
+  const target = monthTarget();
+  const ratio = sales / target;
+  let d = 0;
+  if (ratio >= 1.0) d += 2.4;
+  else if (ratio >= 0.85) d += 1.0;
+  else if (ratio >= 0.65) d -= 1.4;
+  else d -= 3.2;
+  if (S.compliance >= 85) d += 0.8;
+  if (S.compliance < 60) d -= 1.6;
+  if (prev && sales > prev.sales) d += 0.5;
+  d *= (1 + (playerMod().eval || 0));
+  S.reputation = clamp(S.reputation + d, 0, 100);
+  S.compliance = Math.min(100, S.compliance + (playerMod().compliance || 0));
+
+  const cap = Math.max(120, ACTS[S.level].target * 2.5);
+  let up = 0;
+  if (S.cash > cap) { up = +(S.cash - cap).toFixed(1); S.cash = cap; }
+
+  const report = {
+    month: S.totalMonth, year: S.year,
+    sales: +sales.toFixed(1),
+    delta: prev ? +((sales - prev.sales) / Math.max(prev.sales, 0.1) * 100).toFixed(1) : null,
+    share: +(share * 100).toFixed(1),
+    gross: +S.wk.gross.toFixed(1), salary: +S.wk.salary.toFixed(1), net: +(S.wk.gross - S.wk.salary).toFixed(1),
+    cash: S.cash, cashDelta: +(S.cash - (S.lastMonth ? S.lastMonth.cash : CFG.startCash)).toFixed(1),
+    compliance: +S.compliance.toFixed(1), compDelta: +(S.compliance - before.compliance).toFixed(1),
+    reputation: +S.reputation.toFixed(1), repDelta: +(S.reputation - before.reputation).toFixed(1),
+    risk: +teamRisk().toFixed(1),
+    incident: S.wk.incident || null,
+    resolved: S.wk.resolved.slice(),
+    up, target: +target.toFixed(1), progress: +(sales / target * 100).toFixed(1),
+  };
+  S.lastReport = report;
+  S.lastMonth = { cash: S.cash, compliance: S.compliance, reputation: S.reputation };
+
+  log('sales', `第 ${S.totalMonth} 月结算：销售 ${report.sales.toFixed(1)} 万${report.delta == null ? '' : `（环比 ${report.delta >= 0 ? '+' : ''}${report.delta.toFixed(1)}%）`}，份额 ${report.share.toFixed(1)}%。`);
+
+  S.wk = { sales: 0, gross: 0, salary: 0, resolved: [], incident: null };
+  S.totalMonth++;
+  S.monthInAct++;
+  S.weekInMonth = 1;
+  if (S.monthInAct > 12) S.year++;
+  S.lastPlan = S.planThisMonth.slice();
+  S.planThisMonth = [];
+  return report;
+}
+
+function resolveInspection(risk) {
+  const sorted = S.team.slice().sort((a, b) => b.exposure - a.exposure);
+  const worst = sorted[0];
+  if (!worst || worst.exposure < 18) {
+    S.reputation = Math.min(100, S.reputation + 3);
+    S.compliance = Math.min(100, S.compliance + 2);
+    log('good', '监管抽查，全部合规，无违规记录。上级评价 +3。');
+    return { caught: false, name: '监管抽查', text: '抽查通过，无违规记录。', tone: 'good' };
+  }
+  const exp = worst.exposure;
+  let tier = PUNISH[0];
+  if (exp >= 75) tier = PUNISH[3];
+  else if (exp >= 55) tier = PUNISH[2];
+  else if (exp >= 30) tier = PUNISH[1];
+
+  const fine = +(tier.cash * CFG.costScale[S.level] * 0.6).toFixed(1);
+  S.cash = +(S.cash - fine).toFixed(2);
+  S.compliance = clamp(S.compliance + tier.comp, 0, 100);
+  S.reputation = clamp(S.reputation + tier.rep, 0, 100);
+
+  let extra = '';
+  if (exp >= 40) {
+    S.team = S.team.filter(x => x.id !== worst.id);
+    extra = `${worst.name} 被公司解除劳动合同并列入行业黑名单。`;
+  } else {
+    worst.exposure = 0;
+    extra = `${worst.name} 被约谈，记入个人合规档案。`;
+  }
+  if (exp >= 55) {
+    const t = pick(S.terminals);
+    if (t) { t.access = Math.max(0, t.access - 25); extra += ` ${t.name} 暂停采购本品 1 个季度。`; }
+  }
+  const fineStr = fine > 0 ? `，罚款 ${fine.toFixed(1)} 万` : '';
+  log('bad', `监管检查：${tier.text}${fineStr}，合规分 ${tier.comp}。${extra}`);
+  return {
+    caught: true, name: '监管检查', tier: tier.text, fine,
+    text: `查出违规带金销售线索。${tier.text}${fine > 0 ? '，罚款 ' + fine.toFixed(1) + ' 万' : ''}，合规分 ${tier.comp}。`,
+    extra, tone: 'bad',
+  };
+}
+
+/* ---------- 晋升 ---------- */
+function promotionProgress() {
+  const act = ACTS[S.level];
+  const avg = recentAvg(3);
+  const share = S.history.length ? S.history[S.history.length - 1].share : 0;
+  return {
+    sales: { cur: avg, need: act.target, ok: avg >= act.target, label: '近 3 月均销售' },
+    share: { cur: share * 100, need: act.shareTarget * 100, ok: share >= act.shareTarget, label: '市场份额' },
+    compliance: { cur: S.compliance, need: 75, ok: S.compliance >= 75, label: '合规评分' },
+    reputation: { cur: S.reputation, need: 60, ok: S.reputation >= 60, label: '上级评价' },
+    team: { cur: S.team.length, need: 3, ok: S.team.length >= 3, label: '团队规模' },
+  };
+}
+
+function checkPromotion() {
+  const p = promotionProgress();
+  const allOk = Object.values(p).every(x => x.ok);
+
+  if (S.level < 3) {
+    if (allOk && S.monthInAct > 5) return { type: 'promote', level: S.level + 1, progress: p };
+    if (S.monthInAct > 12 && !S.actExtended) {
+      const avg = recentAvg(3);
+      if (avg >= ACTS[S.level].target * 0.8) {
+        S.actExtended = true;
+        S.reputation = Math.max(0, S.reputation - 4);
+        log('bad', '年度考核未达标，但省区同意延期半年。上级评价 -4。');
+        return { type: 'extend', progress: p };
+      }
+      S.over = { win: false, reason: '年度考核不达标，你被调离管理岗。', title: '出局' };
+      return { type: 'lose' };
+    }
+    if (S.monthInAct > 18) {
+      S.over = { win: false, reason: '延期考核仍未达标，你被调离管理岗。', title: '出局' };
+      return { type: 'lose' };
+    }
+  } else {
+    checkWin();
+    if (S.over) return null;
+    if (S.monthInAct > 13) {
+      S.over = { win: false, reason: '全国指标未达成，董事会换人。', title: '出局' };
+      return { type: 'lose' };
+    }
+  }
+
+  if (S.compliance < 30) { S.over = { win: false, reason: '合规评分跌破安全线，公司启动问责，你被免职。', title: '出局' }; return { type: 'lose' }; }
+  if (S.reputation <= 12) { S.over = { win: false, reason: '上级评价见底，你被调离一线。', title: '出局' }; return { type: 'lose' }; }
+  if (S.cash < -30) { S.over = { win: false, reason: '连续亏损，费用池彻底穿底，公司终止了你辖区的投入。', title: '出局' }; return { type: 'lose' }; }
+  return null;
+}
+
+function checkWin() {
+  if (S.level === 3 && S.monthInAct > 11 && !S.over) {
+    const avg = recentAvg(3);
+    if (avg >= ACTS[3].target) {
+      S.over = { win: true, title: '通关', reason: '你完成了全国营销体系的年度指标，正式进入公司经营层视野。' };
+    }
+  }
+}
+
+function doPromote() {
+  const next = S.level + 1;
+  if (next > 3) return;
+  enterAct(next, true);
+  S.reputation = Math.min(100, S.reputation + 5);
+  const add = Math.min(3, CFG.teamCap[next] - S.team.length);
+  for (let i = 0; i < add; i++) S.team.push(makeRep(S, { abilityBoost: 6 }));
+  if (add > 0) log('good', `公司从其他区域划转 ${add} 名代表随你到岗。`);
+  log('good', `晋升为${ACTS[next].rank}，接手${ACTS[next].region}。`);
+}
+
+/* ---------- 事件 ---------- */
+function evText(ev) {
+  return typeof ev.text === 'function' ? ev.text(S) : ev.text;
+}
+
+function rollEvent() {
+  if (S.flags.auditAt && S.totalMonth >= S.flags.auditAt) {
+    const why = S.flags.auditWhy || '管理要求';
+    S.flags.auditAt = 0; S.flags.auditWhy = '';
+    return Object.assign({}, AUDIT_EVENT, {
+      text: `总部专项核查组进驻，调取近半年的费用凭证、活动台账与拜访记录。起因是${why}那次没有按要求落实。`,
+    });
+  }
+  const all = EVENTS.concat(MGMT_EVENTS);
+  const cands = all.filter(e => !e.cond || e.cond(S));
+  const uniq = cands.filter(e => !(S.flags['last_' + e.id] > 0));
+  const pool = uniq.length > 3 ? uniq : cands;
+  const ev = weightedPick(pool.map(e => ({ e, weight: e.weight }))).e;
+  S.flags['last_' + ev.id] = 3;
+  Object.keys(S.flags).forEach(k => {
+    if (k.startsWith('last_') && typeof S.flags[k] === 'number') S.flags[k]--;
+  });
+  return ev;
+}
+
+function applyEventOption(ev, idx) {
+  const opt = ev.options[idx];
+  if (opt.cost) {
+    const c = +(opt.cost * CFG.costScale[S.level]).toFixed(2);
+    S.cash = +(S.cash - c).toFixed(2);
+  }
+  if (opt.ap) S.ap = Math.max(0, S.ap - opt.ap);
+  const res = opt.run(S) || { text: '', tone: 'flat' };
+  log(res.tone === 'bad' ? 'bad' : res.tone === 'good' ? 'good' : 'info', `【${ev.title}】${res.text}`);
+  return res;
+}
+
+</script>
+<script>
+/* =========================================================
+   ui.js — 渲染层（周回合制）
+   ========================================================= */
+
+let TAB = 'overview';
+let SEL = { terminal: null };
+let PENDING = null;
+let MODAL = null;
+let PICKER = null;
+let ACT = { pid: null, sel: [] };
+let START = { stage: 'path', path: null, name: '王磊', tags: [] };
+let WEEK_RES = null;
+
+/* ---------- 工具 ---------- */
+const f1 = n => (Math.round((n || 0) * 10) / 10).toFixed(1);
+const f0 = n => Math.round(n || 0);
+const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+
+function deltaChip(v, unit) {
+  if (Math.abs(v) < 0.05) return `<span class="chip flat">—</span>`;
+  return `<span class="chip ${v > 0 ? 'up' : 'down'}">${v > 0 ? '+' : ''}${f1(v)}${unit || ''}</span>`;
+}
+
+function toast(msg, tone) {
+  const root = document.getElementById('toast-root');
+  const d = document.createElement('div');
+  d.className = 'toast ' + (tone || '');
+  d.textContent = msg;
+  root.appendChild(d);
+  setTimeout(() => { d.style.opacity = '0'; d.style.transition = 'opacity .3s'; }, 2100);
+  setTimeout(() => d.remove(), 2500);
+}
+
+/* ---------- 图表 ---------- */
+function trendChart() {
+  const hist = S.history.slice(-12);
+  const W = 680, H = 208, PL = 42, PR = 16, PT = 12, PB = 26;
+  if (!hist.length) return `<div class="empty">还没有数据，推进第一个月后这里会出现份额曲线。</div>`;
+  const act = ACTS[S.level];
+  const target = act.shareTarget * 100;
+  const vals = hist.map(x => x.share * 100);
+  const yMax = Math.ceil(Math.max(target * 1.3, Math.max(...vals) * 1.25, 8) / 4) * 4;
+  const iw = W - PL - PR, ih = H - PT - PB;
+  const X = i => hist.length === 1 ? PL + iw / 2 : PL + i / (hist.length - 1) * iw;
+  const Y = v => PT + ih - (v / yMax) * ih;
+
+  let grid = '';
+  for (let i = 0; i <= 4; i++) {
+    const y = PT + ih - i / 4 * ih;
+    grid += `<line x1="${PL}" y1="${y.toFixed(1)}" x2="${W - PR}" y2="${y.toFixed(1)}" stroke="#EDF1F6"/>`;
+    grid += `<text x="${PL - 8}" y="${(y + 3.5).toFixed(1)}" text-anchor="end" font-size="9.5" fill="#8494A6">${(yMax * i / 4).toFixed(0)}%</text>`;
+  }
+  const line = hist.map((x, i) => `${i ? 'L' : 'M'}${X(i).toFixed(1)},${Y(x.share * 100).toFixed(1)}`).join(' ');
+  const area = `${line} L${X(hist.length - 1).toFixed(1)},${PT + ih} L${X(0).toFixed(1)},${PT + ih} Z`;
+  const ty = Y(target);
+  let xlab = '';
+  hist.forEach((x, i) => {
+    if (hist.length > 8 && i % 2 === 1 && i !== hist.length - 1) return;
+    xlab += `<text x="${X(i).toFixed(1)}" y="${H - 8}" text-anchor="middle" font-size="9.5" fill="#8494A6">${x.m}月</text>`;
+  });
+  let dots = '';
+  hist.forEach((x, i) => {
+    if (i !== hist.length - 1 && i !== 0) return;
+    dots += `<circle cx="${X(i).toFixed(1)}" cy="${Y(x.share * 100).toFixed(1)}" r="3.2" fill="#0143B0" stroke="#fff" stroke-width="1.6"/>`;
+  });
+  const last = hist[hist.length - 1];
+  const lx = X(hist.length - 1), ly = Y(last.share * 100);
+
+  return `<svg viewBox="0 0 ${W} ${H}" style="width:100%;height:auto;display:block">
+    <defs><linearGradient id="ag" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#0143B0" stop-opacity=".20"/><stop offset="100%" stop-color="#0143B0" stop-opacity="0"/>
+    </linearGradient></defs>
+    ${grid}
+    <line x1="${PL}" y1="${ty.toFixed(1)}" x2="${W - PR}" y2="${ty.toFixed(1)}" stroke="#C0790C" stroke-width="1" stroke-dasharray="4 4" opacity=".7"/>
+    <text x="${W - PR}" y="${(ty - 5).toFixed(1)}" text-anchor="end" font-size="9" fill="#B8730A">晋升线 ${target.toFixed(1)}%</text>
+    <path d="${area}" fill="url(#ag)"/>
+    <path d="${line}" fill="none" stroke="#0143B0" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round"/>
+    ${dots}
+    <text x="${lx > W - PR - 46 ? lx - 9 : lx + 9}" y="${ly - 8}" text-anchor="${lx > W - PR - 46 ? 'end' : 'start'}" font-size="10.5" font-weight="600" fill="#0143B0">${(last.share * 100).toFixed(1)}%</text>
+    ${xlab}
+  </svg>`;
+}
+
+function mixChart() {
+  const hist = S.history.slice(-6);
+  if (!hist.length) return `<div class="empty">结算后显示品种结构。</div>`;
+  const W = 340, H = 170, PL = 8, PR = 8, PT = 10, PB = 22;
+  const iw = W - PL - PR, ih = H - PT - PB;
+  const max = Math.max(...hist.map(h => h.sales)) * 1.1 || 1;
+  const bw = Math.min(34, iw / hist.length * 0.55);
+  let bars = '', labels = '';
+  hist.forEach((h, i) => {
+    const cx = PL + (i + 0.5) / hist.length * iw;
+    let y = PT + ih;
+    const prod = h.prod || {};
+    PRODUCTS.forEach(p => {
+      const v = prod[p.id] || 0;
+      const hh = v / max * ih;
+      y -= hh;
+      bars += `<rect x="${(cx - bw / 2).toFixed(1)}" y="${y.toFixed(1)}" width="${bw.toFixed(1)}" height="${Math.max(0, hh).toFixed(1)}" fill="${p.color}" rx="1.5"/>`;
+    });
+    labels += `<text x="${cx.toFixed(1)}" y="${H - 6}" text-anchor="middle" font-size="9" fill="#8494A6">${h.m}月</text>`;
+  });
+  let grid = '';
+  for (let i = 0; i <= 3; i++) {
+    const y = PT + ih - i / 3 * ih;
+    grid += `<line x1="${PL}" y1="${y.toFixed(1)}" x2="${W - PR}" y2="${y.toFixed(1)}" stroke="#F1F4F8"/>`;
+  }
+  const legend = PRODUCTS.map(p => `<span style="display:inline-flex;align-items:center;gap:4px;font-size:10px;color:#4A5C70;margin-right:10px"><i style="width:7px;height:7px;border-radius:2px;background:${p.color};display:inline-block"></i>${p.short}</span>`).join('');
+  return `<svg viewBox="0 0 ${W} ${H}" style="width:100%;height:auto;display:block">${grid}${bars}${labels}</svg>
+    <div style="margin-top:4px">${legend}</div>`;
+}
+
+/* =========================================================
+   顶层
+   ========================================================= */
+function render() {
+  const app = document.getElementById('app');
+  if (!S) { app.innerHTML = ''; renderStart(); return; }
+  const sy = window.scrollY;
+  app.innerHTML = topbar() + `<div class="layout">${nav()}<main class="main">${mainView()}</main></div>`;
+  window.scrollTo(0, sy);
+  renderModal();
+}
+
+function topbar() {
+  const st = computeStats();
+  const sales = st.total;
+  const share = sales / marketSize() * 100;
+  const prev = S.history.length ? S.history[S.history.length - 1] : null;
+  const dSales = prev ? (sales - prev.sales) : 0;
+  const dShare = prev ? (share - prev.share * 100) : 0;
+  const act = ACTS[S.level];
+  return `<header class="topbar">
+    <div class="brand">
+      <div class="brand-mark">药</div>
+      <div class="brand-t"><b>药企模拟器</b><span>PHARMA SIMULATOR</span></div>
+    </div>
+    <div class="who">
+      <b>${esc(S.playerName)} · ${act.rank}</b>
+      <span>${act.org} ｜ 第 ${S.totalMonth} 月 · 第 ${S.weekInMonth} 周</span>
+    </div>
+    <div class="kpis">
+      <div class="kpi"><label>本月销售 · 预计</label><strong>${f1(sales)}<small>万</small></strong>${prev && Math.abs(dSales) >= 0.05 ? `<span class="d ${dSales >= 0 ? 'up' : 'down'}">${dSales >= 0 ? '▲' : '▼'}${f1(Math.abs(dSales))}</span>` : ''}</div>
+      <div class="kpi"><label>市场份额</label><strong>${f1(share)}<small>%</small></strong>${prev && Math.abs(dShare) >= 0.05 ? `<span class="d ${dShare >= 0 ? 'up' : 'down'}">${dShare >= 0 ? '▲' : '▼'}${f1(Math.abs(dShare))}</span>` : ''}</div>
+      <div class="kpi"><label>可用预算</label><strong>${f1(S.cash)}<small>万</small></strong></div>
+      <div class="kpi"><label>合规评分</label><strong style="color:${S.compliance < 60 ? '#B3261E' : S.compliance < 78 ? '#B8730A' : '#17795A'}">${f1(S.compliance)}</strong></div>
+      <div class="kpi"><label>上级评价</label><strong>${f1(S.reputation)}</strong></div>
+    </div>
+    <button class="btn primary turn-btn" onclick="onEndWeek()">推进本周<span class="ap">精力 ${S.ap}/${apMax()}</span></button>
+  </header>`;
+}
+
+function nav() {
+  const items = [
+    ['overview', '经营总览', '◫'], ['terminals', '终端', '▤'], ['team', '团队', '◉'],
+    ['actions', '行动', '✦'], ['compliance', '合规', '⚠'], ['log', '记录', '≡'],
+  ];
+  const cand = S.candidates.length;
+  return `<nav class="sidenav">
+    ${items.map(([k, n, i]) => `<div class="navitem ${TAB === k ? 'on' : ''}" onclick="setTab('${k}')"><i>${i}</i>${n}${k === 'team' && cand ? `<span class="badge">${cand}</span>` : ''}</div>`).join('')}
+    <div class="navfoot">
+      第 ${S.totalMonth} 月 · ${S.year}年 第 ${S.weekInMonth}/4 周<br>
+      ${ACTS[S.level].title.split(' · ')[1]}阶段 第 ${Math.min(S.monthInAct, 12)}/12 月<br>
+      ${S.pending.length ? `<span style="color:#B8730A">在途项目 ${S.pending.length} 项</span><br>` : ''}
+      <span style="color:#0143B0;cursor:pointer" onclick="showHelp()">怎么玩 →</span>
+    </div>
+  </nav>`;
+}
+
+function setTab(t) { TAB = t; PICKER = null; render(); }
+
+function mainView() {
+  switch (TAB) {
+    case 'terminals': return viewTerminals();
+    case 'team': return viewTeam();
+    case 'actions': return viewActions();
+    case 'compliance': return viewCompliance();
+    case 'log': return viewLog();
+    default: return viewOverview();
+  }
+}
+
+/* =========================================================
+   总览
+   ========================================================= */
+function viewOverview() {
+  const act = ACTS[S.level];
+  const st = computeStats();
+  const sales = st.total;
+  const share = sales / marketSize() * 100;
+  const prev = S.history.length ? S.history[S.history.length - 1] : null;
+  const prog = promotionProgress();
+  const okCount = Object.values(prog).filter(x => x.ok).length;
+
+  return `
+  <div class="pagehead">
+    <div><h2>经营总览<span>OPERATIONS OVERVIEW</span></h2>
+      <p>${act.region} · ${S.terminals.length} 个终端 · 团队 ${S.team.length}/${CFG.teamCap[S.level]} 人 · 月薪 ${f1(salaryTotal())} 万</p></div>
+    <div class="hint" style="text-align:right">本周剩余精力 <b style="font-size:16px;color:#0143B0">${S.ap}</b> / ${apMax()}</div>
+  </div>
+
+  <div class="grid-4">
+    <div class="stat blue">
+      <label>本月销售额<em>SALES</em></label>
+      <div class="v">${f1(sales)}<small>万元</small></div>
+      <div class="foot">${prev ? deltaChip(sales - prev.sales, ' 万') : '<span class="chip flat">首月</span>'} <span>目标 ${f1(act.target)} 万</span></div>
+    </div>
+    <div class="stat">
+      <label>市场份额<em>MARKET SHARE</em></label>
+      <div class="v">${f1(share)}<small>%</small></div>
+      <div class="foot">${prev ? deltaChip(share - prev.share * 100, 'pp') : ''} <span>区域容量 ${f1(marketSize())} 万/月</span></div>
+    </div>
+    <div class="stat ${S.cash < 20 ? 'danger' : ''}">
+      <label>可用预算<em>BUDGET</em></label>
+      <div class="v">${f1(S.cash)}<small>万元</small></div>
+      <div class="foot">周净流入 ${f1(sales * CFG.grossRate / 4 - salaryTotal() / 4)} 万</div>
+    </div>
+    <div class="stat ${S.compliance < 60 ? 'danger' : S.compliance < 78 ? 'warn' : ''}">
+      <label>合规评分<em>COMPLIANCE</em></label>
+      <div class="v" style="color:${S.compliance < 60 ? '#B3261E' : S.compliance < 78 ? '#B8730A' : '#17795A'}">${f1(S.compliance)}</div>
+      <div class="foot">风险敞口 ${f1(teamRisk())} · 检查概率 ${f1((0.015 + Math.pow(teamRisk() / 100, 2) * 0.5))}%/月</div>
+    </div>
+  </div>
+
+  <div class="grid-32 mt12">
+    <section class="card">
+      <div class="card-h"><h3>份额走势<em>MARKET SHARE TREND</em></h3><span class="sub">最近 ${Math.min(S.history.length, 12)} 个月</span></div>
+      ${trendChart()}
+    </section>
+    <section class="card">
+      <div class="card-h"><h3>晋升条件<em>PROMOTION</em></h3><span class="sub">${okCount}/5 达成</span></div>
+      ${Object.values(prog).map(p => `
+        <div class="proline">
+          <span class="k ${p.ok ? 'ok' : 'no'}">${p.ok ? '✓' : '·'}</span>
+          <span class="n">${p.label}</span>
+          <span class="b"><span class="bar thin"><i style="width:${Math.min(100, p.cur / p.need * 100).toFixed(0)}%;background:${p.ok ? '#17795A' : '#0143B0'}"></i></span></span>
+          <span class="v">${p.label === '团队规模' ? f0(p.cur) + ' / ' + f0(p.need) + ' 人'
+      : p.label === '市场份额' ? f1(p.cur) + '% / ' + f1(p.need) + '%'
+        : p.label === '近 3 月均销售' ? f1(p.cur) + ' / ' + f1(p.need) + ' 万'
+          : f1(p.cur) + ' / ' + f1(p.need)}</span>
+        </div>`).join('')}
+      <div class="hint mt12" style="border-top:1px solid #F0F4F8;padding-top:10px">
+        最早第 6 个月可晋升；满 12 个月未达标进入年度考核。
+      </div>
+    </section>
+  </div>
+
+  <div class="grid-2 mt12">
+    <section class="card">
+      <div class="card-h"><h3>品种结构<em>PRODUCT MIX</em></h3><span class="sub">近 6 个月</span></div>
+      ${mixChart()}
+    </section>
+    <section class="card">
+      <div class="card-h"><h3>终端贡献<em>TOP ACCOUNTS</em></h3><span class="sub">按本月预计</span></div>
+      <table class="tb">
+        <thead><tr><th>终端</th><th class="r">份额</th><th class="r">销售</th><th class="r">闲置</th></tr></thead>
+        <tbody>
+        ${S.terminals.map(t => ({ t, c: st.terms[t.id] })).sort((a, b) => b.c.total - a.c.total).slice(0, 5).map(({ t, c }) => `
+          <tr onclick="openTerminal('${t.id}')" style="cursor:pointer">
+            <td>${t.name}</td>
+            <td class="r">${f1(c.total / t.potential * 100)}%</td>
+            <td class="r">${f1(c.total)}</td>
+            <td class="r" style="color:${t.idle >= 8 ? '#B3261E' : '#4A5C70'}">${t.idle} 周</td>
+          </tr>`).join('')}
+        </tbody>
+      </table>
+    </section>
+  </div>
+
+  ${pendingCard()}
+
+  <section class="card mt12">
+    <div class="card-h"><h3>近期动态<em>ACTIVITY</em></h3><span class="sub" onclick="setTab('log')" style="cursor:pointer;color:#0143B0">查看全部 →</span></div>
+    <div class="loglist">${S.log.slice(0, 5).map(logItem).join('') || '<div class="empty">暂无记录</div>'}</div>
+  </section>`;
+}
+
+function pendingCard() {
+  if (!S.pending.length) return '';
+  return `<section class="card mt12">
+    <div class="card-h"><h3>在途项目<em>IN PIPELINE</em></h3><span class="sub">${S.pending.length} 项等待结果</span></div>
+    <table class="tb">
+      <thead><tr><th>终端</th><th>项目</th><th class="r">预计出结果</th></tr></thead>
+      <tbody>${S.pending.slice(0, 8).map(x => {
+    const t = termById(x.tid), p = PROJECTS.find(y => y.id === x.pid);
+    if (!t || !p) return '';
+    const n = x.at - S.totalWeek;
+    return `<tr><td>${t.name}</td><td>${p.name}</td><td class="r">${n <= 0 ? '本周' : n + ' 周后'}</td></tr>`;
+  }).join('')}</tbody>
+    </table>
+  </section>`;
+}
+
+function logItem(l) {
+  return `<div class="logi ${l.type}"><span class="t">${l.m}月${l.w ? '·' + l.w + '周' : ''}</span><span class="x">${esc(l.text)}</span></div>`;
+}
+
+/* =========================================================
+   终端
+   ========================================================= */
+function openTerminal(id) { SEL.terminal = id; TAB = 'terminals'; render(); }
+
+function allyBadge(t) {
+  const al = allianceOf(t);
+  if (!al) return '';
+  return `<span class="badge-ally">医共体·${al.name.replace(WORLD.county, '').replace(WORLD.city, '')}</span>`;
+}
+
+function viewTerminals() {
+  const st = computeStats();
+  const list = S.terminals.map(t => ({ t, c: st.terms[t.id] })).sort((a, b) => b.c.total - a.c.total);
+  if (!SEL.terminal || !S.terminals.some(t => t.id === SEL.terminal)) SEL.terminal = list[0].t.id;
+  const cur = termById(SEL.terminal);
+  const cu = st.terms[cur.id];
+
+  return `
+  <div class="pagehead">
+    <div><h2>终端<span>ACCOUNTS</span></h2><p>越久不维护，认知和客情掉得越快。闲置 8 周以上的终端会被标红。</p></div>
+  </div>
+  <div class="term-layout">
+    <div class="term-list">
+      ${list.map(({ t, c }) => {
+    const reps = c.reps.map(x => x.name);
+    const sh = c.total / t.potential * 100;
+    return `<div class="term-item ${t.id === SEL.terminal ? 'on' : ''}" onclick="openTerminal('${t.id}')">
+          <div class="t1"><b>${t.name}</b><span>${TYPE_LABEL[t.type]}${t.tier ? ' · ' + t.tier : ''}</span></div>
+          <div class="t2"><span>份额 ${f1(sh)}%</span><b>${f1(c.total)} 万</b></div>
+          <span class="bar thin"><i style="width:${Math.min(100, sh * 2.2)}%"></i></span>
+          <div class="t2" style="margin:5px 0 0;font-size:10.5px">
+            <span>${reps.length ? reps.join('、') : '<span style="color:#B3261E">无代表驻点</span>'}</span>
+            <span>${t.idle >= 8 ? `<span style="color:#B3261E">闲置 ${t.idle} 周</span>` : t.pharm ? `院边 ${t.pharm}` : ''}</span>
+          </div>
+        </div>`;
+  }).join('')}
+    </div>
+    <div>${terminalDetail(cur, cu)}</div>
+  </div>`;
+}
+
+function barRow(label, value, color) {
+  const c = color || (value < 25 ? '#B3261E' : value < 55 ? '#B8730A' : '#0143B0');
+  return `<div class="detail-row"><span class="lb">${label}</span><span class="bar"><i style="width:${Math.min(100, value)}%;background:${c}"></i></span><span class="vl">${f1(value)}</span></div>`;
+}
+
+function effText(pid, t) {
+  const e = effOf(pid, t);
+  const parts = [];
+  if (e.aw) parts.push('认知 +' + f1(e.aw));
+  if (e.rel) parts.push('客情 +' + f1(e.rel));
+  if (e.access) parts.push('准入 +' + f1(e.access));
+  return parts.join(' · ');
+}
+
+function terminalDetail(t, c) {
+  const al = allianceOf(t);
+  const allyReps = al ? S.team.filter(r => al.members.filter(m => covers(r, m)).length >= 2) : [];
+  const pharmRep = S.team.find(r => covers(r, t.id) && r.assign[t.id].pharm);
+
+  const prodRows = PRODUCTS.map(p => {
+    const it = c.items[p.id];
+    const who = c.reps.filter(x => x.p.includes(p.id)).map(x => x.name);
+    return `<tr><td><i style="display:inline-block;width:7px;height:7px;border-radius:2px;background:${p.color};margin-right:6px"></i>${p.name}</td>
+      <td class="r">${f1(it.share * 100)}%</td><td class="r">${f1(it.sales)}</td>
+      <td class="r" style="color:#8494A6">${f1(it.cov)}</td>
+      <td style="font-size:11px;color:${who.length ? '#4A5C70' : '#B3261E'}">${who.length ? who.join('、') : '无人负责'}</td></tr>`;
+  }).join('');
+
+  const acts = [['dept', '科室会'], ['case', '病例征集'], ['dev', '医院开发'], ['channel', '渠道建设'], ['relation', '客情维护']];
+
+  return `<section class="card">
+    <div class="card-h">
+      <div><h3 style="font-size:16px">${t.name} <em style="font-size:11px;color:#8494A6">${TYPE_LABEL[t.type]}${t.tier ? ' · ' + t.tier : ''}</em> ${allyBadge(t)}</h3>
+      <div class="hint">容量 ${f1(t.potential)} 万/月 · 竞品压力 ${f1(t.comp * 100)} · 闲置 ${t.idle} 周${t.idle >= 8 ? '（<span style="color:#B3261E">衰减加速</span>）' : ''}</div></div>
+      <div style="text-align:right"><div style="font-size:24px;font-weight:700;letter-spacing:-.5px">${f1(c.total)}<small style="font-size:11px;font-weight:400;color:#8494A6"> 万/月</small></div>
+      <div class="hint">份额 ${f1(c.total / t.potential * 100)}% · 投入 ${f1(t.spend)} 万 · 费效 ${t.spend > 0 ? f1(c.total * 12 / Math.max(t.spend, 0.1)) + ' 倍' : '—'}</div></div>
+    </div>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:0 28px">
+      <div>${barRow('准入', t.access)}${barRow('认知度', t.awareness)}${barRow('客情', t.relation)}</div>
+      <div>${barRow('覆盖强度', Math.min(100, c.covAll / 1.5 * 100), '#2F6BC9')}
+        <div class="detail-row"><span class="lb">竞品压力</span><span class="bar"><i style="width:${t.comp * 100}%;background:#B8730A"></i></span><span class="vl">${f1(t.comp * 100)}</span></div>
+        <div class="detail-row"><span class="lb">驻点代表</span><span style="flex:1;font-size:12px;color:${c.reps.length ? '#0F1A26' : '#B3261E'}">${c.reps.length ? c.reps.map(x => x.name + '（' + x.p.length + ' 品种）').join('、') : '空缺'}</span></div>
+      </div>
+    </div>
+
+    ${t.pharm ? `<div class="ally-note"><b>院边药店 ${t.pharm} 家</b> · ${pharmRep ? `${pharmRep.name} 已承接` : '暂无人承接'}</div>` : ''}
+
+    ${al ? `<div class="ally-note">
+      <b>${al.name}</b> · 成员 ${al.members.length} 家
+      ${allyReps.length ? `<span style="display:block;color:#17795A">${allyReps.map(r => r.name).join('、')} 跨成员负责，准入开发 ×1.35，份额 ×${(c.am).toFixed(2)}</span>`
+      : '<span style="display:block;color:#8494A6">尚无代表跨成员负责。同一人覆盖 ≥2 家成员可享进药加成。</span>'}
+    </div>` : ''}
+
+    <div class="card-h mt16" style="margin-bottom:6px"><h3 style="font-size:12px;color:#4A5C70">品种拆分<em>BY PRODUCT</em></h3>
+      <span class="sub">效果随终端类型与画像浮动</span></div>
+    <table class="tb">
+      <thead><tr><th>品种</th><th class="r">份额</th><th class="r">销售</th><th class="r">覆盖</th><th>负责代表</th></tr></thead>
+      <tbody>${prodRows}</tbody>
+    </table>
+
+    <div class="card-h mt16" style="margin-bottom:8px"><h3 style="font-size:12px;color:#4A5C70">本终端行动<em>ACTIONS</em></h3>
+      <span class="sub">剩余精力 ${S.ap} · 预算 ${f1(S.cash)} 万</span></div>
+    <div class="effgrid">
+      ${acts.map(([id, name]) => {
+    const p = PROJECTS.find(x => x.id === id);
+    const real = projectCost(p, 1);
+    const fr = failRateOf(p, t);
+    const dis = S.ap < p.ap || S.cash < real || (id === 'channel' && !['primary', 'retail', 'city', 'region'].includes(t.type));
+    return `<button class="effbtn" ${dis ? 'disabled' : ''} onclick="doProject('${id}','${t.id}')">
+          <b>${name}</b><span>${effText(id, t)}</span>
+          <em>${f1(real)}万 · 失败 ${f1(fr * 100)}%</em></button>`;
+  }).join('')}
+    </div>
+  </section>`;
+}
+
+function doProject(pid, tid) {
+  const r = launchProject(pid, tid ? [tid] : []);
+  toast(r.msg, r.ok ? 'good' : 'bad');
+  render();
+}
+
+/* =========================================================
+   团队
+   ========================================================= */
+function viewTeam() {
+  const cap = CFG.teamCap[S.level];
+  return `
+  <div class="pagehead">
+    <div><h2>团队<span>TEAM</span></h2><p>编制 ${S.team.length}/${cap} 人 · 月薪 ${f1(salaryTotal())} 万 · 每周精力 ${apMax()}（随人数增长）</p></div>
+    <div class="flex gap8">
+      <button class="btn" onclick="openMatrix()">团队明细配置</button>
+      <button class="btn" ${S.ap < 1 || S.cash < projectCost(PROJECTS.find(p => p.id === 'hire'), 1) ? 'disabled' : ''} onclick="doProject('hire')">发布招聘（${f1(projectCost(PROJECTS.find(p => p.id === 'hire'), 1))}万）</button>
+    </div>
+  </div>
+
+  ${S.candidates.length ? `<section class="card mt12" style="border-color:#BFD3EE;background:#FBFDFF">
+    <div class="card-h"><h3>候选人<em>CANDIDATES</em></h3><span class="sub">录用前可对比能力与合规倾向</span></div>
+    <div class="team-grid">${S.candidates.map(c => candidateCard(c)).join('')}</div>
+  </section>` : ''}
+
+  <div class="team-grid mt12">${S.team.map(r => repCard(r)).join('')}</div>
+  ${!S.team.length ? '<div class="empty">团队空了。先去「行动」招人。</div>' : ''}
+
+  <section class="card mt12">
+    <div class="card-h"><h3>可见标签图鉴<em>TRAITS</em></h3><span class="sub">每人 1–2 个；另有 1–3 个未观测特质不显示</span></div>
+    <div class="taggrid">${VISIBLE_TAGS.map(t => `<div><b>${t.name}</b>${t.desc}</div>`).join('')}</div>
+    <div class="hint" style="border-top:1px solid #F0F4F8;padding-top:9px;margin-top:10px">
+      标签直接改管理当量、覆盖、认知/客情推进、合规倾向、风险积累、失败率与薪资。同名叠加生效。
+    </div>
+  </section>
+
+  <section class="card mt12">
+    <div class="card-h"><h3>团队管理要点<em>NOTES</em></h3></div>
+    <div class="hint">
+      <b>管理当量</b>：1 家医院 = 1.0，卫生院 = 0.5，连锁 = 0.7，每多一个品种 +0.08，承接院边药店 +0.12。超过本人上限后，所有终端覆盖按超载比例衰减。<br>
+      <b>医共体</b>：同一代表跨 ≥2 家成员，准入开发 ×1.35、份额加成，但每多一家成员 +0.2 当量。<br>
+      <b>猜标签</b>：每人 2 次机会，用观察到的现象反推隐藏特质。猜中永久加强，猜错扣忠诚和覆盖。
+    </div>
+  </section>`;
+}
+
+function candidateCard(c) {
+  return `<div class="rep" style="border-style:dashed">
+    <div class="rh"><div class="avatar">${c.name[0]}</div>
+      <div style="flex:1"><b>${c.name}</b>${tagChips(c)}
+        <div class="meta">${ROLES[c.role].label} · 月薪 ${f1(c.salary)} 万</div></div></div>
+    <div class="metrics">
+      <div><label>能力</label><b>${f1(c.ability)}</b></div>
+      <div><label>忠诚</label><b>${f1(c.loyalty)}</b></div>
+      <div><label>合规倾向</label><b style="color:${c.ct < 50 ? '#B3261E' : '#17795A'}">${f1(c.ct)}</b></div>
+    </div>
+    <button class="btn sm block" onclick="hire('${c.id}')">录用</button>
+  </div>`;
+}
+
+function tagChips(r) {
+  const vis = (r.tags || []).map(id => VISIBLE_TAGS.find(t => t.id === id)).filter(Boolean);
+  const rev = (r.revealed || []).map(id => HIDDEN_TAGS.find(t => t.id === id)).filter(Boolean);
+  const html = vis.map(t => `<span class="tag tagv" title="${t.desc}">${t.name}</span>`).join('')
+    + rev.map(t => `<span class="tag tagx" title="已确认：${t.desc}">${t.name} ✓</span>`).join('');
+  const un = unknownCount(r);
+  return html + (un ? `<span class="tag ghost" title="未观测特质，会实际影响产出，名字不显示">未知 ×${un}</span>` : '');
+}
+
+function obsBlock(r) {
+  const o = observations(r);
+  if (!o.length) return '';
+  return `<div class="observe"><b>观察</b>${o.join('　·　')}</div>`;
+}
+
+function repCard(r) {
+  const ids = assignIds(r);
+  const L = repLoad(r);
+  const capR = repCapOf(r);
+  const over = L > capR;
+  const exp = r.exposure;
+  const expColor = exp < 18 ? '#17795A' : exp < 40 ? '#B8730A' : '#B3261E';
+  const chips = ids.map(tid => {
+    const t = termById(tid); if (!t) return '';
+    const a = r.assign[tid];
+    return `<span class="chip-term" onclick="openMatrix()">${t.name.replace(WORLD.county, '').replace(WORLD.city, '') || t.name}
+      <i>${a.p.length}品</i>${a.pharm ? '<i class="ph">院边</i>' : ''}</span>`;
+  }).join('');
+
+  return `<div class="rep">
+    <div class="rh">
+      <div class="avatar">${r.name[0]}</div>
+      <div style="flex:1"><b>${r.name}</b>${tagChips(r)}
+        <div class="meta">${ROLES[r.role].label} · 月薪 ${f1(r.salary)} 万 · ${r.months >= 1 ? '在岗 ' + Math.round(r.months) + ' 月' : '本月入职'}</div></div>
+      <div style="text-align:right"><div style="font-size:17px;font-weight:700">${f1(r.ability)}</div><div style="font-size:9.5px;color:#8494A6">能力</div></div>
+    </div>
+    <div class="metrics">
+      <div><label>忠诚</label><b style="color:${r.loyalty < 35 ? '#B3261E' : '#0F1A26'}">${f1(r.loyalty)}</b></div>
+      <div><label>合规倾向</label><b style="color:${r.ct < 50 ? '#B3261E' : '#17795A'}">${f1(r.ct)}</b></div>
+      <div><label>风险敞口</label><b style="color:${expColor}">${f1(exp)}</b></div>
+    </div>
+    <div class="loadrow">
+      <span>管理当量</span>
+      <span class="bar thin"><i style="width:${Math.min(100, L / capR * 100)}%;background:${over ? '#B3261E' : L > capR * 0.85 ? '#B8730A' : '#0143B0'}"></i></span>
+      <b style="color:${over ? '#B3261E' : '#4A5C70'}">${f1(L)} / ${f1(capR)}</b>
+    </div>
+    <div class="msel">
+      <button class="msel-btn" onclick="togglePicker('${r.id}')"><span>负责终端</span><b>${ids.length}</b><i>▾</i></button>
+      ${PICKER === r.id ? `<div class="msel-pop">
+        ${S.terminals.map(t => {
+    const on = !!r.assign[t.id];
+    return `<label class="msel-item" onclick="event.stopPropagation()">
+            <input type="checkbox" ${on ? 'checked' : ''} onchange="setAssignUI('${r.id}','${t.id}',this.checked)">
+            <span>${t.name}</span><em>${TYPE_LABEL[t.type]}</em></label>`;
+  }).join('')}
+        <div class="msel-foot" onclick="event.stopPropagation();openMatrix()">按品种精细配置 →</div>
+      </div>` : ''}
+    </div>
+    <div class="chips">${chips || '<span class="hint">未分配终端</span>'}</div>
+    ${obsBlock(r)}
+    <div class="row">
+      <button class="btn sm ghost" style="margin-left:-6px" onclick="openGuess('${r.id}')">猜标签<span style="color:#8494A6;margin-left:4px">剩 ${2 - (r.guesses || []).length} 次 · 1 精力</span></button>
+    </div>
+    <div class="row">
+      <div class="pills">
+        ${TACTICS.map(x => `<button class="pill ${r.tactic === x.id ? 'on' : ''} ${x.id === 'rebate' ? 'risk' : x.id === 'data' ? 'warn' : ''}" title="${x.desc}" onclick="setTactic('${r.id}','${x.id}')">${x.name}</button>`).join('')}
+      </div>
+    </div>
+  </div>`;
+}
+
+function togglePicker(rid) { PICKER = PICKER === rid ? null : rid; render(); }
+function setAssignUI(rid, tid, on) {
+  const prevOwner = S.team.find(r => r.id !== rid && covers(r, tid) && r.assign[tid].p.length);
+  setAssign(rid, tid, on);
+  if (on && prevOwner) toast(`该终端原由 ${prevOwner.name} 负责，已整体转给当前代表`, 'bad');
+  render();
+}
+function setTactic(rid, tid) {
+  const r = S.team.find(x => x.id === rid);
+  if (r) { r.tactic = tid; render(); }
+}
+function hire(cid) { const r = hireCandidate(cid); toast(r.msg, r.ok ? 'good' : 'bad'); render(); }
+
+/* ---------- 矩阵 ---------- */
+const REP_COLORS = ['#0143B0', '#0E7C6B', '#A8551B', '#6B3FA0', '#B3261E', '#1F6FB2', '#6E6100', '#4A5C70'];
+function repColor(rid) {
+  const i = S.team.findIndex(r => r.id === rid);
+  return i < 0 ? '#8494A6' : REP_COLORS[i % REP_COLORS.length];
+}
+function openMatrix() { PICKER = null; setModal(matrixModal); }
+function mxSet(tid, pid, rid) { setCellRep(tid, pid, rid || null); render(); }
+function mxSetPharm(tid, rid) { setPharmRep(tid, rid || null); render(); }
+function mxRowAll(tid) {
+  const t = termById(tid);
+  const any = S.team.some(r => covers(r, tid));
+  if (any) S.team.forEach(r => { delete r.assign[tid]; });
+  else if (S.team.length) {
+    const rid = S.team[0].id;
+    PRODUCTS.forEach(p => setCellRep(tid, p.id, rid));
+    if (t.pharm) setPharmRep(tid, rid);
+  }
+  render();
+}
+
+function mxSelect(tid, pid, owner) {
+  const col = owner ? repColor(owner.id) : '';
+  const style = owner ? `background:${col}14;border-color:${col}66;color:${col}` : '';
+  return `<select class="mxsel" style="${style}" onchange="mxSet('${tid}','${pid}',this.value)">
+    <option value="">无人</option>
+    ${S.team.map(r => `<option value="${r.id}" ${owner && owner.id === r.id ? 'selected' : ''}>${r.name}</option>`).join('')}
+  </select>`;
+}
+
+function matrixModal() {
+  if (!S.team.length) return { title: '团队明细配置', body: '<div class="empty">还没有代表</div>', footer: '<button class="btn" onclick="closeModal()">关闭</button>' };
+  const st = computeStats();
+
+  const rows = S.terminals.map(t => {
+    const c = st.terms[t.id];
+    const cells = PRODUCTS.map(p => {
+      const owner = S.team.find(r => covers(r, t.id) && r.assign[t.id].p.includes(p.id));
+      return `<td class="mxcell">${mxSelect(t.id, p.id, owner)}</td>`;
+    }).join('');
+    const phOwner = S.team.find(r => covers(r, t.id) && r.assign[t.id].pharm);
+    const phCell = t.pharm
+      ? `<td class="mxcell"><select class="mxsel ph" style="${phOwner ? `background:${repColor(phOwner.id)}14;border-color:${repColor(phOwner.id)}66;color:${repColor(phOwner.id)}` : ''}" onchange="mxSetPharm('${t.id}',this.value)">
+          <option value="">无人</option>
+          ${S.team.map(r => `<option value="${r.id}" ${phOwner && phOwner.id === r.id ? 'selected' : ''}>${r.name}</option>`).join('')}
+        </select><span class="mxsub">${t.pharm} 家</span></td>`
+      : `<td class="mxcell"><span class="mxsub">—</span></td>`;
+    return `<tr ${c.reps.length ? '' : 'style="opacity:.55"'}>
+      <td class="mxname" onclick="mxRowAll('${t.id}')">
+        <b>${t.name}${t.ally ? '<span class="ally-dot"></span>' : ''}</b>
+        <span>${TYPE_LABEL[t.type]}${t.pharm ? ' · 院边 ' + t.pharm : ''}${t.idle >= 8 ? ' · 闲置' + t.idle + '周' : ''}</span>
+      </td>
+      ${cells}${phCell}
+      <td class="r mxnum"><b>${f1(c.total)}</b><span>万/月</span></td>
+      <td class="r mxnum ${t.spend > 0 ? '' : 'dim'}"><b>${f1(t.spend)}</b><span>万</span></td>
+      <td class="r mxnum dim"><b>${t.spend > 0 ? f1(c.total * 12 / Math.max(t.spend, 0.1)) : '—'}</b><span>${t.spend > 0 ? '倍' : ''}</span></td>
+    </tr>`;
+  }).join('');
+
+  const emptyCells = S.terminals.reduce((a, t) => {
+    const c = st.terms[t.id];
+    return a + PRODUCTS.filter(p => !c.reps.some(x => x.p.includes(p.id))).length;
+  }, 0);
+  const overload = S.team.filter(r => repLoad(r) > repCapOf(r));
+
+  const legend = S.team.map(r => {
+    const L = repLoad(r);
+    return `<span class="lg"><i style="background:${repColor(r.id)}"></i>${r.name}
+      <em style="color:${L > repCapOf(r) ? '#B3261E' : '#8494A6'}">${f1(L)}/${f1(repCapOf(r))}</em></span>`;
+  }).join('');
+
+  return {
+    title: '团队明细配置', en: 'TERRITORY MATRIX · 终端 × 品种', wide: true,
+    body: `
+      <div class="mxreps">
+        <div class="mxlegend">${legend}</div>
+        <div class="mxhint">格子里直接选人，颜色区分代表；点终端名可整行清空/指派。</div>
+      </div>
+      <div class="mxtable-wrap">
+        <table class="mxtable">
+          <thead><tr><th class="mxname">终端</th>
+            ${PRODUCTS.map(p => `<th class="pcol"><i style="background:${p.color}"></i>${p.short}</th>`).join('')}
+            <th class="pcol">院边药店</th><th class="r" style="width:78px">本月产出</th><th class="r" style="width:78px">累计投入</th><th class="r" style="width:64px">费效</th></tr></thead>
+          <tbody>${rows}</tbody>
+        </table>
+      </div>
+      <div class="mxsum">
+        <div>无人负责 <b style="color:${emptyCells ? '#B8730A' : '#17795A'}">${emptyCells}</b> 个品种格${overload.length ? `　·　<span style="color:#B3261E">${overload.map(r => r.name).join('、')} 已超载</span>` : ''}</div>
+        <div>合计产出 <b>${f1(st.total)}</b> 万/月　·　累计投入 <b>${f1(S.terminals.reduce((a, t) => a + t.spend, 0))}</b> 万</div>
+      </div>`,
+    footer: `<button class="btn primary" onclick="closeModal()">完成</button>`,
+  };
+}
+
+/* =========================================================
+   行动
+   ========================================================= */
+function viewActions() {
+  const scale = CFG.costScale[S.level];
+  return `
+  <div class="pagehead">
+    <div><h2>行动<span>ACTIONS</span></h2><p>每周有 ${apMax()} 点精力。同一项目在不同终端效果不同，成本按终端数叠加。</p></div>
+    <div style="text-align:right">
+      <div class="hint">剩余精力 <b style="font-size:16px;color:#0143B0">${S.ap}</b> / ${apMax()} ｜ 预算 ${f1(S.cash)} 万</div>
+      ${S.lastPlan.length ? `<button class="btn sm mt12" onclick="replayPlan()">沿用上月计划（${S.lastPlan.length} 项）</button>` : ''}
+    </div>
+  </div>
+  <div class="proj-grid">
+    ${PROJECTS.map(p => {
+    const need = p.multi > 0;
+    const cost = projectCost(p, 1);
+    const dis = S.ap < p.ap || S.cash < cost;
+    return `<div class="proj">
+        <h4>${p.name}<em>${p.en}</em></h4>
+        <p>${p.desc}<br><span style="color:#8494A6">${p.help}</span></p>
+        <div class="pp">
+          <span>预算 <b>${f1(cost)}</b> 万${need ? '<i style="color:#8494A6">/终端</i>' : ''}</span>
+          <span>精力 <b>${p.ap}</b></span>
+          <span>上限 <b>${p.multi === 0 ? '全区域' : p.multi === -1 ? '—' : p.multi + ' 个'}</b></span>
+        </div>
+        <div class="pp" style="margin-top:-4px">
+          ${p.fail ? `<span>基础失败率 <b style="color:${p.fail >= 0.22 ? '#B3261E' : '#B8730A'}">${f1(p.fail * 100)}%</b></span>` : '<span style="color:#17795A">不判定失败</span>'}
+          ${p.delay ? `<span>延迟 <b>${p.delay} 个月</b></span>` : '<span>当周生效</span>'}
+        </div>
+        <button class="btn ${dis ? '' : 'primary'} sm block" ${dis ? 'disabled' : ''} onclick="openAction('${p.id}')">${p.multi === -1 ? '执行' : (p.multi === 0 ? '执行（全区域）' : '选择终端')}</button>
+      </div>`;
+  }).join('')}
+  </div>
+  ${pendingCard()}
+  <section class="card mt16">
+    <div class="card-h"><h3>资源账本<em>LEDGER</em></h3><span class="sub">单终端成本 · 当前层级</span></div>
+    <table class="tb">
+      <thead><tr><th>项目</th><th class="r">单终端成本</th><th class="r">精力</th><th class="r">失败率</th><th class="r">延迟</th><th>适用</th></tr></thead>
+      <tbody>${PROJECTS.map(p => `<tr><td>${p.name}</td><td class="r">${f1(p.cost * scale)} 万</td><td class="r">${p.ap}</td>
+        <td class="r">${p.fail ? f1(p.fail * 100) + '%' : '—'}</td><td class="r">${p.delay ? p.delay + ' 个月' : '即时'}</td>
+        <td style="color:#8494A6">${p.multi === -1 ? '无需终端' : p.multi === 0 ? '全区域' : '最多 ' + p.multi + ' 个'}</td></tr>`).join('')}</tbody>
+    </table>
+  </section>`;
+}
+
+function openAction(pid) {
+  const p = PROJECTS.find(x => x.id === pid);
+  if (p.multi === -1) { doProject(pid); return; }
+  ACT = { pid, sel: p.multi === 0 ? S.terminals.map(t => t.id) : [] };
+  setModal(actionModal);
+}
+
+function toggleActTarget(tid) {
+  const i = ACT.sel.indexOf(tid);
+  if (i >= 0) ACT.sel.splice(i, 1); else ACT.sel.push(tid);
+  renderModal();
+}
+
+function actionModal() {
+  const p = PROJECTS.find(x => x.id === ACT.pid);
+  const n = p.multi === 0 ? S.terminals.length : ACT.sel.length;
+  const cost = projectCost(p, Math.max(1, n));
+  const ap = projectAP(p, Math.max(1, n));
+  const overLimit = p.multi > 0 && ACT.sel.length > p.multi;
+  const dis = !n || overLimit || S.ap < ap || S.cash < cost;
+
+  let avgFail = 0;
+  if (p.fail && n) {
+    const list = p.multi === 0 ? S.terminals : ACT.sel.map(id => termById(id));
+    avgFail = list.reduce((a, t) => a + failRateOf(p, t), 0) / list.length;
+  }
+
+  const list = p.multi === 0 ? '' : `<div class="picklist">
+    ${S.terminals.map(t => {
+    const on = ACT.sel.includes(t.id);
+    const fr = p.fail ? failRateOf(p, t) : 0;
+    const disabledCh = p.id === 'channel' && !['primary', 'retail', 'city', 'region'].includes(t.type);
+    return `<label class="pickitem ${on ? 'on' : ''} ${disabledCh ? 'dis' : ''}">
+        <input type="checkbox" ${on ? 'checked' : ''} ${disabledCh ? 'disabled' : ''} onchange="toggleActTarget('${t.id}')">
+        <span class="nm">${t.name}</span>
+        <span class="mt">${effText(p.id, t)}</span>
+        ${p.fail ? `<span class="fr" style="color:${fr > 0.3 ? '#B3261E' : '#B8730A'}">失败 ${f1(fr * 100)}%</span>` : ''}
+      </label>`;
+  }).join('')}
+    </div>`;
+
+  const summary = `<div class="mxsum" style="margin-top:10px">
+      <div>已选 <b>${n}</b> 个终端${p.multi > 0 ? `（上限 ${p.multi}）` : ''} · 预算 <b>${f1(cost)}</b> 万 · 精力 <b>${ap}</b></div>
+      <div>${p.fail ? `平均失败率 <b style="color:${avgFail > 0.3 ? '#B3261E' : '#B8730A'}">${f1(avgFail * 100)}%</b> · ` : ''}${p.delay ? `<b>${p.delay} 个月后</b>出结果` : '当周生效'}</div>
+    </div>
+    ${overLimit ? `<div class="warn-line">超出上限，最多选 ${p.multi} 个终端</div>` : ''}`;
+
+  return {
+    title: `${p.name} · 选择终端`, en: p.en, wide: true,
+    body: `<div class="hint" style="margin-bottom:10px">${p.desc}</div>${list}${summary}`,
+    footer: `<button class="btn" onclick="closeModal()">取消</button>
+      <button class="btn primary" ${dis ? 'disabled' : ''} onclick="confirmAction()">确认执行</button>`,
+  };
+}
+
+function confirmAction() {
+  const p = PROJECTS.find(x => x.id === ACT.pid);
+  const r = launchProject(p.id, ACT.sel);
+  toast(r.msg, r.ok ? 'good' : 'bad');
+  if (r.ok) { MODAL = null; renderModal(); }
+  render();
+}
+
+function replayPlan() {
+  let n = 0;
+  S.lastPlan.forEach(it => { const r = launchProject(it.pid, it.tids || []); if (r.ok) n++; });
+  toast(n ? `已按上月计划执行 ${n} 项` : '精力或预算不足，未能执行', n ? 'good' : 'bad');
+  render();
+}
+
+/* =========================================================
+   合规
+   ========================================================= */
+function viewCompliance() {
+  const risk = teamRisk();
+  const p = (0.015 + Math.pow(risk / 100, 2) * 0.5) * 100;
+  const zone = risk < 20 ? ['安全', '#17795A'] : risk < 40 ? ['关注', '#B8730A'] : risk < 60 ? ['预警', '#C05621'] : ['高危', '#B3261E'];
+  const badLogs = S.log.filter(l => l.type === 'bad').slice(0, 8);
+
+  return `
+  <div class="pagehead">
+    <div><h2>合规<span>COMPLIANCE</span></h2><p>风险敞口来自每个代表的日常动作。它会累积、会被举报、会在最不该来的时候被查。</p></div>
+  </div>
+  <div class="grid-4">
+    <div class="stat ${S.compliance < 60 ? 'danger' : ''}">
+      <label>合规评分<em>SCORE</em></label>
+      <div class="v" style="color:${S.compliance < 60 ? '#B3261E' : S.compliance < 78 ? '#B8730A' : '#17795A'}">${f1(S.compliance)}</div>
+      <div class="foot">低于 30 将被免职；低于 75 不予晋升</div>
+    </div>
+    <div class="stat"><label>团队风险敞口<em>RISK</em></label><div class="v">${f1(risk)}</div>
+      <div class="foot"><span class="chip" style="background:${zone[1]}18;color:${zone[1]}">${zone[0]}</span></div></div>
+    <div class="stat ${p > 12 ? 'danger' : ''}"><label>月被检查概率<em>INSPECTION</em></label>
+      <div class="v">${f1(p)}<small>%</small></div><div class="foot">随风险敞口平方增长</div></div>
+    <div class="stat"><label>合规经营月度<em>CLEAN</em></label>
+      <div class="v">${f0(S.history.filter(h => h.risk < 20).length)}<small>个月</small></div><div class="foot">敞口 &lt; 20 的月份累计</div></div>
+  </div>
+
+  <section class="card mt12">
+    <div class="card-h"><h3>风险敞口分布<em>EXPOSURE MAP</em></h3><span class="sub">阈值 18：约谈 / 40：解聘 / 55：品种停采 / 75：移交司法</span></div>
+    <div class="gauge-wrap">
+      <div class="gauge-track">
+        <div class="gauge-fill" style="width:${Math.min(100, risk)}%;background:${zone[1]}"></div>
+        <div class="gauge-tick" style="left:20%"></div><div class="gauge-tick" style="left:40%"></div>
+        <div class="gauge-tick" style="left:60%"></div><div class="gauge-tick" style="left:75%"></div>
+      </div>
+      <div class="gauge-scale">
+        <span style="left:0">0</span><span style="left:20%">20 关注</span><span style="left:40%">40 预警</span>
+        <span style="left:60%">60 高危</span><span style="left:75%">75 司法</span>
+      </div>
+    </div>
+    <table class="tb mt12">
+      <thead><tr><th style="width:150px">代表</th><th style="width:110px">打法</th><th style="width:100px">合规倾向</th><th class="r" style="width:100px">风险敞口</th><th class="r" style="width:70px">状态</th></tr></thead>
+      <tbody>
+      ${S.team.length ? S.team.map(r => {
+    const e = r.exposure;
+    const st = e < 18 ? ['低', '#17795A'] : e < 40 ? ['关注', '#B8730A'] : e < 55 ? ['高', '#C05621'] : ['极高', '#B3261E'];
+    return `<tr><td>${r.name}</td><td style="color:#4A5C70">${tacticOf(r).name}</td>
+          <td>${f1(r.ct)}</td><td class="r" style="color:${st[1]};font-weight:600">${f1(e)}</td><td class="r" style="color:${st[1]}">${st[0]}</td></tr>`;
+  }).join('') : '<tr><td colspan="5" class="empty">无人在岗</td></tr>'}
+      </tbody>
+    </table>
+    <div class="flex gap8 mt12">
+      <button class="btn primary sm" ${S.ap < 1 || S.cash < projectCost(PROJECTS.find(x => x.id === 'compliance'), 1) ? 'disabled' : ''} onclick="doProject('compliance')">开展合规培训（${f1(projectCost(PROJECTS.find(x => x.id === 'compliance'), 1))}万）</button>
+    </div>
+  </section>
+
+  <section class="card mt12">
+    <div class="card-h"><h3>合规相关记录<em>INCIDENTS</em></h3></div>
+    ${badLogs.length ? badLogs.map(logItem).join('') : '<div class="empty">没有不良记录。保持住。</div>'}
+  </section>`;
+}
+
+function viewLog() {
+  return `<div class="pagehead"><div><h2>记录<span>LOG</span></h2><p>全部决策与结果。共 ${S.log.length} 条。</p></div></div>
+  <section class="card"><div class="loglist">${S.log.map(logItem).join('') || '<div class="empty">暂无记录</div>'}</div></section>`;
+}
+
+/* =========================================================
+   弹窗
+   ========================================================= */
+function renderModal() {
+  const root = document.getElementById('modal-root');
+  if (!MODAL) { root.innerHTML = ''; return; }
+  const m = MODAL();
+  root.innerHTML = `<div class="mask" onclick="${m.dismissible === false ? '' : 'closeModal()'}">
+    <div class="modal ${m.wide ? 'wide' : ''}" onclick="event.stopPropagation()">
+      <div class="modal-h"><h3>${m.title}</h3>${m.en ? `<div class="en">${m.en}</div>` : ''}</div>
+      <div class="modal-b">${m.body}</div>
+      <div class="modal-f">${m.footer || ''}</div>
+    </div>
+  </div>`;
+}
+function closeModal() { MODAL = null; renderModal(); render(); }
+function setModal(builder) { MODAL = builder; renderModal(); }
+
+/* ---------- 开局：成长路线 → 姓名与标签 ---------- */
+function renderStart() {
+  const app = document.getElementById('app');
+  if (START.stage === 'path') {
+    app.innerHTML = `<div class="start"><div class="start-inner">
+      <div class="kicker">江右药业 · 营销体系模拟</div>
+      <h1>药企模拟器<small>PHARMA SIMULATOR</small></h1>
+      <div class="lead">先选一条成长路线。三条线的评价标准不同：营销看份额和回款，学术看证据和共识，市场看产品策略和准入。</div>
+      <div class="pathgrid">
+        ${PATHS.map(p => `<div class="pathcard ${p.ready ? '' : 'off'}" onclick="${p.ready ? `choosePath('${p.id}')` : `toast('${p.name}还在开发中','bad')`}">
+          <div class="pcn">${p.name}<em>${p.en}</em></div>
+          <div class="pcd">${p.desc}</div>
+          <div class="pcb">${p.ready ? '进入 →' : '敬请期待'}</div>
+        </div>`).join('')}
+      </div>
+      <div class="fine">本作为虚构模拟，企业与人物均无对应。游戏中出现的违规操作均设有对应的监管后果。</div>
+    </div></div>`;
+    return;
+  }
+  app.innerHTML = `<div class="start"><div class="start-inner">
+    <div class="kicker">${PATHS.find(p => p.id === START.path).name} · 个人能力配置</div>
+    <h1 style="font-size:36px">你是谁<small>YOUR PROFILE</small></h1>
+    <div class="lead" style="margin:12px 0 16px">选 2 个个人标签，它们会一直影响你的管理半径、团队执行和项目成败。</div>
+    <div class="namebox" style="margin-bottom:14px">
+      <input id="pname" placeholder="输入你的名字" value="${START.name}" maxlength="8" oninput="START.name=this.value">
+    </div>
+    <div class="tagpick">
+      ${PLAYER_TAGS.map(t => `<div class="tpick ${START.tags.includes(t.id) ? 'on' : ''}" onclick="togglePlayerTag('${t.id}')">
+        <b>${t.name}</b><span>${t.desc}</span></div>`).join('')}
+    </div>
+    <div class="namebox" style="margin-top:18px">
+      <button class="btn-start" onclick="startGame()" ${START.tags.length !== 2 ? 'style="opacity:.5;cursor:not-allowed"' : ''}>进入市场</button>
+      <span style="font-size:11px;color:#8FB4E8">已选 ${START.tags.length}/2</span>
+    </div>
+    <div class="fine">标签可以重复开局尝试，不同组合对早期现金流影响很大。</div>
+  </div></div>`;
+}
+
+function choosePath(id) {
+  START.path = id;
+  START.stage = 'setup';
+  renderStart();
+}
+function togglePlayerTag(id) {
+  const i = START.tags.indexOf(id);
+  if (i >= 0) START.tags.splice(i, 1);
+  else if (START.tags.length < 2) START.tags.push(id);
+  else toast('最多选 2 个', 'bad');
+  renderStart();
+}
+
+function startGame() {
+  if (START.tags.length !== 2) { toast('请选择 2 个个人标签', 'bad'); return; }
+  const el = document.getElementById('pname');
+  const name = (el && el.value.trim()) || START.name || '王磊';
+  newGame(name, START.path, START.tags);
+  TAB = 'overview';
+  SEL.terminal = S.terminals[0].id;
+  render();
+  showBrief();
+}
+
+function showHelp() {
+  setModal(() => ({
+    title: '怎么玩', en: 'HOW TO PLAY', wide: true,
+    body: `
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px 24px">
+        <div>
+          <p style="margin-bottom:6px"><b style="color:#0F1A26">一、回合</b><br>一个月 4 周，每周都能行动。每周精力 = 基础 + 团队规模（上限 4，可被个人标签 +1）。周末点「推进本周」结算，并开一次周会。</p>
+          <p style="margin-bottom:6px"><b style="color:#0F1A26">二、周会</b><br>每周给团队一个要求：冲量 / 抓学术 / 做客情 / 抓合规。执行度由代表的忠诚和标签决定——老江湖、空降兵会打折扣，铁人、拼命三郎执行得更彻底。</p>
+          <p style="margin-bottom:6px"><b style="color:#0F1A26">三、终端维护</b><br>越久不动的终端，认知和客情掉得越快。闲置 8 周以上会额外增加项目失败率。</p>
+          <p style="margin-bottom:6px"><b style="color:#0F1A26">四、动作效果</b><br>同一个科室会，在三甲、卫生院、连锁药店里效果完全不同；终端还有学术型/关系型/价格型画像。选终端时能看到实际加成。</p>
+        </div>
+        <div>
+          <p style="margin-bottom:6px"><b style="color:#0F1A26">五、标签</b><br>每人 1–2 个可见标签，另有 1–3 个隐藏特质。卡片上的「观察」是从异常现象反推的线索，每人可猜 2 次。</p>
+          <p style="margin-bottom:6px"><b style="color:#0F1A26">六、医共体</b><br>同一代表覆盖 ≥2 家成员，准入开发 ×1.35、份额加成，但管理当量更高。</p>
+          <p style="margin-bottom:6px"><b style="color:#0F1A26">七、管理事件</b><br>公司要求分 严格执行 / 选择执行 / 不执行，不执行会在 2–3 个月后引来专项核查。</p>
+        </div>
+      </div>
+      <div class="hint" style="border-top:1px solid #F0F4F8;padding-top:8px;margin-top:2px">
+        每局的产品、城市、终端、竞品都是随机生成的。金额单位万元，比率保留 1 位小数。
+      </div>`,
+    footer: `<button class="btn primary" onclick="closeModal()">知道了</button>`,
+  }));
+}
+
+function showBrief() {
+  const act = ACTS[S.level];
+  setModal(() => ({
+    title: act.title, en: act.org + ' · ' + act.region,
+    body: `<p>${act.brief}</p><p style="color:#0143B0;font-size:12.5px;border-left:2px solid #0143B0;padding-left:10px">${act.quote}</p>
+      <div class="hint">目标：12 个月内月均销售 ${f1(act.target)} 万元，区域份额 ${f1(act.shareTarget * 100)}%。本周精力 ${S.ap} 点。</div>`,
+    footer: `<button class="btn primary" onclick="closeModal()">开始</button>`,
+  }));
+}
+
+/* ---------- 推进一周 ---------- */
+function onEndWeek() {
+  if (S.over) return;
+  const res = endWeek();
+  WEEK_RES = res;
+  if (res.incident) toast(res.incident.name + '：' + res.incident.text, res.incident.caught ? 'bad' : 'good');
+  render();
+  showWeekMeeting(res);
+}
+
+function showWeekMeeting(res) {
+  const w = res.week;
+  const team = S.team.map(r => {
+    const out = r.lastWeek ? r.lastWeek.output : 0;
+    const exp = r.exposure;
+    return `<div class="wkrow">
+      <span class="nm">${r.name}</span>
+      <span class="tg">${(r.tags || []).map(id => (VISIBLE_TAGS.find(t => t.id === id) || {}).name).filter(Boolean).join('·')}</span>
+      <span class="out">${f1(out)} 万</span>
+      <span class="ex" style="color:${exp < 18 ? '#17795A' : exp < 40 ? '#B8730A' : '#B3261E'}">风险 ${f1(exp)}</span>
+    </div>`;
+  }).join('');
+
+  const power = (function () {
+    let sum = 0, n = 0;
+    S.team.forEach(r => {
+      let c = 0.35 + r.loyalty / 160;
+      const has = k => (r.tags || []).includes(k) || (r.revealed || []).includes(k);
+      if (has('grinder')) c += 0.1; if (has('ironman')) c += 0.12; if (has('rookie')) c += 0.08;
+      if (has('oldfox')) c -= 0.08; if (has('parachute')) c -= 0.1;
+      if (r.hidden.includes('procrast')) c -= 0.1;
+      if (r.hidden.includes('niceguy')) c += 0.05;
+      if (r.hidden.includes('sidegig')) c -= 0.2;
+      sum += Math.max(0, Math.min(1.2, c)); n++;
+    });
+    return n ? sum / n : 0;
+  })();
+
+  const opts = WEEKLY_ORDERS.map(o => `<button class="opt" onclick="confirmOrder('${o.id}')">
+      <b>${o.name}<span style="color:#8494A6;font-weight:400"> · 预计执行度 ${(power * 100).toFixed(0)}%</span></b>
+      <span>${o.desc}</span></button>`).join('');
+
+  setModal(() => ({
+    title: `第 ${S.totalMonth} 月 · 第 ${w.week} 周 周会`, en: 'WEEKLY REVIEW', dismissible: false, wide: true,
+    body: `
+      <div class="wkhead">
+        <div><span class="hint">本周销售</span><b>${f1(w.sales)} 万</b></div>
+        <div><span class="hint">团队风险</span><b>${f1(w.risk)}</b></div>
+        <div><span class="hint">剩余预算</span><b>${f1(S.cash)} 万</b></div>
+        <div><span class="hint">在途项目</span><b>${S.pending.length} 项</b></div>
+      </div>
+      <div class="wklist">${team || '<div class="empty">无人在岗</div>'}</div>
+      <div class="hint" style="margin:10px 0 6px">给下周定个调子——执行度取决于每个人的忠诚和标签，不会 100% 照做。</div>
+      ${opts}`,
+    footer: '',
+  }));
+}
+
+function confirmOrder(id) {
+  applyOrder(id);
+  MODAL = null; renderModal();
+  const res = WEEK_RES;
+  if (res && res.monthReport) { showMonthReport(res); return; }
+  render();
+}
+
+/* ---------- 月报 ---------- */
+function showMonthReport(res) {
+  const r = res.monthReport;
+  const inc = r.incident;
+  const incHtml = inc ? `<div style="background:${inc.caught ? '#FBF0EF' : '#EDF7F2'};border:1px solid ${inc.caught ? '#EFD3D0' : '#CFE7DC'};border-radius:9px;padding:11px 13px;margin:10px 0">
+      <b style="color:${inc.caught ? '#B3261E' : '#17795A'}">${inc.name}</b>
+      <div style="font-size:12px;margin-top:4px;color:${inc.caught ? '#7A3B35' : '#2C6650'}">${inc.text}${inc.extra ? ' ' + inc.extra : ''}</div></div>` : '';
+  const resHtml = (r.resolved && r.resolved.length)
+    ? `<div style="background:#F4F8FE;border:1px solid #DCE6F5;border-radius:9px;padding:10px 12px;margin:8px 0;font-size:12px;color:#2E4A72"><b>在途项目结算</b><br>${r.resolved.join('；')}</div>` : '';
+  const row = (l, v, d, neutral) => `<div class="rep-row"><span>${l}</span><b class="${neutral ? '' : d > 0 ? 'up' : d < 0 ? 'down' : ''}">${v}</b></div>`;
+
+  setModal(() => ({
+    title: `第 ${r.month} 个月经营简报`, en: 'MONTHLY REPORT', dismissible: false,
+    body: `
+      <div style="display:flex;gap:16px;margin-bottom:6px">
+        <div style="flex:1"><div class="hint">本月销售</div><div style="font-size:26px;font-weight:700">${f1(r.sales)}<small style="font-size:11px;font-weight:400;color:#8494A6"> 万元</small></div></div>
+        <div style="flex:1"><div class="hint">市场份额</div><div style="font-size:26px;font-weight:700">${f1(r.share)}<small style="font-size:11px;font-weight:400;color:#8494A6"> %</small></div></div>
+        <div style="flex:1"><div class="hint">达标率</div><div style="font-size:26px;font-weight:700;color:${r.progress >= 100 ? '#17795A' : r.progress >= 80 ? '#B8730A' : '#B3261E'}">${f1(r.progress)}<small style="font-size:11px;font-weight:400;color:#8494A6"> %</small></div></div>
+      </div>
+      <div style="border-top:1px solid #F0F4F8;margin:8px 0 4px"></div>
+      ${r.delta == null ? row('销售环比', '首月', 0, true) : row('销售环比', (r.delta >= 0 ? '+' : '') + f1(r.delta) + '%', r.delta)}
+      ${row('毛利贡献（费用池）', '+' + f1(r.gross) + ' 万元', 1, true)}
+      ${row('人力成本', '-' + f1(r.salary) + ' 万元', -1, true)}
+      ${row('账面净流入', (r.net >= 0 ? '+' : '') + f1(r.net) + ' 万元', r.net)}
+      ${row('可用预算余额', f1(r.cash) + ' 万元', r.cashDelta)}
+      ${row('合规评分', f1(r.compliance) + '（' + (r.compDelta >= 0 ? '+' : '') + f1(r.compDelta) + '）', r.compDelta, true)}
+      ${row('上级评价', f1(r.reputation) + '（' + (r.repDelta >= 0 ? '+' : '') + f1(r.repDelta) + '）', r.repDelta, true)}
+      ${r.up ? `<div class="rep-row"><span>超额预算上缴</span><b style="color:#8494A6">-${f1(r.up)} 万元</b></div>` : ''}
+      ${resHtml}${incHtml}
+      <div class="hint">${r.progress >= 100 ? '本月达标。' : r.progress >= 80 ? '接近目标，再推一把。' : '低于目标 80%，上级开始关注你的周报。'}</div>`,
+    footer: `<button class="btn primary" onclick="afterReport()">继续</button>`,
+  }));
+}
+
+function afterReport() {
+  closeModal();
+  const pp = S.pendingPromotion;
+  S.pendingPromotion = null;
+  if (S.over) { if (S.over.win) { winModal(); return; } gameOverModal(); return; }
+  if (pp && pp.type === 'promote') { promoteModal(); return; }
+  if (pp && pp.type === 'extend') { extendModal(); return; }
+  maybeEvent();
+}
+
+function extendModal() {
+  setModal(() => ({
+    title: '延期考核', en: 'EXTENSION',
+    body: `<p>年度考核没有达标。省区给了你半年时间，但这句话说得很轻——意思是，没有下一次了。</p>
+      <div class="rep-row"><span>近 3 月均销售</span><b>${f1(recentAvg(3))} 万元</b></div>
+      <div class="rep-row"><span>目标</span><b>${f1(ACTS[S.level].target)} 万元</b></div>
+      <div class="hint mt12">剩余时间：到第 18 个月为止。</div>`,
+    footer: `<button class="btn primary" onclick="closeModal();maybeEvent();">继续</button>`,
+  }));
+}
+
+function promoteModal() {
+  const next = S.level + 1;
+  if (next > 3) { winModal(); return; }
+  const a = ACTS[next];
+  setModal(() => ({
+    title: `晋升 · ${a.rank}`, en: 'PROMOTION', dismissible: false,
+    body: `<p>省区会议上，周立群把你的名字念了出来。会议室里有人在鼓掌，有人在看手机。</p>
+      <p style="font-size:13px;color:#0F1A26;font-weight:600">你接手 ${a.org}，区域从 ${ACTS[S.level].region} 扩到 ${a.region}。</p>
+      <p>${a.brief}</p>
+      <div class="hint">编制扩至 ${CFG.teamCap[next]} 人 · 目标月均 ${f1(a.target)} 万元 · 份额 ${f1(a.shareTarget * 100)}%</div>`,
+    footer: `<button class="btn primary" onclick="doPromoteAndContinue()">接手新市场</button>`,
+  }));
+}
+function doPromoteAndContinue() {
+  doPromote();
+  MODAL = null; renderModal(); render();
+  showBrief();
+}
+
+function gameOverModal() {
+  const o = S.over || { win: false, title: '出局', reason: '年度考核未达标。' };
+  const sales = S.history.length ? S.history[S.history.length - 1].sales : 0;
+  setModal(() => ({
+    title: o.title, en: 'CAREER RESULT', dismissible: false,
+    body: `<p style="font-size:14px;color:#0F1A26;font-weight:600">${o.reason}</p>
+      <div class="rep-row"><span>最终职级</span><b>${ACTS[S.level].rank}</b></div>
+      <div class="rep-row"><span>在任月数</span><b>${S.totalMonth - 1} 个月</b></div>
+      <div class="rep-row"><span>最后月销售</span><b>${f1(sales)} 万元</b></div>
+      <div class="rep-row"><span>合规评分</span><b>${f1(S.compliance)}</b></div>
+      <div class="hint mt12">${o.win ? '你走到了营销总监的位置。这只是开始。' : '换一条路重来：合规经营的增长更慢，但不会在第十个月被人抬走。'}</div>`,
+    footer: `<button class="btn" onclick="restart()">重新开始</button>`,
+  }));
+}
+
+function winModal() {
+  setModal(() => ({
+    title: '营销总监', en: 'ENDING', dismissible: false,
+    body: `<p>你坐在营销中心的会议室主位。桌上摊着六大区的报表，每一张都有你熟悉的数字。</p>
+      <p>有人问你，怎么从一个县做到这里。</p>
+      <p style="color:#0143B0">"把每个终端算清楚，把每个人放在对的位置上，然后别让任何人替你承担不该承担的代价。"</p>
+      <div class="hint">通关。销售额 ${f1(S.history.length ? S.history[S.history.length - 1].sales : 0)} 万 / 月。</div>`,
+    footer: `<button class="btn primary" onclick="restart()">再来一局</button>`,
+  }));
+}
+
+function restart() {
+  MODAL = null; renderModal();
+  S = null; PICKER = null; SEL = { terminal: null };
+  START = { stage: 'path', path: null, name: '王磊', tags: [] };
+  render();
+}
+
+/* ---------- 事件 ---------- */
+function maybeEvent() {
+  if (S.over) return;
+  const ev = rollEvent();
+  if (!ev) return;
+  PENDING = ev;
+  const opts = ev.options.map((o, i) => {
+    const c = o.cost ? ` <span style="color:#8494A6">· ${f1(o.cost * CFG.costScale[S.level])} 万</span>` : '';
+    const ap = o.ap ? ` <span style="color:#8494A6">· ${o.ap} 精力</span>` : '';
+    return `<button class="opt ${ev.mgmt ? 'mgmt' : ''}" onclick="chooseEvent(${i})">
+      <b>${o.label}${c}${ap}</b><span>${o.desc || ''}</span></button>`;
+  }).join('');
+  setModal(() => ({
+    title: ev.title, en: ev.en,
+    body: `<div class="evtag ${ev.mgmt ? 'mgmt' : ''}">${ev.mgmt ? '来自公司 / 上级' : '市场事件'}</div>
+      <p>${evText(ev)}</p>${opts}`, footer: '', dismissible: false,
+  }));
+}
+
+function chooseEvent(i) {
+  const ev = PENDING;
+  PENDING = null;
+  const res = applyEventOption(ev, i);
+  render();
+  setModal(() => ({
+    title: '结果', en: 'OUTCOME',
+    body: `<p style="color:${res.tone === 'bad' ? '#9E2A21' : res.tone === 'good' ? '#14684C' : '#0F1A26'}">${res.text}</p>`,
+    footer: `<button class="btn primary" onclick="closeModal()">继续</button>`,
+  }));
+}
+
+/* ---------- 猜标签 ---------- */
+function openGuess(rid) { setModal(() => guessModal(rid)); }
+
+function guessModal(rid) {
+  const r = S.team.find(x => x.id === rid);
+  if (!r) return { title: '猜标签', body: '<div class="empty">没有这个人</div>', footer: '<button class="btn" onclick="closeModal()">关闭</button>' };
+  const used = (r.guesses || []).length;
+  const left = 2 - used;
+  const obs = observations(r);
+
+  const items = HIDDEN_TAGS.map(t => {
+    const guessed = (r.guesses || []).some(g => g.tag === t.id);
+    const revealed = (r.revealed || []).includes(t.id);
+    const cls = revealed ? 'hit' : guessed ? 'miss' : '';
+    const right = revealed ? '<em class="ok">已确认</em>'
+      : guessed ? '<em class="no">猜过·未中</em>'
+        : `<button class="btn sm" ${left <= 0 || S.ap < 1 ? 'disabled' : ''} onclick="doGuess('${rid}','${t.id}')">就是这个</button>`;
+    return `<div class="gitem ${cls}"><div class="gt"><b>${t.name}</b><span>${t.desc}</span></div>${right}</div>`;
+  }).join('');
+
+  return {
+    title: `猜标签 · ${r.name}`, en: 'READ THE PERSON', wide: true,
+    body: `
+      <div class="hint" style="margin-bottom:8px">
+        每人最多猜 <b>2 次</b>，每次消耗 <b>1 点精力</b>。猜中：永久 +0.25 管理当量、+5% 覆盖；猜错：忠诚 -7、覆盖 -6%。
+        剩余 <b style="color:${left ? '#0143B0' : '#B3261E'}">${left}</b> 次。
+      </div>
+      ${obs.length ? `<div class="observe" style="margin-bottom:10px"><b>观察到的现象</b>${obs.join('　·　')}</div>` : '<div class="observe" style="margin-bottom:10px"><b>观察</b>暂无明显异常，凭判断压</div>'}
+      <div class="ggrid">${items}</div>`,
+    footer: `<button class="btn" onclick="closeModal()">关闭</button>`,
+  };
+}
+
+function doGuess(rid, tagId) {
+  const res = guessTag(rid, tagId);
+  if (!res.ok) { toast(res.msg, 'bad'); return; }
+  render();
+  const r = S.team.find(x => x.id === rid);
+  setModal(() => ({
+    title: res.hit ? '判断成立' : '判断失误', en: 'VERDICT',
+    body: `<p style="font-size:14px;color:${res.hit ? '#14684C' : '#9E2A21'};font-weight:600">${res.msg}</p>
+      <div class="rep-row"><span>标签效果</span><b>${res.tag.desc}</b></div>
+      ${res.hit ? '<div class="rep-row"><span>管理加成</span><b class="up">当量 +0.25 · 覆盖 +5%</b></div>'
+        : '<div class="rep-row"><span>代价</span><b class="down">忠诚 -7 · 覆盖 -6%</b></div>'}
+      <div class="hint mt12">剩余猜测次数：${2 - (r.guesses || []).length}</div>`,
+    footer: `<button class="btn primary" onclick="closeModal();openGuess('${rid}')">继续看</button>`,
+  }));
+}
+
+/* ---------- 全局点击关闭多选 ---------- */
+document.addEventListener('click', e => {
+  if (PICKER && !e.target.closest('.msel')) { PICKER = null; render(); }
+});
+
+window.addEventListener('DOMContentLoaded', () => render());
+
+</script>
+</body>
+</html>
