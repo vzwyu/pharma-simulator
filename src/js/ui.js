@@ -204,6 +204,12 @@ function viewOverview() {
     <div class="hint" style="text-align:right">本周剩余精力 <b style="font-size:16px;color:#0143B0">${S.ap}</b> / ${apMax()}</div>
   </div>
 
+  ${S.missStreak >= 2 ? `<div class="alertbar">
+    <b>连续 ${S.missStreak} 个月未达标</b>
+    <span>${S.missStreak >= 6 ? '预算已减半。' : S.missStreak >= 3 ? '预算核减 10%。' : ''}
+      ${9 - S.missStreak > 0 ? `再有 ${9 - S.missStreak} 个月触发述职。` : '本月述职。'}</span>
+  </div>` : ''}
+
   <div class="grid-4">
     <div class="stat blue">
       <label>本月销售额<em>SALES</em></label>
@@ -407,7 +413,7 @@ function terminalDetail(t, c) {
     ${t.pharm ? `<div class="ally-note"><b>院边药店 ${t.pharm} 家</b> · ${pharmRep ? `${pharmRep.name} 已承接` : '暂无人承接'}</div>` : ''}
 
     ${al ? `<div class="ally-note">
-      <b>${al.name}</b> · 成员 ${al.members.length} 家
+      <b>${al.name}</b> · 成员 ${al.members.length} 家${al.clinics ? ` · 附属诊所/村卫生室 ${al.clinics} 家` : ''}
       ${allyReps.length ? `<span style="display:block;color:#17795A">${allyReps.map(r => r.name).join('、')} 跨成员负责，准入开发 ×1.35，份额 ×${(c.am).toFixed(2)}</span>`
       : '<span style="display:block;color:#8494A6">尚无代表跨成员负责。同一人覆盖 ≥2 家成员可享进药加成。</span>'}
     </div>` : ''}
@@ -636,7 +642,7 @@ function matrixModal() {
     if ((t.ally || 'zz') !== lastAlly) {
       lastAlly = t.ally || 'zz';
       const al = allianceOf(t);
-      groupRow = `<tr class="mxgroup"><td colspan="${PRODUCTS.length + 5}">${al ? `医共体 · ${al.name}（${al.members.length} 家）` : '独立终端'}</td></tr>`;
+      groupRow = `<tr class="mxgroup"><td colspan="${PRODUCTS.length + 5}">${al ? `医共体 · ${al.name}（${al.members.length} 家${al.clinics ? ` · 附属诊所/村卫生室 ${al.clinics} 家` : ''}）` : '独立终端'}</td></tr>`;
     }
     const cells = PRODUCTS.map(p => {
       const owner = S.team.find(r => covers(r, t.id) && r.assign[t.id].p.includes(p.id));
@@ -1373,7 +1379,8 @@ function gameOverModal() {
       <div class="rep-row"><span>在任月数</span><b>${S.totalMonth - 1} 个月</b></div>
       <div class="rep-row"><span>最后月销售</span><b>${f1(sales)} 万元</b></div>
       <div class="rep-row"><span>合规评分</span><b>${f1(S.compliance)}</b></div>
-      <div class="hint mt12">${o.win ? '你走到了营销总监的位置。这只是开始。' : '换一条路重来：合规经营的增长更慢，但不会在第十个月被人抬走。'}</div>`,
+      ${o.transfer ? '<div class="hint mt12" style="color:#9A5E06">另一条成长路线尚未开放。关系与评价会保留，但所有正向数值按 -10% 计入（待实现）。</div>' : ''}
+      <div class="hint mt12">${o.win ? '你走到了营销总监的位置。这只是开始。' : o.transfer ? '你被调去另一条线，从头开始。这不算结束，但现在还没做完。' : '换一条路重来：合规经营的增长更慢，但不会在第十个月被人抬走。'}</div>`,
     footer: `<button class="btn" onclick="restart()">重新开始</button>`,
   }));
 }

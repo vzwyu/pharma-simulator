@@ -567,6 +567,8 @@ function newGame(playerName, pathId, tagIds, diffId) {
     weekLog: [],
     order: null,
     orderMul: 1,
+    missStreak: 0,
+    grossMul: 1,
     actExtended: false,
     planThisMonth: [],
     lastPlan: [],
@@ -1192,7 +1194,7 @@ function endWeek() {
     if (t.stockBoost > 0) t.stockBoost--;
     else if (t.stockDrop > 0) t.stockDrop--;
   });
-  const gross = weekSales * CFG.grossRate * (1 + relMod('external', 'distributor') * 0.08);
+  const gross = weekSales * CFG.grossRate * (S.grossMul || 1) * (1 + relMod('external', 'distributor') * 0.08);
 
   // 商业公司库存：随实际销售消化；积压则压货更难、关系下降、全渠道受阻
   S.dist.stock = Math.max(0, +(S.dist.stock - weekSales * 0.62).toFixed(1));
@@ -1292,6 +1294,26 @@ function rollMonth() {
 
   const target = monthTarget();
   const ratio = sales / target;
+
+  // 新手保护：接手前 3 个月不做考核
+  if (S.monthInAct > 3) {
+    if (ratio < 0.85) S.missStreak++; else S.missStreak = 0;
+  } else {
+    S.missStreak = 0;
+  }
+  const prevMul = S.grossMul;
+  if (S.missStreak >= 6) S.grossMul = 0.5;
+  else if (S.missStreak >= 3) S.grossMul = 0.9;
+  else S.grossMul = 1;
+  if (S.missStreak === 3 && prevMul > 0.9) {
+    const hit = +(rnd(8, 16) * CFG.costScale[S.level] * 0.4).toFixed(1);
+    S.cash = +(S.cash - hit).toFixed(2);
+    log('bad', `连续 3 个月未达标，区域预算被核减 ${hit} 万，未来每月费用池 -10%。`);
+  }
+  if (S.missStreak === 6 && prevMul > 0.5) {
+    log('bad', '连续 6 个月未达标，预算基础金额减半。再有一个季度，就要述职了。');
+  }
+
   let d = 0;
   if (ratio >= 1.0) d += 2.4;
   else if (ratio >= 0.85) d += 1.0;
@@ -1430,6 +1452,15 @@ function checkPromotion() {
     }
   }
 
+  if (S.missStreak >= 9) {
+    const sacked = Math.random() < 0.45;
+    if (sacked) {
+      S.over = { win: false, title: '出局', reason: '连续 9 个月未达标，述职未通过。公司与你解除劳动合同。' };
+    } else {
+      S.over = { win: false, title: '调岗', reason: '连续 9 个月未达标，述职后被调往另一条业务线，从基层重新做起。关系还在，但所有正向数值按 -10% 处理（该路线尚未开放）。', transfer: true };
+    }
+    return { type: 'lose' };
+  }
   if (S.compliance < 30) { S.over = { win: false, reason: '合规评分跌破安全线，公司启动问责，你被免职。', title: '出局' }; return { type: 'lose' }; }
   if (S.reputation <= 12) { S.over = { win: false, reason: '上级评价见底，你被调离一线。', title: '出局' }; return { type: 'lose' }; }
   if (S.cash < -30) { S.over = { win: false, reason: '连续亏损，费用池彻底穿底，公司终止了你辖区的投入。', title: '出局' }; return { type: 'lose' }; }

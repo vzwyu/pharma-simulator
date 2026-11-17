@@ -659,6 +659,15 @@ table.tb tr:hover td { background: #FBFCFE; }
 .lgrow .la { color: var(--ink); font-variant-numeric: tabular-nums; }
 .lgrow .la i { font-style: normal; color: var(--ink3); font-size: 10px; margin-left: 4px; }
 
+/* 连续不达标警示 */
+.alertbar {
+  display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap;
+  background: #FBF0EF; border: 1px solid #EFD3D0; border-left: 3px solid #B3261E;
+  border-radius: 0 8px 8px 0; padding: 9px 14px; margin-bottom: 12px;
+}
+.alertbar b { color: #9E2A21; font-size: 12.5px; }
+.alertbar span { color: #7A3B35; font-size: 11.5px; }
+
 </style>
 </head>
 <body>
@@ -672,11 +681,11 @@ table.tb tr:hover td { background: #FBFCFE; }
    ========================================================= */
 
 const CFG = {
-  startCash: 120,         // 起始预算（万元）
-  grossRate: 0.58,        // 销售额 → 可支配市场费用
-  apBase: 1,              // 每周基础管理精力
-  apPerRep: 0.17,         // 每名下属每周额外精力
-  apCap: 4,
+  startCash: 140,         // 起始预算（万元）
+  grossRate: 0.66,        // 销售额 → 可支配市场费用
+  apBase: 3,              // 每周基础管理精力
+  apPerRep: 0.1,          // 每名下属每周额外精力
+  apCap: 6,
   teamCap: [6, 10, 15, 22],
   costScale: [1, 1.9, 3.6, 8],
   salaryScale: [1, 1.3, 1.7, 2.2],
@@ -809,62 +818,35 @@ function buildProducts() {
   });
 }
 
-/* ---------------- 终端模板 ---------------- */
-/* [名称, 类型, 潜力, 准入, 认知, 客情, 竞品, 等级, 院边药店, 门店数] */
-const TERM_SPECS = [
-  [
-    ['{county}人民医院', 'hospital', 55, 40, 12, 18, 0.52, '二级甲等', 6, 0],
-    ['{county}中医院', 'hospital', 40, 25, 10, 15, 0.50, '二级甲等', 4, 0],
-    ['{county}妇幼保健院', 'hospital', 20, 12, 8, 10, 0.45, '二级', 2, 0],
-    ['{town1}卫生院', 'primary', 15, 55, 15, 25, 0.32, '一级', 0, 0],
-    ['{town2}卫生院', 'primary', 10, 45, 12, 18, 0.30, '一级', 0, 0],
-    ['{county}大药房（{stores}家）', 'retail', 28, 30, 18, 30, 0.42, '连锁', 0, 16],
-  ],
-  [
-    ['{city}中心医院', 'hospital', 78, 12, 8, 10, 0.62, '三级甲等', 8, 0],
-    ['{city}第一人民医院', 'hospital', 62, 10, 6, 8, 0.60, '三级甲等', 6, 0],
-    ['{city}中医院', 'hospital', 48, 18, 12, 15, 0.56, '三级甲等', 5, 0],
-    ['{city}妇幼保健院', 'hospital', 32, 8, 6, 8, 0.50, '三级甲等', 3, 0],
-    ['{county}人民医院', 'hospital', 55, 62, 38, 45, 0.50, '二级甲等', 6, 0],
-    ['{county}中医院', 'hospital', 40, 48, 32, 38, 0.48, '二级甲等', 4, 0],
-    ['{county2}人民医院', 'hospital', 42, 22, 10, 14, 0.52, '二级甲等', 4, 0],
-    ['{county2}中医院', 'hospital', 30, 18, 8, 12, 0.48, '二级甲等', 3, 0],
-    ['{city}连锁药房（{stores2}家）', 'retail', 43, 35, 22, 32, 0.44, '连锁', 0, 96],
-    ['{city}基层医疗集团（{stores3}家）', 'primary', 60, 50, 25, 35, 0.36, '基层网络', 0, 0],
-  ],
-  [
-    ['{c1}（省会）', 'city', 420, 6, 4, 5, 0.64, '省会', 0, 0],
-    ['{city}', 'city', 490, 30, 18, 24, 0.54, '样板地市', 0, 0],
-    ['{c2}', 'city', 240, 8, 5, 6, 0.52, '地市', 0, 0],
-    ['{c3}', 'city', 200, 5, 4, 5, 0.50, '地市', 0, 0],
-    ['{c4}', 'city', 180, 8, 5, 6, 0.52, '地市', 0, 0],
-    ['{c5}', 'city', 160, 6, 4, 5, 0.50, '地市', 0, 0],
-    ['{c6}', 'city', 130, 4, 3, 4, 0.48, '地市', 0, 0],
-    ['县域基层网络（{stores4}家）', 'region', 180, 22, 12, 16, 0.38, '基层网络', 0, 0],
-  ],
-  [
-    ['华东大区', 'region', 1800, 10, 5, 6, 0.58, '重点', 0, 0],
-    ['华南大区', 'region', 1100, 6, 4, 5, 0.55, '成长', 0, 0],
-    ['华北大区', 'region', 1400, 8, 4, 5, 0.58, '重点', 0, 0],
-    ['华中大区', 'region', 1200, 7, 4, 5, 0.56, '重点', 0, 0],
-    ['西南大区', 'region', 950, 5, 3, 4, 0.52, '成长', 0, 0],
-    ['西北 · 东北大区', 'region', 750, 4, 3, 4, 0.50, '潜力', 0, 0],
-  ],
-];
+/* ---------------- 人口与经济 → 医疗机构 ---------------- */
+/* 先摇人口/经济/卫生费用，再按床位数与机构配置推终端数量 */
 
-const ALLY_SPECS = [
-  [
-    { id: 'a1', name: '{county}第一医共体', lead: 0, members: [0, 3, 4] },
-    { id: 'a2', name: '{county}中医医共体', lead: 1, members: [1, 2] },
-  ],
-  [
-    { id: 'b1', name: '{city}城区医共体', lead: 0, members: [0, 1, 9] },
-    { id: 'b2', name: '{county}医共体', lead: 4, members: [4, 5, 6, 7] },
-    { id: 'b3', name: '{city}中医医联体', lead: 2, members: [2, 3] },
-  ],
-  [],
-  [],
-];
+function buildDemography() {
+  const provincePop = rndInt(2800, 8200);                 // 万人
+  const cityPop = rndInt(180, 520);                        // 万人
+  const countyPop = +(rnd(22, 68)).toFixed(1);             // 万人
+  const gdpPerCap = +(rnd(4.2, 13.5)).toFixed(1);          // 万元/人
+  const healthPerCap = +(rnd(0.16, 0.46)).toFixed(3);      // 万元/人/年
+  const healthTotal = +(countyPop * healthPerCap).toFixed(1);
+
+  const countyL2 = clamp(Math.round(countyPop / 26), 1, 4);
+  const countyL1 = clamp(Math.round(countyPop / 4.2), 6, 26);
+  const villages = Math.round(countyPop * (2.8 + healthPerCap));
+
+  const cityL3 = clamp(Math.round(cityPop / 95), 2, 5);
+  const cityL2 = clamp(Math.round(cityPop / 42), 4, 10);
+
+  return {
+    provincePop, cityPop, countyPop, gdpPerCap, healthPerCap, healthTotal,
+    countyL2, countyL1, villages, cityL3, cityL2,
+    tier: gdpPerCap > 10 ? '发达' : gdpPerCap > 7 ? '中等' : '欠发达',
+  };
+}
+
+function scaleOf(demo) {
+  // 卫生费用越高，市场容量越大；以 2.2 亿为基准
+  return clamp(demo.healthTotal / 15.0, 0.62, 1.32);
+}
 
 const TERMINALS = [[], [], [], []];
 const ALLIANCES = [[], [], [], []];
@@ -876,9 +858,16 @@ function fill(str) {
     .replace('{city}', WORLD.city)
     .replace('{town1}', WORLD.town1)
     .replace('{town2}', WORLD.town2)
+    .replace('{town3}', WORLD.town3)
     .replace('{c1}', WORLD.cities[0]).replace('{c2}', WORLD.cities[1])
     .replace('{c3}', WORLD.cities[2]).replace('{c4}', WORLD.cities[3])
     .replace('{c5}', WORLD.cities[4]).replace('{c6}', WORLD.cities[5]);
+}
+
+function tidFrom(tpl) {
+  let h = 2166136261;
+  for (let i = 0; i < tpl.length; i++) { h ^= tpl.charCodeAt(i); h = (h * 16777619) >>> 0; }
+  return 'h' + h.toString(36);
 }
 
 function buildTaAff(type) {
@@ -895,54 +884,109 @@ function buildTaAff(type) {
   return aff;
 }
 
-function tidFrom(tpl) {
-  let h = 2166136261;
-  for (let i = 0; i < tpl.length; i++) { h ^= tpl.charCodeAt(i); h = (h * 16777619) >>> 0; }
-  return 'h' + h.toString(36);
+function mkTerm(act, tpl, type, pot, acc, aw, rel, comp, tier, pharm, stores, prof) {
+  return {
+    id: tidFrom(tpl + '|' + act), name: fill(tpl), tpl, type,
+    potential: pot, access: acc, awareness: aw, relation: rel, comp, tier,
+    pharm: pharm || 0, stores: stores || 0, ally: null, spend: 0, idle: 0,
+    tcm: /中医院/.test(tpl), handover: 0, phtNext: 0, phtOpen: 0,
+    prof: prof || pickOne(['academic', 'relation', 'price']),
+    taAff: buildTaAff(type),
+  };
+}
+
+function normalizePots(list, total) {
+  const sum = list.reduce((a, t) => a + t.potential, 0) || 1;
+  list.forEach(t => { t.potential = +((t.potential / sum) * total).toFixed(1); });
 }
 
 function buildTerminals() {
-  TERM_SPECS.forEach((specs, act) => {
-    TERMINALS[act].length = 0;
-    specs.forEach((s, i) => {
-      const stores = s[2] === 28 ? rndInt(14, 24)
-        : s[2] === 43 ? rndInt(80, 160)
-          : s[2] === 180 ? rndInt(260, 380) : 0;
-      let name = fill(s[0]);
-      name = name.replace('{stores}', stores)
-        .replace('{stores2}', stores).replace('{stores3}', rndInt(36, 58))
-        .replace('{stores4}', stores);
-      TERMINALS[act].push({
-        id: tidFrom(s[0] + '|' + s[1]),
-        name, type: s[1], potential: s[2], access: s[3],
-        awareness: s[4], relation: s[5], comp: s[6], tier: s[7],
-        pharm: s[8] || 0, stores: s[9] ? stores : 0,
-        ally: null, spend: 0, idle: 0,
-        tcm: /中医院/.test(name), handover: 0,
-        prof: pickOne(['academic', 'relation', 'price']),
-        taAff: buildTaAff(s[1]),
-        phtNext: 0,
-      });
-    });
-    ALLIANCES[act].length = 0;
-    (ALLY_SPECS[act] || []).forEach(a => {
-      const members = a.members.map(i => TERMINALS[act][i].id);
-      ALLIANCES[act].push({ id: a.id, name: fill(a.name), lead: TERMINALS[act][a.lead].id, members });
-      members.forEach(mid => { TERMINALS[act].find(t => t.id === mid).ally = a.id; });
-    });
-  });
+  const d = WORLD.demo;
+  const sc = scaleOf(d);
+
+  // ── 第一幕：县域 ──
+  const a0 = [];
+  a0.push(mkTerm(0, '{county}人民医院', 'hospital', 55, 40, 12, 18, 0.52, '二级甲等', 6));
+  if (d.countyL2 >= 2) a0.push(mkTerm(0, '{county}第二人民医院', 'hospital', 38, 28, 9, 13, 0.50, '二级', 4));
+  a0.push(mkTerm(0, '{county}中医院', 'hospital', 40, 25, 10, 15, 0.50, '二级甲等', 4));
+  a0.push(mkTerm(0, '{county}妇幼保健院', 'hospital', 20, 12, 8, 10, 0.45, '二级', 2));
+  // 民营与专科医院：真实县域一定有，且是差异化竞争的主战场
+  a0.push(mkTerm(0, '{county}博爱医院', 'hospital', 22, 62, 18, 26, 0.38, '二级（民营）', 3));
+  if (d.countyPop > 40) a0.push(mkTerm(0, '{county}骨科医院', 'hospital', 14, 70, 20, 30, 0.34, '专科（民营）', 2));
+  const townN = clamp(3 + Math.floor(d.countyPop / 32), 3, 6);
+  const townNames = ['{town1}', '{town2}', '{town3}', '{town1}东院区', '{town2}北院区', '{town3}南院区'];
+  for (let i = 0; i < townN; i++) {
+    a0.push(mkTerm(0, townNames[i] + '卫生院', 'primary', 15 - i * 1.2, 55 - i * 3, 15, 25, 0.32 + i * 0.015, '一级'));
+  }
+  const storeA = Math.round(d.countyPop * 0.5);
+  a0.push(mkTerm(0, '{county}大药房', 'retail', 28, 30, 18, 30, 0.42, '连锁', 0, storeA));
+  a0.push(mkTerm(0, '{county}基层医疗集团', 'primary', 26, 48, 20, 28, 0.35, '基层网络'));
+  normalizePots(a0, 168 * sc);
+
+  // ── 第二幕：地市 ──
+  const a1 = [];
+  a1.push(mkTerm(1, '{city}中心医院', 'hospital', 78, 12, 8, 10, 0.62, '三级甲等', 8));
+  a1.push(mkTerm(1, '{city}第一人民医院', 'hospital', 62, 10, 6, 8, 0.60, '三级甲等', 6));
+  if (d.cityL3 >= 3) a1.push(mkTerm(1, '{city}第二人民医院', 'hospital', 50, 14, 7, 9, 0.58, '三级乙等', 5));
+  a1.push(mkTerm(1, '{city}中医院', 'hospital', 48, 18, 12, 15, 0.56, '三级甲等', 5));
+  a1.push(mkTerm(1, '{city}妇幼保健院', 'hospital', 32, 8, 6, 8, 0.50, '三级甲等', 3));
+  a1.push(mkTerm(1, '{county}人民医院', 'hospital', 55, 62, 38, 45, 0.50, '二级甲等', 6));
+  a1.push(mkTerm(1, '{county}中医院', 'hospital', 40, 48, 32, 38, 0.48, '二级甲等', 4));
+  a1.push(mkTerm(1, '{county2}人民医院', 'hospital', 42, 22, 10, 14, 0.52, '二级甲等', 4));
+  a1.push(mkTerm(1, '{county2}中医院', 'hospital', 30, 18, 8, 12, 0.48, '二级甲等', 3));
+  a1.push(mkTerm(1, '{city}连锁药房', 'retail', 43, 35, 22, 32, 0.44, '连锁', 0, Math.round(d.cityPop * 0.32)));
+  a1.push(mkTerm(1, '{city}基层医疗集团', 'primary', 60, 50, 25, 35, 0.36, '基层网络', 0, Math.round(d.cityL2 * 6)));
+  a1.push(mkTerm(1, '{city}肿瘤医院', 'hospital', 36, 20, 10, 12, 0.54, '三级专科', 3));
+  a1.push(mkTerm(1, '{city}民营医疗集团', 'hospital', 28, 55, 16, 24, 0.40, '民营连锁', 4));
+  normalizePots(a1, 490 * sc);
+
+  // ── 第三幕：省区 ──
+  const a2 = [];
+  const cityPots = [420, 490, 240, 200, 180, 160, 130];
+  const cNames = ['{c1}（省会）', '{city}', '{c2}', '{c3}', '{c4}', '{c5}', '{c6}'];
+  cNames.forEach((n, i) => a2.push(mkTerm(2, n, 'city', cityPots[i], i === 0 ? 6 : 10, i === 0 ? 4 : 8, i === 0 ? 5 : 10, 0.5 + i * 0.01, i === 0 ? '省会' : '地市')));
+  a2.push(mkTerm(2, '县域基层网络', 'region', 180, 22, 12, 16, 0.38, '基层网络'));
+  normalizePots(a2, 2000 * sc);
+
+  // ── 第四幕：全国 ──
+  const a3 = [];
+  [['华东大区', 1800], ['华南大区', 1100], ['华北大区', 1400], ['华中大区', 1200], ['西南大区', 950], ['西北 · 东北大区', 750]]
+    .forEach(([n, p], i) => a3.push(mkTerm(3, n, 'region', p, 10 - i, 5, 6, 0.55 + i * 0.005, '区域')));
+  normalizePots(a3, 7200 * sc);
+
+  TERMINALS[0] = a0; TERMINALS[1] = a1; TERMINALS[2] = a2; TERMINALS[3] = a3;
+
+  // ── 医共体：中医院与妇幼保健院不可能同属一家 ──
+  const byName = (act, kw) => TERMINALS[act].find(t => t.name.indexOf(kw) >= 0);
+  const setAlly = (act, id, name, members, clinics) => {
+    const ms = members.filter(Boolean);
+    if (ms.length < 2) return;
+    ALLIANCES[act].push({ id, name, lead: ms[0].id, members: ms.map(t => t.id), clinics: clinics || 0 });
+    ms.forEach(t => { t.ally = id; });
+  };
+
+  setAlly(0, 'a1', fill('{county}第一医共体'), [byName(0, '人民医院'), byName(0, '卫生院')], Math.round(d.villages * 0.35));
+  setAlly(0, 'a2', fill('{county}中医医共体'), [byName(0, '中医院'), TERMINALS[0].filter(t => t.type === 'primary' && !t.ally)[0]], Math.round(d.villages * 0.12));
+
+  setAlly(1, 'b1', fill('{city}城区医共体'), [byName(1, '中心医院'), byName(1, '第一人民医院'), byName(1, '基层医疗集团')], Math.round(d.cityPop * 0.6));
+  setAlly(1, 'b2', fill('{county}医共体'), [byName(1, '人民医院'), byName(1, '中医院'), byName(1, '第二人民医院')], Math.round(d.villages * 0.3));
+  ALLIANCES[2] = []; ALLIANCES[3] = [];
 }
 
 /* ---------------- 四幕 ---------------- */
 const ACTS = [
-  { level: 0, title: '第一幕 · 县域', region: '', org: '', rank: '县区经理', target: 38, shareTarget: 0.20, brief: '', quote: '' },
-  { level: 1, title: '第二幕 · 地市', region: '', org: '', rank: '地区经理', target: 90, shareTarget: 0.18, brief: '', quote: '' },
-  { level: 2, title: '第三幕 · 省区', region: '', org: '', rank: '大区经理', target: 400, shareTarget: 0.19, brief: '', quote: '' },
-  { level: 3, title: '第四幕 · 全国', region: '全国', org: '营销中心', rank: '营销总监', target: 1800, shareTarget: 0.24, brief: '', quote: '' },
+  { level: 0, title: '第一幕 · 县域', region: '', org: '', rank: '县区经理', target: 30, shareTarget: 0.18, brief: '', quote: '' },
+  { level: 1, title: '第二幕 · 地市', region: '', org: '', rank: '地区经理', target: 78, shareTarget: 0.17, brief: '', quote: '' },
+  { level: 2, title: '第三幕 · 省区', region: '', org: '', rank: '大区经理', target: 360, shareTarget: 0.18, brief: '', quote: '' },
+  { level: 3, title: '第四幕 · 全国', region: '全国', org: '营销中心', rank: '营销总监', target: 1700, shareTarget: 0.23, brief: '', quote: '' },
 ];
 
 function buildActs() {
   const co = WORLD.company;
+  // 市级容量随卫生费用缩放，目标同步缩放，保证"份额要求"一致
+  const sc = scaleOf(WORLD.demo);
+  [30, 78, 360, 1700].forEach((t, i) => { ACTS[i].target = Math.round(t * sc); });
+
   ACTS[0].region = WORLD.county;
   ACTS[0].org = co + ' · ' + WORLD.city + '办事处';
   ACTS[0].brief = `报到第一天，办事处只有两张桌子、一台打印机和两个还在跑市场的代表。${WORLD.county} 38 万人口，三个县级医院、两个卫生院、一个连锁药房。可支配预算 120 万，编制 6 人。`;
@@ -971,8 +1015,10 @@ function generateWorld() {
   WORLD.county2 = genPlace('县');
   WORLD.town1 = genPlace('镇');
   WORLD.town2 = genPlace('镇');
+  WORLD.town3 = genPlace('镇');
   WORLD.cities = [];
   for (let i = 0; i < 6; i++) WORLD.cities.push(genPlace('市'));
+  WORLD.demo = buildDemography();
   buildProducts();
   buildTerminals();
   buildActs();
@@ -1119,6 +1165,9 @@ const PROJECTS = [
   { id: 'compliance', name: '合规培训', en: 'Compliance Training', cost: 1.8, ap: 1, multi: -1, fail: 0, delay: 0,
     desc: '合规分 +6，全员风险敞口 -14。', help: '风险堆高之后的唯一解药。' },
 ];
+
+/* 每周 3 点精力意味着动作数量约为原来的 3 倍，单项成本下调以保持经济平衡 */
+PROJECTS.forEach(p => { p.cost = +(p.cost * 0.55).toFixed(2); });
 
 /* 周会要求 */
 const WEEKLY_ORDERS = [
@@ -1625,19 +1674,19 @@ const DIFFICULTY = {
     id: 'easy', name: '简单', en: 'EASY',
     desc: '季度例会，周期固定；预算宽、内部好说话、代表队伍稳。',
     cycle: 12, window: 3, inBonus: 0.18, outPenalty: -0.10, noPht: false,
-    cash: 150, relBase: 60, boss: 62, loyalty: 8, access: 5, awareness: 6, comp: -0.03,
+    cash: 170, relBase: 60, boss: 62, loyalty: 8, access: 5, awareness: 6, comp: -0.03,
   },
   normal: {
     id: 'normal', name: '中等', en: 'NORMAL',
     desc: '药事会不定期召开；预算与关系都是常态，一切靠自己挣。',
     cycle: 0, window: 3, inBonus: 0.08, outPenalty: -0.06, noPht: false,
-    cash: 120, relBase: 50, boss: 50, loyalty: 0, access: 0, awareness: 0, comp: 0,
+    cash: 140, relBase: 50, boss: 50, loyalty: 0, access: 0, awareness: 0, comp: 0,
   },
   hard: {
     id: 'hard', name: '困难', en: 'HARD',
     desc: '医院常年不开药事会；预算紧、内部冷脸、代表队伍本来就不好带。',
     cycle: 0, window: 0, inBonus: 0, outPenalty: 0, noPht: true,
-    cash: 95, relBase: 41, boss: 42, loyalty: -9, access: -5, awareness: -8, comp: 0.05,
+    cash: 110, relBase: 41, boss: 42, loyalty: -9, access: -5, awareness: -8, comp: 0.05,
   },
 };
 
@@ -2401,6 +2450,8 @@ function newGame(playerName, pathId, tagIds, diffId) {
     weekLog: [],
     order: null,
     orderMul: 1,
+    missStreak: 0,
+    grossMul: 1,
     actExtended: false,
     planThisMonth: [],
     lastPlan: [],
@@ -3026,7 +3077,7 @@ function endWeek() {
     if (t.stockBoost > 0) t.stockBoost--;
     else if (t.stockDrop > 0) t.stockDrop--;
   });
-  const gross = weekSales * CFG.grossRate * (1 + relMod('external', 'distributor') * 0.08);
+  const gross = weekSales * CFG.grossRate * (S.grossMul || 1) * (1 + relMod('external', 'distributor') * 0.08);
 
   // 商业公司库存：随实际销售消化；积压则压货更难、关系下降、全渠道受阻
   S.dist.stock = Math.max(0, +(S.dist.stock - weekSales * 0.62).toFixed(1));
@@ -3126,6 +3177,26 @@ function rollMonth() {
 
   const target = monthTarget();
   const ratio = sales / target;
+
+  // 新手保护：接手前 3 个月不做考核
+  if (S.monthInAct > 3) {
+    if (ratio < 0.85) S.missStreak++; else S.missStreak = 0;
+  } else {
+    S.missStreak = 0;
+  }
+  const prevMul = S.grossMul;
+  if (S.missStreak >= 6) S.grossMul = 0.5;
+  else if (S.missStreak >= 3) S.grossMul = 0.9;
+  else S.grossMul = 1;
+  if (S.missStreak === 3 && prevMul > 0.9) {
+    const hit = +(rnd(8, 16) * CFG.costScale[S.level] * 0.4).toFixed(1);
+    S.cash = +(S.cash - hit).toFixed(2);
+    log('bad', `连续 3 个月未达标，区域预算被核减 ${hit} 万，未来每月费用池 -10%。`);
+  }
+  if (S.missStreak === 6 && prevMul > 0.5) {
+    log('bad', '连续 6 个月未达标，预算基础金额减半。再有一个季度，就要述职了。');
+  }
+
   let d = 0;
   if (ratio >= 1.0) d += 2.4;
   else if (ratio >= 0.85) d += 1.0;
@@ -3264,6 +3335,15 @@ function checkPromotion() {
     }
   }
 
+  if (S.missStreak >= 9) {
+    const sacked = Math.random() < 0.45;
+    if (sacked) {
+      S.over = { win: false, title: '出局', reason: '连续 9 个月未达标，述职未通过。公司与你解除劳动合同。' };
+    } else {
+      S.over = { win: false, title: '调岗', reason: '连续 9 个月未达标，述职后被调往另一条业务线，从基层重新做起。关系还在，但所有正向数值按 -10% 处理（该路线尚未开放）。', transfer: true };
+    }
+    return { type: 'lose' };
+  }
   if (S.compliance < 30) { S.over = { win: false, reason: '合规评分跌破安全线，公司启动问责，你被免职。', title: '出局' }; return { type: 'lose' }; }
   if (S.reputation <= 12) { S.over = { win: false, reason: '上级评价见底，你被调离一线。', title: '出局' }; return { type: 'lose' }; }
   if (S.cash < -30) { S.over = { win: false, reason: '连续亏损，费用池彻底穿底，公司终止了你辖区的投入。', title: '出局' }; return { type: 'lose' }; }
@@ -3551,6 +3631,12 @@ function viewOverview() {
     <div class="hint" style="text-align:right">本周剩余精力 <b style="font-size:16px;color:#0143B0">${S.ap}</b> / ${apMax()}</div>
   </div>
 
+  ${S.missStreak >= 2 ? `<div class="alertbar">
+    <b>连续 ${S.missStreak} 个月未达标</b>
+    <span>${S.missStreak >= 6 ? '预算已减半。' : S.missStreak >= 3 ? '预算核减 10%。' : ''}
+      ${9 - S.missStreak > 0 ? `再有 ${9 - S.missStreak} 个月触发述职。` : '本月述职。'}</span>
+  </div>` : ''}
+
   <div class="grid-4">
     <div class="stat blue">
       <label>本月销售额<em>SALES</em></label>
@@ -3754,7 +3840,7 @@ function terminalDetail(t, c) {
     ${t.pharm ? `<div class="ally-note"><b>院边药店 ${t.pharm} 家</b> · ${pharmRep ? `${pharmRep.name} 已承接` : '暂无人承接'}</div>` : ''}
 
     ${al ? `<div class="ally-note">
-      <b>${al.name}</b> · 成员 ${al.members.length} 家
+      <b>${al.name}</b> · 成员 ${al.members.length} 家${al.clinics ? ` · 附属诊所/村卫生室 ${al.clinics} 家` : ''}
       ${allyReps.length ? `<span style="display:block;color:#17795A">${allyReps.map(r => r.name).join('、')} 跨成员负责，准入开发 ×1.35，份额 ×${(c.am).toFixed(2)}</span>`
       : '<span style="display:block;color:#8494A6">尚无代表跨成员负责。同一人覆盖 ≥2 家成员可享进药加成。</span>'}
     </div>` : ''}
@@ -3983,7 +4069,7 @@ function matrixModal() {
     if ((t.ally || 'zz') !== lastAlly) {
       lastAlly = t.ally || 'zz';
       const al = allianceOf(t);
-      groupRow = `<tr class="mxgroup"><td colspan="${PRODUCTS.length + 5}">${al ? `医共体 · ${al.name}（${al.members.length} 家）` : '独立终端'}</td></tr>`;
+      groupRow = `<tr class="mxgroup"><td colspan="${PRODUCTS.length + 5}">${al ? `医共体 · ${al.name}（${al.members.length} 家${al.clinics ? ` · 附属诊所/村卫生室 ${al.clinics} 家` : ''}）` : '独立终端'}</td></tr>`;
     }
     const cells = PRODUCTS.map(p => {
       const owner = S.team.find(r => covers(r, t.id) && r.assign[t.id].p.includes(p.id));
@@ -4720,7 +4806,8 @@ function gameOverModal() {
       <div class="rep-row"><span>在任月数</span><b>${S.totalMonth - 1} 个月</b></div>
       <div class="rep-row"><span>最后月销售</span><b>${f1(sales)} 万元</b></div>
       <div class="rep-row"><span>合规评分</span><b>${f1(S.compliance)}</b></div>
-      <div class="hint mt12">${o.win ? '你走到了营销总监的位置。这只是开始。' : '换一条路重来：合规经营的增长更慢，但不会在第十个月被人抬走。'}</div>`,
+      ${o.transfer ? '<div class="hint mt12" style="color:#9A5E06">另一条成长路线尚未开放。关系与评价会保留，但所有正向数值按 -10% 计入（待实现）。</div>' : ''}
+      <div class="hint mt12">${o.win ? '你走到了营销总监的位置。这只是开始。' : o.transfer ? '你被调去另一条线，从头开始。这不算结束，但现在还没做完。' : '换一条路重来：合规经营的增长更慢，但不会在第十个月被人抬走。'}</div>`,
     footer: `<button class="btn" onclick="restart()">重新开始</button>`,
   }));
 }
