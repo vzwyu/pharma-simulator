@@ -81,6 +81,11 @@ try {
 } catch (e) { console.log('资源申请 ERROR', e.message); }
 
 try {
+  run("openLedger(PRODUCTS[0].id); renderModal();");
+  console.log('费用台账:', (store['modal-root'] || '').includes('费用台账') ? 'OK' : 'FAIL');
+} catch (e) { console.log('费用台账 ERROR', e.message); }
+
+try {
   run("S.pendingPromotion={type:'promote',progress:promotionProgress()}; promoteModal(); renderModal();");
   const h = store['modal-root'] || '';
   console.log('晋升弹窗:', h.includes('考虑一下') && h.includes('拒绝') ? 'OK' : 'FAIL');

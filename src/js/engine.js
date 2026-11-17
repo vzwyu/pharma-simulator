@@ -444,10 +444,11 @@ function computeStats() {
       const resF = ((p.resWeeks || 0) > 0 ? 1.3 : 1) * overF;
       const wF = clamp((p.w == null ? 50 : p.w) / wAvg, 0.35, 2.4);
       const avail = 0.02 + 0.98 * Math.pow(clamp(t.access * taF * stg.access, 0, 100) / 100, 0.7) * pol.access;
+      const sens = TA_SENS[p.ta] || { aw: 1, rel: 1 };
       let share = p.base
-        + t.awareness / 100 * 0.26 * p.awWeight * stg.aw * resF
+        + t.awareness / 100 * 0.26 * p.awWeight * stg.aw * resF * sens.aw
         + Math.min((cov[p.id] || 0) * wF, 1.7) * 0.115
-        + t.relation / 100 * 0.11
+        + t.relation / 100 * 0.11 * sens.rel
         - t.comp * 0.16
         + p.priceEdge + pol.price + stg.price;
       const tcmF = (p.cls === 'tcm' && t.tcm) ? 1.16 : 1;
@@ -553,6 +554,7 @@ function newGame(playerName, pathId, tagIds, diffId) {
     actLog: {},
     market: { idx: 0, cnt: { case: 0, edu: 0, city: 0 }, since: 1 },
     budgetBase: 30,
+    ledger: [],
     dist: { stock: 0 },
     offer: null,
     log: [],
@@ -793,7 +795,10 @@ function launchProject(pid, tids, repId) {
       const sumB = ids.reduce((a, pid) => a + ((PRODUCTS.find(x => x.id === pid) || {}).budget || 25), 0) || 1;
       ids.forEach(pid => {
         const pr = PRODUCTS.find(x => x.id === pid);
-        if (pr) pr.spent = +((pr.spent || 0) + per * (pr.budget / sumB)).toFixed(2);
+        if (!pr) return;
+        const amt = +(per * (pr.budget / sumB)).toFixed(2);
+        pr.spent = +((pr.spent || 0) + amt).toFixed(2);
+        S.ledger.push({ m: S.totalMonth, w: S.totalWeek, pid, tid, kind: p.name, amt, total: per, share: +(pr.budget / sumB).toFixed(3) });
       });
     });
   }
@@ -1327,6 +1332,7 @@ function rollMonth() {
   log('sales', `第 ${S.totalMonth} 月结算：销售 ${report.sales.toFixed(1)} 万${report.delta == null ? '' : `（环比 ${report.delta >= 0 ? '+' : ''}${report.delta.toFixed(1)}%）`}，份额 ${report.share.toFixed(1)}%。`);
 
   S.budgetBase = Math.max(20, +((S.wk.gross) / 4).toFixed(1));
+  S.ledger = S.ledger.filter(x => S.totalMonth - x.m < 3);
   PRODUCTS.forEach(p => { p.spent = 0; });
   S.wk = { sales: 0, gross: 0, salary: 0, resolved: [], incident: null };
   S.totalMonth++;

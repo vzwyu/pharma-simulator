@@ -53,6 +53,18 @@ const TA_LIST = [
 const TA_NAME = {};
 TA_LIST.forEach(t => { TA_NAME[t.id] = t.name; });
 
+/* 治疗领域的学术/客情敏感度：同一个认知度，在不同领域转化率不同 */
+const TA_SENS = {
+  L: { aw: 1.28, rel: 0.72, note: '循证导向，专家共识说话' },
+  C: { aw: 1.15, rel: 0.95, note: '指南驱动，但主任关系仍重要' },
+  M: { aw: 1.10, rel: 0.88, note: '生物制剂为主，认证据' },
+  N: { aw: 1.08, rel: 1.02, note: '学术与关系并重' },
+  J: { aw: 0.92, rel: 0.95, note: '受药占比和集采压制，讲学术空间有限' },
+  A: { aw: 0.95, rel: 1.12, note: '慢病长期处方，关系黏性强' },
+  R: { aw: 0.88, rel: 1.16, note: '吸入与雾化，看客情和渠道' },
+  G: { aw: 0.84, rel: 1.20, note: '门诊量驱动，人情味最重' },
+};
+
 /* 政策身份：可以同时拥有多个，也可能一个都没有（自费） */
 const POLICIES = {
   nrdl: { id: 'nrdl', name: '医保目录', short: '医保', mul: 1.16, access: 1.10, price: 0, note: '报销身份，院内准入和处方意愿都更好' },

@@ -641,3 +641,13 @@ table.tb tr:hover td { background: #FBFCFE; }
 .resbar > div:first-child { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 6px; }
 .resbar b { font-size: 16px; }
 .reslines { display: flex; gap: 16px; margin-top: 8px; font-size: 11.5px; color: var(--ink2); }
+
+/* 费用台账 */
+.lglist { max-height: 340px; overflow: auto; border: 1px solid var(--line); border-radius: 9px; }
+.lgrow { display: flex; gap: 10px; padding: 7px 11px; border-bottom: 1px solid var(--line2); font-size: 11.5px; align-items: baseline; }
+.lgrow:last-child { border-bottom: 0; }
+.lgrow .lw { width: 62px; color: var(--ink3); font-size: 10.5px; }
+.lgrow .lk { width: 78px; color: var(--ink); }
+.lgrow .lt { flex: 1; color: var(--ink2); }
+.lgrow .la { color: var(--ink); font-variant-numeric: tabular-nums; }
+.lgrow .la i { font-style: normal; color: var(--ink3); font-size: 10px; margin-left: 4px; }

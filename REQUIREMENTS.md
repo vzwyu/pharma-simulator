@@ -193,6 +193,25 @@
 
 ---
 
+## R11 · 上线与精细化（2026-11-18）
+
+> - 将已写好的网站发布到 www.oictech.cn/games/pharma-simulator 上。现在服务器还没有这个页面，所以你可能需要编辑这个网站的结构。
+> - 治疗领域会影响学术/客情敏感度，需要区分
+> - 产品费用比例考虑细化核算逻辑，需要能精确到按品种独立核算——至少后台需要
+
+- [x] 已上线：`https://www.oictech.cn/games/pharma-simulator/`
+  - 文件：`/var/www/oictech/games/pharma-simulator/index.html`（www-data:www-data, 644）
+  - nginx：在 `sites-enabled/oictech` 的 443 server 块末尾新增两条 location（`/games/pharma-simulator` 301 + `^~ /games/pharma-simulator/`），
+    配置备份在 `/etc/nginx/sites-backups/oictech.20261118.bak`，`nginx -t` 通过后 reload
+  - 外网已用 WebFetch 验证 200 + 正常渲染
+- [x] 治疗领域学术/客情敏感度：`TA_SENS`（L 1.28/0.72 … G 0.84/1.20），在份额公式里分别乘以认知项与客情项
+- [x] 品种费用独立核算：`S.ledger` 逐笔记录（月/周/品种/终端/动作/金额/分摊比），产品页「台账 →」可查，
+  数据保留 3 个月；`p.spent` 与费用池按品种独立计算
+
+**差距**：台账只在内存中保留最近 3 个月，未做导出；费用池基数仍是"上月周均毛利 × 比例"，不是真实预算审批流。
+
+---
+
 ## 冲突检查
 
 每次提交前按此清单复核。

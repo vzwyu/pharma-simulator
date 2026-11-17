@@ -887,7 +887,8 @@ function viewProducts() {
       <div class="prod-h">
         <i style="background:${p.color}"></i>
         <div style="flex:1"><b>${p.name}</b>
-          <div class="hint">${p.kind} · <span class="tachip">${TA_NAME[p.ta]}</span>${polChips(p)}</div></div>
+          <div class="hint">${p.kind} · <span class="tachip">${TA_NAME[p.ta]}</span>${polChips(p)}</div>
+          <div class="hint" style="margin-top:2px">学术敏感 ×${(TA_SENS[p.ta] || { aw: 1 }).aw.toFixed(2)} · 客情敏感 ×${(TA_SENS[p.ta] || { rel: 1 }).rel.toFixed(2)}${TA_SENS[p.ta] ? ' · ' + TA_SENS[p.ta].note : ''}</div></div>
         <div style="text-align:right"><div style="font-size:18px;font-weight:700">${f1(sales)}<small style="font-size:10px;font-weight:400;color:#8494A6"> 万/月</small></div>
           <div class="hint">份额 ${f1(share)}%${(p.neglect || 0) > 0.04 ? ` · <span style="color:#B3261E">竞品蚕食 -${f1(p.neglect * 100)}%</span>` : ''}</div></div>
       </div>
@@ -903,7 +904,8 @@ function viewProducts() {
       </div>
       <div class="prod-row" style="margin-top:2px;font-size:10.5px">
         <span class="lb" style="width:56px">本月额度</span>
-        <span style="flex:1;color:#8494A6">池 ${f1((S.budgetBase || 30) * (p.budget == null ? 25 : p.budget) / 100)} 万 · 已用 ${f1(p.spent || 0)} 万${(p.spent || 0) > (S.budgetBase || 30) * (p.budget == null ? 25 : p.budget) / 100 ? ' <span style="color:#B3261E">超支，学术效果 -30%</span>' : ''}</span>
+        <span style="flex:1;color:#8494A6">池 ${f1((S.budgetBase || 30) * (p.budget == null ? 25 : p.budget) / 100)} 万 · 已用 ${f1(p.spent || 0)} 万${(p.spent || 0) > (S.budgetBase || 30) * (p.budget == null ? 25 : p.budget) / 100 ? ' <span style="color:#B3261E">超支，学术效果 -30%</span>' : ''}
+          <span style="color:#0143B0;cursor:pointer;margin-left:6px" onclick="openLedger('${p.id}')">台账 →</span></span>
       </div>
       <div class="prod-row" style="gap:5px">
         <span class="lb">营销策略</span>
@@ -1423,6 +1425,32 @@ function chooseEvent(i) {
     body: `<p style="color:${res.tone === 'bad' ? '#9E2A21' : res.tone === 'good' ? '#14684C' : '#0F1A26'}">${res.text}</p>`,
     footer: `<button class="btn primary" onclick="closeModal()">继续</button>`,
   }));
+}
+
+/* ---------- 品种费用台账 ---------- */
+function openLedger(pid) { setModal(() => ledgerModal(pid)); }
+
+function ledgerModal(pid) {
+  const p = PRODUCTS.find(x => x.id === pid);
+  const pool = (S.budgetBase || 30) * (p.budget == null ? 25 : p.budget) / 100;
+  const rows = (S.ledger || []).filter(x => x.pid === pid).slice().reverse().slice(0, 30);
+  const spent = (p.spent || 0);
+  const lines = rows.map(x => `<div class="lgrow">
+      <span class="lw">${x.m}月·${((x.w - 1) % 4) + 1}周</span>
+      <span class="lk">${x.kind}</span>
+      <span class="lt">${(termById(x.tid) || {}).name || '—'}</span>
+      <span class="la">${f1(x.amt)} 万<i>占 ${(x.share * 100).toFixed(0)}%</i></span>
+    </div>`).join('');
+  return {
+    title: `费用台账 · ${p.name}`, en: 'PRODUCT LEDGER', wide: true,
+    body: `<div class="mxsum" style="margin-top:0">
+        <div>本月费用池 <b>${f1(pool)}</b> 万（基数 ${f1(S.budgetBase || 30)} × ${p.budget == null ? 25 : p.budget}%）</div>
+        <div>已分摊 <b style="color:${spent > pool ? '#B3261E' : '#0F1A26'}">${f1(spent)}</b> 万${spent > pool ? ' · 超支，学术效果 ×0.7' : ''}</div>
+      </div>
+      <div class="hint" style="margin:8px 0">一笔行动费按各品种费用比例分摊。比例越高，该品种承担的费用越多，可用额度也越高。</div>
+      <div class="lglist">${lines || '<div class="empty">本月还没有分摊记录</div>'}</div>`,
+    footer: `<button class="btn" onclick="closeModal()">关闭</button>`,
+  };
 }
 
 /* ---------- 活动明细 ---------- */
