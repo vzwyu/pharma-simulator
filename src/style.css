@@ -627,3 +627,17 @@ table.tb tr:hover td { background: #FBFCFE; }
 
 /* 商业库存 */
 .stockbox { margin-top: 14px; padding: 11px 13px; border: 1px solid var(--line); border-radius: 9px; background: #FBFCFE; }
+
+/* 打卡明细 */
+.punchlist { max-height: 420px; overflow: auto; }
+.pch { font-size: 10.5px; color: var(--ink3); margin: 10px 0 4px; padding-left: 2px; letter-spacing: .4px; }
+.punch { display: flex; align-items: baseline; gap: 10px; padding: 5px 0 5px 10px; border-left: 2px solid var(--line2); font-size: 12px; }
+.punch .pd { width: 30px; color: var(--ink3); font-size: 11px; }
+.punch .pt { width: 44px; color: var(--blue); font-variant-numeric: tabular-nums; font-size: 11.5px; }
+.punch .px { flex: 1; color: var(--ink); }
+
+/* 学术资源 */
+.resbar { border: 1px solid var(--line); border-radius: 9px; padding: 12px 14px; }
+.resbar > div:first-child { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 6px; }
+.resbar b { font-size: 16px; }
+.reslines { display: flex; gap: 16px; margin-top: 8px; font-size: 11.5px; color: var(--ink2); }

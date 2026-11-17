@@ -13,7 +13,7 @@ const CFG = {
   costScale: [1, 1.9, 3.6, 8],
   salaryScale: [1, 1.3, 1.7, 2.2],
   weeksPerMonth: 4,
-  repCap: 2.0,
+  repCap: 3.2,
 };
 
 /* =========================================================
@@ -62,19 +62,19 @@ const POLICIES = {
 
 /* ---------------- 产品 ---------------- */
 const PROD_ARCH = [
-  { id: 'herb', kind: '独家中成药', driver: '学术', base: 0.030, awWeight: 1.30, priceEdge: 0.020,
+  { id: 'herb', cls: 'tcm', kind: '独家中成药', driver: '学术', base: 0.030, awWeight: 1.30, priceEdge: 0.020,
     color: '#0143B0', 医保: '乙类', price: 68, ta: ['C', 'N', 'A'], polWeight: { nrdl: 0.5, edl: 0.15, vbp: 0.02 },
     mix: { hospital: 0.34, primary: 0.06, retail: 0.38, city: 0.34, region: 0.34 },
     note: '高值独家，靠学术证据和专家共识撬动，起量慢、天花板高' },
-  { id: 'base', kind: '基药 · 医保甲类', driver: '渠道', base: 0.055, awWeight: 0.80, priceEdge: 0.050,
+  { id: 'base', cls: 'chem', kind: '基药 · 医保甲类', driver: '渠道', base: 0.055, awWeight: 0.80, priceEdge: 0.050,
     color: '#2F6BC9', 医保: '甲类', price: 12, ta: ['A', 'C', 'J'], polWeight: { nrdl: 0.55, edl: 0.55, vbp: 0.25 },
     mix: { hospital: 0.24, primary: 0.56, retail: 0.22, city: 0.24, region: 0.24 },
     note: '基药放量品，吃配送覆盖和基层网络，价格是硬通货' },
-  { id: 'bio', kind: '生物制剂', driver: '准入', base: 0.026, awWeight: 1.10, priceEdge: -0.010,
+  { id: 'bio', cls: 'bio', kind: '生物制剂', driver: '准入', base: 0.026, awWeight: 1.10, priceEdge: -0.010,
     color: '#0E7C6B', 医保: '乙类（谈判）', price: 1280, ta: ['L', 'M', 'N'], polWeight: { nrdl: 0.3, edl: 0.02, vbp: 0.05 },
     mix: { hospital: 0.26, primary: 0.04, retail: 0.08, city: 0.26, region: 0.26 },
     note: '高值生物药，进院难、谈判门槛高，一旦进院几乎没有替代' },
-  { id: 'gen', kind: '仿制化药', driver: '价格', base: 0.045, awWeight: 0.90, priceEdge: -0.030,
+  { id: 'gen', cls: 'chem', kind: '仿制化药', driver: '价格', base: 0.045, awWeight: 0.90, priceEdge: -0.030,
     color: '#8A5A00', 医保: '乙类', price: 35, ta: ['R', 'G', 'C'], polWeight: { nrdl: 0.5, edl: 0.2, vbp: 0.4 },
     mix: { hospital: 0.16, primary: 0.34, retail: 0.32, city: 0.16, region: 0.16 },
     note: '多家竞品在拼，没有价格和客情就是陪跑' },
@@ -116,7 +116,8 @@ function buildProducts() {
     if (pol.includes('vbp') && !pol.includes('nrdl') && Math.random() < 0.6) pol.push('nrdl');
     PRODUCTS.push({
       id: a.id, name: names[i].name, short: names[i].name.slice(0, 2),
-      kind: a.kind, driver: a.driver, base: a.base, awWeight: a.awWeight,
+      cls: a.cls, kind: a.kind, driver: a.driver, base: a.base, awWeight: a.awWeight,
+      w: 50, strat: 'academic', budget: 25, spent: 0, resWeeks: 0, neglect: 0,
       priceEdge: a.priceEdge, color: a.color, 医保: a.医保, price: a.price, note: a.note,
       ta, pol,
     });
@@ -237,6 +238,7 @@ function buildTerminals() {
         awareness: s[4], relation: s[5], comp: s[6], tier: s[7],
         pharm: s[8] || 0, stores: s[9] ? stores : 0,
         ally: null, spend: 0, idle: 0,
+        tcm: /中医院/.test(name), handover: 0,
         prof: pickOne(['academic', 'relation', 'price']),
         taAff: buildTaAff(s[1]),
         phtNext: 0,

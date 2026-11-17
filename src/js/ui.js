@@ -565,6 +565,7 @@ function repCard(r) {
     <div class="chips">${chips || '<span class="hint">未分配终端</span>'}</div>
     ${obsBlock(r)}
     <div class="row">
+      <button class="btn sm ghost" onclick="openActLog('${r.id}')">活动明细</button>
       ${r.filed ? '' : `<button class="btn sm" onclick="doFile('${r.id}')">办理备案（${f1(0.5 * CFG.costScale[S.level])}万）</button>`}
       ${(r.coach || 0) > 0 ? `<span class="tag tagx">协访中 · 剩 ${r.coach} 周</span>` : ''}
       <button class="btn sm ghost" style="margin-left:-6px" onclick="openGuess('${r.id}')">猜标签<span style="color:#8494A6;margin-left:4px">剩 ${2 - (r.guesses || []).length} 次 · 1 精力</span></button>
@@ -860,7 +861,8 @@ function replayPlan() {
    ========================================================= */
 function setW(pid, v) { const p = PRODUCTS.find(x => x.id === pid); if (p) { p.w = +v; render(); } }
 function setStrat(pid, sid) { const p = PRODUCTS.find(x => x.id === pid); if (p) { p.strat = sid; render(); } }
-function doRes(pid) { const r = grantRes(pid); toast(r.msg, r.ok ? 'good' : 'bad'); render(); }
+function doRes(pid) { openRes(pid); }
+function setBudget(pid, v) { const p = PRODUCTS.find(x => x.id === pid); if (p) { p.budget = +v; render(); } }
 
 function viewProducts() {
   const st = computeStats();
@@ -893,6 +895,15 @@ function viewProducts() {
         <span class="lb">精力权重</span>
         <input class="wrange" type="range" min="0" max="100" step="5" value="${w}" onchange="setW('${p.id}',this.value)">
         <b style="width:34px;text-align:right">${w}</b>
+      </div>
+      <div class="prod-row">
+        <span class="lb">费用比例</span>
+        <input class="wrange" type="range" min="5" max="60" step="5" value="${p.budget == null ? 25 : p.budget}" onchange="setBudget('${p.id}',this.value)">
+        <b style="width:38px;text-align:right">${p.budget == null ? 25 : p.budget}%</b>
+      </div>
+      <div class="prod-row" style="margin-top:2px;font-size:10.5px">
+        <span class="lb" style="width:56px">本月额度</span>
+        <span style="flex:1;color:#8494A6">池 ${f1((S.budgetBase || 30) * (p.budget == null ? 25 : p.budget) / 100)} 万 · 已用 ${f1(p.spent || 0)} 万${(p.spent || 0) > (S.budgetBase || 30) * (p.budget == null ? 25 : p.budget) / 100 ? ' <span style="color:#B3261E">超支，学术效果 -30%</span>' : ''}</span>
       </div>
       <div class="prod-row" style="gap:5px">
         <span class="lb">营销策略</span>
@@ -963,8 +974,8 @@ function relRow(def, group) {
   </div>`;
 }
 
-function doRelocate() {
-  const r = relocateStock();
+function doRelocate(ratio) {
+  const r = relocateStock(ratio);
   toast(r.msg, r.ok ? 'good' : 'bad');
   render();
 }
@@ -988,7 +999,10 @@ function viewRelations() {
         <div class="hint" style="margin-top:6px">
           ${distOver() > 0 ? `<span style="color:#B3261E">积压 ${f1(distOver())} 万：压货更难、配送挑单、全渠道份额 -5%</span>` : '压货会把货压到商业仓库，卖不动就是债。'}
         </div>
-        <button class="btn sm mt12" ${S.cash < CFG.costScale[S.level] ? 'disabled' : ''} onclick="doRelocate()">协调跨区调货（${f1(CFG.costScale[S.level])}万 · 调走 40%）</button>
+        <div class="flex gap8 mt12" style="flex-wrap:wrap">
+          ${[0.3, 0.5, 0.7].map(r => `<button class="btn sm" onclick="doRelocate(${r})">调走 ${Math.round(r * 100)}%（${f1(r * 2.5 * CFG.costScale[S.level])}万）</button>`).join('')}
+        </div>
+        <div class="hint" style="margin-top:6px">调得越狠，商业公司越不情愿——关系变化从 +2.8 到 −2.8。</div>
       </div>
     </section>
   </div>
@@ -1091,7 +1105,7 @@ function renderStart() {
   const app = document.getElementById('app');
   if (START.stage === 'path') {
     app.innerHTML = `<div class="start"><div class="start-inner">
-      <div class="kicker">内资药企 · 营销体系模拟</div>
+      <div class="kicker">营销体系模拟</div>
       <h1>药企模拟器<small>PHARMA SIMULATOR</small></h1>
       <div class="lead">先选一条成长路线。三条线的评价标准不同：营销看份额和回款，学术看证据和共识，市场看产品策略和准入。</div>
       <div class="pathgrid">
@@ -1409,6 +1423,64 @@ function chooseEvent(i) {
     body: `<p style="color:${res.tone === 'bad' ? '#9E2A21' : res.tone === 'good' ? '#14684C' : '#0F1A26'}">${res.text}</p>`,
     footer: `<button class="btn primary" onclick="closeModal()">继续</button>`,
   }));
+}
+
+/* ---------- 活动明细 ---------- */
+function openActLog(rid) { setModal(() => actLogModal(rid)); }
+
+function actLogModal(rid) {
+  const r = S.team.find(x => x.id === rid);
+  if (!r) return { title: '活动明细', body: '<div class="empty">没有这个人</div>', footer: '<button class="btn" onclick="closeModal()">关闭</button>' };
+  const logs = (S.actLog[rid] || []).slice().reverse();
+  let lastKey = '';
+  const rows = logs.map(x => {
+    const key = `${x.m}月第${x.wk}周`;
+    let head = '';
+    if (key !== lastKey) { lastKey = key; head = `<div class="pch">${key}</div>`; }
+    return head + `<div class="punch"><span class="pd">${x.d}</span><span class="pt">${x.t}</span><span class="px">${esc(x.txt)}</span></div>`;
+  }).join('');
+  return {
+    title: `活动明细 · ${r.name}`, en: 'FIELD ACTIVITY', 
+    body: `<div class="hint" style="margin-bottom:8px">打卡记录。只反映他报上来的动作——准不准，要你自己判断。</div>
+      <div class="punchlist">${rows || '<div class="empty">本月还没有打卡记录</div>'}</div>`,
+    footer: `<button class="btn" onclick="closeModal()">关闭</button>`,
+  };
+}
+
+/* ---------- 学术资源申请（出资比例） ---------- */
+let RES = { pid: null, ratio: 0.5 };
+function openRes(pid) { RES = { pid, ratio: 0.5 }; setModal(resModal); }
+function setResRatio(v) { RES.ratio = v / 100; renderModal(); }
+
+function resModal() {
+  const p = PRODUCTS.find(x => x.id === RES.pid);
+  const full = +(4 * CFG.costScale[S.level]).toFixed(2);
+  const cost = +(full * RES.ratio).toFixed(1);
+  const d = +((RES.ratio - 0.5) * 20).toFixed(1);
+  const mk = relOf('internal', 'marketing');
+  const ok = mk >= 30 && S.cash >= cost;
+  return {
+    title: `申请学术资源 · ${p.name}`, en: 'ACADEMIC RESOURCE',
+    body: `<div class="hint" style="margin-bottom:10px">市场部出资源、你出多少钱，决定他们怎么看你。自出比例越高，好感涨得越多；全让市场部掏，人情是要还的。</div>
+      <div class="resbar">
+        <div><span class="hint">自出比例</span><b>${Math.round(RES.ratio * 100)}%</b></div>
+        <input class="wrange" type="range" min="0" max="100" step="10" value="${Math.round(RES.ratio * 100)}" onchange="setResRatio(this.value)">
+        <div class="reslines">
+          <span>你出 <b>${cost}</b> 万</span>
+          <span>市场部出 <b>${(full - cost).toFixed(1)}</b> 万</span>
+          <span>好感 <b style="color:${d >= 0 ? '#17795A' : '#B3261E'}">${d >= 0 ? '+' : ''}${d}</b></span>
+        </div>
+      </div>
+      <div class="hint">效果：该品种 8 周内认知推进 +30%。当前市场部好感 ${f1(mk)}。</div>`,
+    footer: `<button class="btn" onclick="closeModal()">取消</button>
+      <button class="btn primary" ${ok ? '' : 'disabled'} onclick="confirmRes()">确认申请</button>`,
+  };
+}
+function confirmRes() {
+  const r = grantRes(RES.pid, RES.ratio);
+  toast(r.msg, r.ok ? 'good' : 'bad');
+  if (r.ok) { MODAL = null; renderModal(); }
+  render();
 }
 
 /* ---------- 猜标签 ---------- */

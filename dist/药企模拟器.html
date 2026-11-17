@@ -635,6 +635,20 @@ table.tb tr:hover td { background: #FBFCFE; }
 /* 商业库存 */
 .stockbox { margin-top: 14px; padding: 11px 13px; border: 1px solid var(--line); border-radius: 9px; background: #FBFCFE; }
 
+/* 打卡明细 */
+.punchlist { max-height: 420px; overflow: auto; }
+.pch { font-size: 10.5px; color: var(--ink3); margin: 10px 0 4px; padding-left: 2px; letter-spacing: .4px; }
+.punch { display: flex; align-items: baseline; gap: 10px; padding: 5px 0 5px 10px; border-left: 2px solid var(--line2); font-size: 12px; }
+.punch .pd { width: 30px; color: var(--ink3); font-size: 11px; }
+.punch .pt { width: 44px; color: var(--blue); font-variant-numeric: tabular-nums; font-size: 11.5px; }
+.punch .px { flex: 1; color: var(--ink); }
+
+/* 学术资源 */
+.resbar { border: 1px solid var(--line); border-radius: 9px; padding: 12px 14px; }
+.resbar > div:first-child { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 6px; }
+.resbar b { font-size: 16px; }
+.reslines { display: flex; gap: 16px; margin-top: 8px; font-size: 11.5px; color: var(--ink2); }
+
 </style>
 </head>
 <body>
@@ -657,7 +671,7 @@ const CFG = {
   costScale: [1, 1.9, 3.6, 8],
   salaryScale: [1, 1.3, 1.7, 2.2],
   weeksPerMonth: 4,
-  repCap: 2.0,
+  repCap: 3.2,
 };
 
 /* =========================================================
@@ -706,19 +720,19 @@ const POLICIES = {
 
 /* ---------------- 产品 ---------------- */
 const PROD_ARCH = [
-  { id: 'herb', kind: '独家中成药', driver: '学术', base: 0.030, awWeight: 1.30, priceEdge: 0.020,
+  { id: 'herb', cls: 'tcm', kind: '独家中成药', driver: '学术', base: 0.030, awWeight: 1.30, priceEdge: 0.020,
     color: '#0143B0', 医保: '乙类', price: 68, ta: ['C', 'N', 'A'], polWeight: { nrdl: 0.5, edl: 0.15, vbp: 0.02 },
     mix: { hospital: 0.34, primary: 0.06, retail: 0.38, city: 0.34, region: 0.34 },
     note: '高值独家，靠学术证据和专家共识撬动，起量慢、天花板高' },
-  { id: 'base', kind: '基药 · 医保甲类', driver: '渠道', base: 0.055, awWeight: 0.80, priceEdge: 0.050,
+  { id: 'base', cls: 'chem', kind: '基药 · 医保甲类', driver: '渠道', base: 0.055, awWeight: 0.80, priceEdge: 0.050,
     color: '#2F6BC9', 医保: '甲类', price: 12, ta: ['A', 'C', 'J'], polWeight: { nrdl: 0.55, edl: 0.55, vbp: 0.25 },
     mix: { hospital: 0.24, primary: 0.56, retail: 0.22, city: 0.24, region: 0.24 },
     note: '基药放量品，吃配送覆盖和基层网络，价格是硬通货' },
-  { id: 'bio', kind: '生物制剂', driver: '准入', base: 0.026, awWeight: 1.10, priceEdge: -0.010,
+  { id: 'bio', cls: 'bio', kind: '生物制剂', driver: '准入', base: 0.026, awWeight: 1.10, priceEdge: -0.010,
     color: '#0E7C6B', 医保: '乙类（谈判）', price: 1280, ta: ['L', 'M', 'N'], polWeight: { nrdl: 0.3, edl: 0.02, vbp: 0.05 },
     mix: { hospital: 0.26, primary: 0.04, retail: 0.08, city: 0.26, region: 0.26 },
     note: '高值生物药，进院难、谈判门槛高，一旦进院几乎没有替代' },
-  { id: 'gen', kind: '仿制化药', driver: '价格', base: 0.045, awWeight: 0.90, priceEdge: -0.030,
+  { id: 'gen', cls: 'chem', kind: '仿制化药', driver: '价格', base: 0.045, awWeight: 0.90, priceEdge: -0.030,
     color: '#8A5A00', 医保: '乙类', price: 35, ta: ['R', 'G', 'C'], polWeight: { nrdl: 0.5, edl: 0.2, vbp: 0.4 },
     mix: { hospital: 0.16, primary: 0.34, retail: 0.32, city: 0.16, region: 0.16 },
     note: '多家竞品在拼，没有价格和客情就是陪跑' },
@@ -760,7 +774,8 @@ function buildProducts() {
     if (pol.includes('vbp') && !pol.includes('nrdl') && Math.random() < 0.6) pol.push('nrdl');
     PRODUCTS.push({
       id: a.id, name: names[i].name, short: names[i].name.slice(0, 2),
-      kind: a.kind, driver: a.driver, base: a.base, awWeight: a.awWeight,
+      cls: a.cls, kind: a.kind, driver: a.driver, base: a.base, awWeight: a.awWeight,
+      w: 50, strat: 'academic', budget: 25, spent: 0, resWeeks: 0, neglect: 0,
       priceEdge: a.priceEdge, color: a.color, 医保: a.医保, price: a.price, note: a.note,
       ta, pol,
     });
@@ -881,6 +896,7 @@ function buildTerminals() {
         awareness: s[4], relation: s[5], comp: s[6], tier: s[7],
         pharm: s[8] || 0, stores: s[9] ? stores : 0,
         ally: null, spend: 0, idle: 0,
+        tcm: /中医院/.test(name), handover: 0,
         prof: pickOne(['academic', 'relation', 'price']),
         taAff: buildTaAff(s[1]),
         phtNext: 0,
@@ -1881,17 +1897,20 @@ function marketTask() {
   return { task: t, cur, need: t.need, done: cur >= t.need };
 }
 
-function grantRes(pid) {
+function grantRes(pid, ratio) {
   const p = PRODUCTS.find(x => x.id === pid);
   if (!p) return { ok: false, msg: '品种不存在' };
-  if (relOf('internal', 'marketing') < 35) return { ok: false, msg: '市场部对你还没那么熟（好感 < 35）' };
-  const c = +(4 * CFG.costScale[S.level]).toFixed(2);
+  if (relOf('internal', 'marketing') < 30) return { ok: false, msg: '市场部对你还没那么熟（好感 < 30）' };
+  const r = Math.max(0, Math.min(1, ratio == null ? 0.5 : ratio));
+  const full = +(4 * CFG.costScale[S.level]).toFixed(2);
+  const c = +(full * r).toFixed(2);
   if (S.cash < c) return { ok: false, msg: '预算不足' };
   S.cash = +(S.cash - c).toFixed(2);
   p.resWeeks = 8;
-  relAdd('internal', 'marketing', -8);
-  log('good', `市场部批了 ${p.name} 的学术资源包，未来 8 周认知推进 +30%。`);
-  return { ok: true, msg: `已申请 ${p.name} 学术资源` };
+  const d = +((r - 0.5) * 20).toFixed(1);
+  relAdd('internal', 'marketing', d);
+  log('good', `${p.name} 学术资源获批（自出 ${Math.round(r * 100)}%，花费 ${c} 万，好感 ${d >= 0 ? '+' : ''}${d}）。`);
+  return { ok: true, msg: `${p.name} 学术资源生效 8 周` };
 }
 
 /* ---------- 建人 ---------- */
@@ -2079,12 +2098,18 @@ function setAssign(rid, tid, on) {
 }
 
 function setCellRep(tid, pid, rid) {
+  let prevOwner = null;
   S.team.forEach(r => {
     const a = r.assign[tid];
     if (!a || r.id === rid) return;
+    if (a.p.includes(pid)) prevOwner = r;
     a.p = a.p.filter(x => x !== pid);
     if (!a.p.length && !a.pharm) delete r.assign[tid];
   });
+  if (rid && prevOwner && prevOwner.id !== rid) {
+    const t = termById(tid);
+    if (t) t.handover = 2 + Math.floor(Math.random() * 3);
+  }
   if (!rid) return;
   const r = S.team.find(x => x.id === rid);
   if (!r) return;
@@ -2226,7 +2251,9 @@ function computeStats() {
       const pol = policyOf(p, t.type);
       const taF = taOf(t, p);
       const stg = STRAT[p.strat || 'academic'];
-      const resF = (p.resWeeks || 0) > 0 ? 1.3 : 1;
+      const pool = Math.max(1, (S.budgetBase || 30) * (p.budget == null ? 25 : p.budget) / 100);
+      const overF = (p.spent || 0) > pool ? 0.7 : 1;
+      const resF = ((p.resWeeks || 0) > 0 ? 1.3 : 1) * overF;
       const wF = clamp((p.w == null ? 50 : p.w) / wAvg, 0.35, 2.4);
       const avail = 0.02 + 0.98 * Math.pow(clamp(t.access * taF * stg.access, 0, 100) / 100, 0.7) * pol.access;
       let share = p.base
@@ -2235,9 +2262,12 @@ function computeStats() {
         + t.relation / 100 * 0.11
         - t.comp * 0.16
         + p.priceEdge + pol.price + stg.price;
-      share = clamp(share, 0, 0.75) * avail * tmul * am * orderMul * pol.mul
+      const tcmF = (p.cls === 'tcm' && t.tcm) ? 1.16 : 1;
+      const baseF = (p.pol && p.pol.includes('edl') && t.type === 'primary') ? 1.15 : 1;
+      share = clamp(share, 0, 0.75) * avail * tmul * am * orderMul * pol.mul * tcmF * baseF
         * (t.stockBoost > 0 ? 2.0 : 1)
         * (t.stockBoost === 0 && t.stockDrop > 0 ? (t.stockMul || 0.8) : 1)
+        * (t.handover > 0 ? 0.88 : 1)
         * (1 - (p.neglect || 0)) * (distOver() > 0 ? 0.95 : 1);
       const sales = t.potential * m * share;
       items[p.id] = { share, sales, cov: cov[p.id] || 0, ta: taF, pol };
@@ -2258,16 +2288,19 @@ function marketSize() { return S.terminals.reduce((a, t) => a + t.potential, 0);
 function distCap() { return 40 + relOf('external', 'distributor') * 0.9; }
 function distOver() { return Math.max(0, S.dist.stock - distCap()); }
 
-function relocateStock() {
-  const c = +(1 * CFG.costScale[S.level]).toFixed(2);
+function relocateStock(ratio) {
+  const r = Math.max(0.2, Math.min(0.8, ratio == null ? 0.4 : ratio));
+  const c = +(r * 2.5 * CFG.costScale[S.level]).toFixed(2);
   if (S.cash < c) return { ok: false, msg: '预算不足' };
   if (S.dist.stock < 5) return { ok: false, msg: '商业公司没多少库存可调' };
   S.cash = +(S.cash - c).toFixed(2);
-  const moved = S.dist.stock * 0.4;
+  const moved = S.dist.stock * r;
   S.dist.stock = +(S.dist.stock - moved).toFixed(1);
-  relAdd('external', 'distributor', 2);
-  log('good', `协调商业公司跨区调货 ${moved.toFixed(1)} 万，库存压力缓解。`);
-  return { ok: true, msg: `调走 ${moved.toFixed(1)} 万库存` };
+  // 调得越狠，越欠人情
+  const fav = +(4 - r * 4).toFixed(1);
+  relAdd('external', 'distributor', fav);
+  log('good', `协调商业公司跨区调货 ${moved.toFixed(1)} 万（调走 ${Math.round(r * 100)}%），人情 ${fav >= 0 ? '+' : ''}${fav}。`);
+  return { ok: true, msg: `调走 ${moved.toFixed(1)} 万库存，商业关系 ${fav >= 0 ? '+' : ''}${fav}` };
 }
 
 function teamRisk() {
@@ -2329,7 +2362,9 @@ function newGame(playerName, pathId, tagIds, diffId) {
     candidates: [],
     pending: [],
     pendingEvents: [],
+    actLog: {},
     market: { idx: 0, cnt: { case: 0, edu: 0, city: 0 }, since: 1 },
+    budgetBase: 30,
     dist: { stock: 0 },
     offer: null,
     log: [],
@@ -2415,6 +2450,13 @@ function enterAct(level, carry) {
 }
 
 /* ---------- 日志 ---------- */
+function pushAct(repId, txt, day, time) {
+  S.actLog = S.actLog || {};
+  S.actLog[repId] = S.actLog[repId] || [];
+  S.actLog[repId].push({ m: S.totalMonth, wk: S.weekInMonth, w: S.totalWeek, d: day, t: time, txt });
+  if (S.actLog[repId].length > 40) S.actLog[repId].shift();
+}
+
 function log(type, text, week) {
   S.log.unshift({ m: S.totalMonth, w: S.weekInMonth, type, text });
   if (S.log.length > 300) S.log.length = 300;
@@ -2511,12 +2553,16 @@ function launchProject(pid, tids, repId) {
     if (S.ap < p.ap) return { ok: false, msg: '精力不足' };
     if (S.cash < c) return { ok: false, msg: '预算不足' };
     S.cash = +(S.cash - c).toFixed(2); S.ap -= p.ap;
-    r.coach = 4;
+    const quick = (r.mod.growth || 0) > 0.8 || r.ability < 55;
+    r.coach = quick ? 6 : 3;
+    if (quick) r.ability = Math.min(100, r.ability + 2);
     r.coached = true;
     r.loyalty = Math.min(100, r.loyalty + 6);
     assignIds(r).forEach(tid => { const t = termById(tid); if (t) { t.relation = Math.min(100, t.relation + 3); t.idle = 0; } });
     relAdd('internal', 'boss', 1); relAdd('internal', 'hr', 1);
-    const msg = `协访 ${r.name}：覆盖 ×1.25 持续 4 周，忠诚 +6，其 ${assignIds(r).length} 个终端客情 +3。`;
+    const msg = quick
+      ? `协访 ${r.name}：他学得快，覆盖 ×1.25 持续 6 周，能力 +2，忠诚 +6，其 ${assignIds(r).length} 个终端客情 +3。`
+      : `协访 ${r.name}：他上手慢，覆盖 ×1.25 只维持 3 周（能力 +0，忠诚 +6），其 ${assignIds(r).length} 个终端客情 +3。`;
     S.planThisMonth.push({ pid, tids: [], repId, msg });
     log('action', msg);
     return { ok: true, msg };
@@ -2547,7 +2593,21 @@ function launchProject(pid, tids, repId) {
   S.ap -= ap;
   if (list.length) {
     const per = cost / list.length;
-    list.forEach(tid => { const t = termById(tid); if (t) { t.spend = +(t.spend + per).toFixed(2); t.idle = 0; } });
+    const stx = computeStats();
+    list.forEach(tid => {
+      const t = termById(tid);
+      if (!t) return;
+      t.spend = +(t.spend + per).toFixed(2); t.idle = 0;
+      const c = stx.terms[tid];
+      const covered = new Set();
+      c.reps.forEach(x => x.p.forEach(pid => covered.add(pid)));
+      const ids = [...covered];
+      const sumB = ids.reduce((a, pid) => a + ((PRODUCTS.find(x => x.id === pid) || {}).budget || 25), 0) || 1;
+      ids.forEach(pid => {
+        const pr = PRODUCTS.find(x => x.id === pid);
+        if (pr) pr.spent = +((pr.spent || 0) + per * (pr.budget / sumB)).toFixed(2);
+      });
+    });
   }
 
   const msgs = [];
@@ -2617,6 +2677,17 @@ function launchProject(pid, tids, repId) {
   if (pid === 'relation') relAdd('external', 'hospital', 2);
   if (pid === 'case') { relAdd('internal', 'medical', 2); relAdd('external', 'kol', 2); }
   if (pid === 'dept') relAdd('internal', 'medical', 0.8);
+
+  list.forEach(tid => {
+    const t = termById(tid);
+    if (!t) return;
+    const who = S.team.find(r => covers(r, tid));
+    if (!who) return;
+    const days = ['周一', '周二', '周三', '周四', '周五'];
+    const hh = 9 + Math.floor(Math.random() * 7), mm = Math.floor(Math.random() * 60);
+    pushAct(who.id, `${p.name} · ${t.name}`, days[Math.floor(Math.random() * 5)],
+      `${String(hh).padStart(2, '0')}:${String(mm).padStart(2, '0')}`);
+  });
 
   if (pid === 'case') S.market.cnt.case++;
   if (pid === 'city') S.market.cnt.city++;
@@ -2832,6 +2903,7 @@ function endWeek() {
     if (t.access > 0) t.access = Math.max(0, t.access - 0.3 / 4 * idleF);
     t.comp = Math.min(0.9, t.comp + 0.006 / 4);
     t.idle++;
+    if (t.handover > 0) t.handover--;
   });
 
   // 4) 代表行为（周）
@@ -2856,6 +2928,19 @@ function endWeek() {
     r.loyalty = clamp(r.loyalty + loy, 0, 100);
     r.ability = Math.min(100, r.ability + (r.ability < 70 ? 0.55 : 0.22) / 4 * (1 + r.mod.growth + (playerMod().growth || 0)));
     if (r.coach > 0) r.coach--;
+
+    // 每周例行打卡
+    const days = ['周一', '周二', '周三', '周四', '周五'];
+    const aid = assignIds(r);
+    if (aid.length) {
+      const tt = termById(aid[Math.floor(Math.random() * aid.length)]);
+      if (tt) {
+        const hh = 8 + Math.floor(Math.random() * 2);
+        const mm = Math.floor(Math.random() * 60);
+        pushAct(r.id, `打卡 · ${tt.name} · ${Math.random() < 0.55 ? '早访' : '科室走访'}`,
+          days[Math.floor(Math.random() * 5)], `${String(hh).padStart(2, '0')}:${String(mm).padStart(2, '0')}`);
+      }
+    }
 
     // 对低权重品种的态度：公司自己都不投，代表慢慢就不推了
     r.wPref = r.wPref || {};
@@ -3053,6 +3138,8 @@ function rollMonth() {
 
   log('sales', `第 ${S.totalMonth} 月结算：销售 ${report.sales.toFixed(1)} 万${report.delta == null ? '' : `（环比 ${report.delta >= 0 ? '+' : ''}${report.delta.toFixed(1)}%）`}，份额 ${report.share.toFixed(1)}%。`);
 
+  S.budgetBase = Math.max(20, +((S.wk.gross) / 4).toFixed(1));
+  PRODUCTS.forEach(p => { p.spent = 0; });
   S.wk = { sales: 0, gross: 0, salary: 0, resolved: [], incident: null };
   S.totalMonth++;
   S.monthInAct++;
@@ -3797,6 +3884,7 @@ function repCard(r) {
     <div class="chips">${chips || '<span class="hint">未分配终端</span>'}</div>
     ${obsBlock(r)}
     <div class="row">
+      <button class="btn sm ghost" onclick="openActLog('${r.id}')">活动明细</button>
       ${r.filed ? '' : `<button class="btn sm" onclick="doFile('${r.id}')">办理备案（${f1(0.5 * CFG.costScale[S.level])}万）</button>`}
       ${(r.coach || 0) > 0 ? `<span class="tag tagx">协访中 · 剩 ${r.coach} 周</span>` : ''}
       <button class="btn sm ghost" style="margin-left:-6px" onclick="openGuess('${r.id}')">猜标签<span style="color:#8494A6;margin-left:4px">剩 ${2 - (r.guesses || []).length} 次 · 1 精力</span></button>
@@ -4092,7 +4180,8 @@ function replayPlan() {
    ========================================================= */
 function setW(pid, v) { const p = PRODUCTS.find(x => x.id === pid); if (p) { p.w = +v; render(); } }
 function setStrat(pid, sid) { const p = PRODUCTS.find(x => x.id === pid); if (p) { p.strat = sid; render(); } }
-function doRes(pid) { const r = grantRes(pid); toast(r.msg, r.ok ? 'good' : 'bad'); render(); }
+function doRes(pid) { openRes(pid); }
+function setBudget(pid, v) { const p = PRODUCTS.find(x => x.id === pid); if (p) { p.budget = +v; render(); } }
 
 function viewProducts() {
   const st = computeStats();
@@ -4125,6 +4214,15 @@ function viewProducts() {
         <span class="lb">精力权重</span>
         <input class="wrange" type="range" min="0" max="100" step="5" value="${w}" onchange="setW('${p.id}',this.value)">
         <b style="width:34px;text-align:right">${w}</b>
+      </div>
+      <div class="prod-row">
+        <span class="lb">费用比例</span>
+        <input class="wrange" type="range" min="5" max="60" step="5" value="${p.budget == null ? 25 : p.budget}" onchange="setBudget('${p.id}',this.value)">
+        <b style="width:38px;text-align:right">${p.budget == null ? 25 : p.budget}%</b>
+      </div>
+      <div class="prod-row" style="margin-top:2px;font-size:10.5px">
+        <span class="lb" style="width:56px">本月额度</span>
+        <span style="flex:1;color:#8494A6">池 ${f1((S.budgetBase || 30) * (p.budget == null ? 25 : p.budget) / 100)} 万 · 已用 ${f1(p.spent || 0)} 万${(p.spent || 0) > (S.budgetBase || 30) * (p.budget == null ? 25 : p.budget) / 100 ? ' <span style="color:#B3261E">超支，学术效果 -30%</span>' : ''}</span>
       </div>
       <div class="prod-row" style="gap:5px">
         <span class="lb">营销策略</span>
@@ -4195,8 +4293,8 @@ function relRow(def, group) {
   </div>`;
 }
 
-function doRelocate() {
-  const r = relocateStock();
+function doRelocate(ratio) {
+  const r = relocateStock(ratio);
   toast(r.msg, r.ok ? 'good' : 'bad');
   render();
 }
@@ -4220,7 +4318,10 @@ function viewRelations() {
         <div class="hint" style="margin-top:6px">
           ${distOver() > 0 ? `<span style="color:#B3261E">积压 ${f1(distOver())} 万：压货更难、配送挑单、全渠道份额 -5%</span>` : '压货会把货压到商业仓库，卖不动就是债。'}
         </div>
-        <button class="btn sm mt12" ${S.cash < CFG.costScale[S.level] ? 'disabled' : ''} onclick="doRelocate()">协调跨区调货（${f1(CFG.costScale[S.level])}万 · 调走 40%）</button>
+        <div class="flex gap8 mt12" style="flex-wrap:wrap">
+          ${[0.3, 0.5, 0.7].map(r => `<button class="btn sm" onclick="doRelocate(${r})">调走 ${Math.round(r * 100)}%（${f1(r * 2.5 * CFG.costScale[S.level])}万）</button>`).join('')}
+        </div>
+        <div class="hint" style="margin-top:6px">调得越狠，商业公司越不情愿——关系变化从 +2.8 到 −2.8。</div>
       </div>
     </section>
   </div>
@@ -4323,7 +4424,7 @@ function renderStart() {
   const app = document.getElementById('app');
   if (START.stage === 'path') {
     app.innerHTML = `<div class="start"><div class="start-inner">
-      <div class="kicker">内资药企 · 营销体系模拟</div>
+      <div class="kicker">营销体系模拟</div>
       <h1>药企模拟器<small>PHARMA SIMULATOR</small></h1>
       <div class="lead">先选一条成长路线。三条线的评价标准不同：营销看份额和回款，学术看证据和共识，市场看产品策略和准入。</div>
       <div class="pathgrid">
@@ -4641,6 +4742,64 @@ function chooseEvent(i) {
     body: `<p style="color:${res.tone === 'bad' ? '#9E2A21' : res.tone === 'good' ? '#14684C' : '#0F1A26'}">${res.text}</p>`,
     footer: `<button class="btn primary" onclick="closeModal()">继续</button>`,
   }));
+}
+
+/* ---------- 活动明细 ---------- */
+function openActLog(rid) { setModal(() => actLogModal(rid)); }
+
+function actLogModal(rid) {
+  const r = S.team.find(x => x.id === rid);
+  if (!r) return { title: '活动明细', body: '<div class="empty">没有这个人</div>', footer: '<button class="btn" onclick="closeModal()">关闭</button>' };
+  const logs = (S.actLog[rid] || []).slice().reverse();
+  let lastKey = '';
+  const rows = logs.map(x => {
+    const key = `${x.m}月第${x.wk}周`;
+    let head = '';
+    if (key !== lastKey) { lastKey = key; head = `<div class="pch">${key}</div>`; }
+    return head + `<div class="punch"><span class="pd">${x.d}</span><span class="pt">${x.t}</span><span class="px">${esc(x.txt)}</span></div>`;
+  }).join('');
+  return {
+    title: `活动明细 · ${r.name}`, en: 'FIELD ACTIVITY', 
+    body: `<div class="hint" style="margin-bottom:8px">打卡记录。只反映他报上来的动作——准不准，要你自己判断。</div>
+      <div class="punchlist">${rows || '<div class="empty">本月还没有打卡记录</div>'}</div>`,
+    footer: `<button class="btn" onclick="closeModal()">关闭</button>`,
+  };
+}
+
+/* ---------- 学术资源申请（出资比例） ---------- */
+let RES = { pid: null, ratio: 0.5 };
+function openRes(pid) { RES = { pid, ratio: 0.5 }; setModal(resModal); }
+function setResRatio(v) { RES.ratio = v / 100; renderModal(); }
+
+function resModal() {
+  const p = PRODUCTS.find(x => x.id === RES.pid);
+  const full = +(4 * CFG.costScale[S.level]).toFixed(2);
+  const cost = +(full * RES.ratio).toFixed(1);
+  const d = +((RES.ratio - 0.5) * 20).toFixed(1);
+  const mk = relOf('internal', 'marketing');
+  const ok = mk >= 30 && S.cash >= cost;
+  return {
+    title: `申请学术资源 · ${p.name}`, en: 'ACADEMIC RESOURCE',
+    body: `<div class="hint" style="margin-bottom:10px">市场部出资源、你出多少钱，决定他们怎么看你。自出比例越高，好感涨得越多；全让市场部掏，人情是要还的。</div>
+      <div class="resbar">
+        <div><span class="hint">自出比例</span><b>${Math.round(RES.ratio * 100)}%</b></div>
+        <input class="wrange" type="range" min="0" max="100" step="10" value="${Math.round(RES.ratio * 100)}" onchange="setResRatio(this.value)">
+        <div class="reslines">
+          <span>你出 <b>${cost}</b> 万</span>
+          <span>市场部出 <b>${(full - cost).toFixed(1)}</b> 万</span>
+          <span>好感 <b style="color:${d >= 0 ? '#17795A' : '#B3261E'}">${d >= 0 ? '+' : ''}${d}</b></span>
+        </div>
+      </div>
+      <div class="hint">效果：该品种 8 周内认知推进 +30%。当前市场部好感 ${f1(mk)}。</div>`,
+    footer: `<button class="btn" onclick="closeModal()">取消</button>
+      <button class="btn primary" ${ok ? '' : 'disabled'} onclick="confirmRes()">确认申请</button>`,
+  };
+}
+function confirmRes() {
+  const r = grantRes(RES.pid, RES.ratio);
+  toast(r.msg, r.ok ? 'good' : 'bad');
+  if (r.ok) { MODAL = null; renderModal(); }
+  render();
 }
 
 /* ---------- 猜标签 ---------- */

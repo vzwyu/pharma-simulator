@@ -72,6 +72,15 @@ try {
 } catch (e) { console.log('猜标签 ERROR', e.message); }
 
 try {
+  run("openActLog(S.team[0].id); renderModal();");
+  console.log('活动明细:', (store['modal-root'] || '').includes('活动明细') ? 'OK' : 'FAIL');
+} catch (e) { console.log('活动明细 ERROR', e.message); }
+try {
+  run("openRes(PRODUCTS[0].id); renderModal();");
+  console.log('资源申请:', (store['modal-root'] || '').includes('自出比例') ? 'OK' : 'FAIL');
+} catch (e) { console.log('资源申请 ERROR', e.message); }
+
+try {
   run("S.pendingPromotion={type:'promote',progress:promotionProgress()}; promoteModal(); renderModal();");
   const h = store['modal-root'] || '';
   console.log('晋升弹窗:', h.includes('考虑一下') && h.includes('拒绝') ? 'OK' : 'FAIL');
