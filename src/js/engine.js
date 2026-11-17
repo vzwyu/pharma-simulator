@@ -202,7 +202,35 @@ function observations(r) {
   if (m.ally >= 0.02) out.push('和地方上的关系网很熟');
   if (m.rebate <= -0.2) out.push('对某些推广方式明显排斥');
   if (m.salary >= 0.1) out.push('要价明显高于同岗');
-  return out.slice(0, 3);
+  if (r.coached) {
+    const HINT = {
+      cov: '跟他跑店时，明显感觉他抓不住重点客户，成交转化偏低',
+      rel: '跟客户吃饭时他几乎不说话，关系全靠你带',
+      aw: '讲产品时他能把机制说清楚，医生愿意听',
+      cap: '一天跑三家就累，路线安排也有问题',
+      loyalty: '聊到公司时他语气很淡，像是在看机会',
+      exposure: '他跟客户谈费用的方式，你听着不太放心',
+      fail: '交办的动作经常拖到最后一刻，细节容易出错',
+      ally: '他跟卫生院那几个人很熟，明显是本地人',
+      salary: '他主动提了薪资，对当前水平不太满意',
+      jobhunt: '他接了个电话，回避了你',
+      rebate: '他对费用和回扣的说法很敏感，明显在防着你',
+      nightowl: '他晚上还在跑店，白天状态一般',
+      family: '他说家里孩子小，不太愿意出差',
+      chronic: '他体力跟不上，一天跑不了几家',
+      drinker: '酒桌上他话最多，医生也买账',
+      book: '他手里有一批老客户，但不愿意交到系统里',
+      moody: '他情绪起伏大，上周还很有劲，这周就蔫了',
+      sidegig: '他总有电话要接，说得躲着你',
+      niceguy: '他谁都不得罪，但压量的时候顶不住客户',
+      paperwork: '他台账做得比谁都细，但跑的店不多',
+      perfect: '他做事极细，速度慢，但几乎不出错',
+      procrast: '他答应的事总要拖到最后一天',
+    };
+    const keys = Object.keys(HINT).filter(k => Math.abs(m[k] || 0) > 0).sort((a, b) => Math.abs(m[b]) - Math.abs(m[a]));
+    if (keys.length) out.unshift('带队观察：' + HINT[keys[0]]);
+  }
+  return out.slice(0, r.coached ? 4 : 3);
 }
 
 function unknownCount(r) {
@@ -402,7 +430,9 @@ function computeStats() {
         - t.comp * 0.16
         + p.priceEdge + pol.price + stg.price;
       share = clamp(share, 0, 0.75) * avail * tmul * am * orderMul * pol.mul
-        * (t.stockBoost > 0 ? 2.0 : 1) * (t.stockBoost === 0 && t.stockDrop > 0 ? 0.8 : 1);
+        * (t.stockBoost > 0 ? 2.0 : 1)
+        * (t.stockBoost === 0 && t.stockDrop > 0 ? (t.stockMul || 0.8) : 1)
+        * (1 - (p.neglect || 0));
       const sales = t.potential * m * share;
       items[p.id] = { share, sales, cov: cov[p.id] || 0, ta: taF, pol };
       total += sales;
@@ -478,7 +508,7 @@ function newGame(playerName, pathId, tagIds, diffId) {
     candidates: [],
     pending: [],
     pendingEvents: [],
-    market: { idx: 0, cnt: { case: 0, edu: 0 } },
+    market: { idx: 0, cnt: { case: 0, edu: 0 }, since: 1 },
     offer: null,
     log: [],
     history: [],
@@ -660,6 +690,7 @@ function launchProject(pid, tids, repId) {
     if (S.cash < c) return { ok: false, msg: '预算不足' };
     S.cash = +(S.cash - c).toFixed(2); S.ap -= p.ap;
     r.coach = 4;
+    r.coached = true;
     r.loyalty = Math.min(100, r.loyalty + 6);
     assignIds(r).forEach(tid => { const t = termById(tid); if (t) { t.relation = Math.min(100, t.relation + 3); t.idle = 0; } });
     relAdd('internal', 'boss', 1); relAdd('internal', 'hr', 1);
@@ -800,7 +831,12 @@ function applyEffect(p, t, success, extraMul) {
       t.access = Math.min(100, t.access + (e.access || 0) * (success ? rnd(0.9, 1.15) : 0.45) * (extraMul || 1));
       break;
     case 'pushstock':
-      if (success) { t.stockBoost = 1; t.stockDrop = 1 + Math.floor(Math.random() * 3); }
+      if (success) {
+        const stacked = (t.stockDrop || 0) > 0;
+        t.stockBoost = 1;
+        t.stockDrop = stacked ? Math.max(2, (t.stockDrop || 0) + 1) : 1 + Math.floor(Math.random() * 3);
+        t.stockMul = stacked ? 0.72 : 0.8;
+      }
       else { t.relation = Math.max(0, t.relation - 4); }
       break;
     case 'patientedu':
@@ -935,12 +971,18 @@ function endWeek() {
     log(res.tone === 'bad' ? 'bad' : res.tone === 'good' ? 'good' : 'info', `【${ev.title}】${res.text}`);
   });
 
-  // 1.5) 市场部任务完成判定
+  // 1.5) 市场部任务：完成 / 超时
   const mt = marketTask();
   if (mt && mt.done) {
     relAdd('internal', 'marketing', 6);
     S.market.idx++;
+    S.market.since = S.totalWeek;
     log('good', `完成市场部任务「${mt.task.name}」，市场部好感 +6。`);
+  } else if (mt && S.totalWeek - (S.market.since || 0) > 8) {
+    relAdd('internal', 'marketing', -3);
+    S.market.idx++;
+    S.market.since = S.totalWeek;
+    log('bad', `市场部任务「${mt.task.name}」超时未完成，好感 -3。产品经理在群里点了你的名。`);
   }
 
   // 2) 周会要求落地
@@ -1013,6 +1055,13 @@ function endWeek() {
     if (v > 50) S.rel[g][k] = Math.max(50, v - 0.25);
     else if (v < 50) S.rel[g][k] = Math.min(50, v + 0.25);
   }));
+
+  // 4.7) 品种精力分配的长期后果：长期不管的品种会被竞品蚕食
+  PRODUCTS.forEach(p => {
+    const w = p.w == null ? 50 : p.w;
+    if (w < 25) p.neglect = Math.min(0.28, (p.neglect || 0) + 0.012);
+    else if (w > 60) p.neglect = Math.max(0, (p.neglect || 0) - 0.008);
+  });
 
   // 5) 销售（周 = 月跑量 / 4）
   const st = computeStats();

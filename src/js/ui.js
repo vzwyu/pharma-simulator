@@ -886,7 +886,7 @@ function viewProducts() {
         <div style="flex:1"><b>${p.name}</b>
           <div class="hint">${p.kind} · <span class="tachip">${TA_NAME[p.ta]}</span>${polChips(p)}</div></div>
         <div style="text-align:right"><div style="font-size:18px;font-weight:700">${f1(sales)}<small style="font-size:10px;font-weight:400;color:#8494A6"> 万/月</small></div>
-          <div class="hint">份额 ${f1(share)}%</div></div>
+          <div class="hint">份额 ${f1(share)}%${(p.neglect || 0) > 0.04 ? ` · <span style="color:#B3261E">竞品蚕食 -${f1(p.neglect * 100)}%</span>` : ''}</div></div>
       </div>
       <div class="prod-row">
         <span class="lb">精力权重</span>
@@ -900,7 +900,7 @@ function viewProducts() {
         </div>
       </div>
       <div class="prod-foot">
-        <span class="hint">${(p.resWeeks || 0) > 0 ? `<span style="color:#17795A">学术资源生效中 · 剩 ${p.resWeeks} 周</span>` : `认知推进按 ${PRODUCT_STRATS.find(x => x.id === strat).desc}`}</span>
+        <span class="hint">${(p.resWeeks || 0) > 0 ? `<span style="color:#17795A">学术资源生效中 · 剩 ${p.resWeeks} 周</span>` : (p.neglect || 0) > 0.04 ? '<span style="color:#B3261E">长期低权重，竞品在蚕食这条线</span>' : `认知推进按 ${PRODUCT_STRATS.find(x => x.id === strat).desc}`}</span>
         <button class="btn sm" ${canRes ? '' : 'disabled'} onclick="doRes('${p.id}')">申请学术资源（${resCost}万 · 好感 -8）</button>
       </div>
     </section>`;
