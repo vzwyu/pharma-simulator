@@ -154,11 +154,13 @@ function topbar() {
 function nav() {
   const items = [
     ['overview', '经营总览', '◫'], ['terminals', '终端', '▤'], ['team', '团队', '◉'],
-    ['actions', '行动', '✦'], ['relations', '关系', '◎'], ['compliance', '合规', '⚠'], ['log', '记录', '≡'],
+    ['products', '产品', '◈'], ['actions', '行动', '✦'], ['relations', '关系', '◎'],
+    ['compliance', '合规', '⚠'], ['log', '记录', '≡'],
   ];
   const cand = S.candidates.length;
   return `<nav class="sidenav">
     ${items.map(([k, n, i]) => `<div class="navitem ${TAB === k ? 'on' : ''}" onclick="setTab('${k}')"><i>${i}</i>${n}${k === 'team' && cand ? `<span class="badge">${cand}</span>` : ''}</div>`).join('')}
+    ${S.offer ? `<div class="navitem offer" onclick="openOffer()">↑ 待处理晋升</div>` : ''}
     <div class="navfoot">
       第 ${S.totalMonth} 月 · ${S.year}年 第 ${S.weekInMonth}/4 周<br>
       ${ACTS[S.level].title.split(' · ')[1]}阶段 第 ${Math.min(S.monthInAct, 12)}/12 月<br>
@@ -175,6 +177,7 @@ function mainView() {
     case 'terminals': return viewTerminals();
     case 'team': return viewTeam();
     case 'actions': return viewActions();
+    case 'products': return viewProducts();
     case 'relations': return viewRelations();
     case 'compliance': return viewCompliance();
     case 'log': return viewLog();
@@ -382,7 +385,7 @@ function terminalDetail(t, c) {
       <td style="font-size:11px;color:${who.length ? '#4A5C70' : '#B3261E'}">${who.length ? who.join('、') : '无人负责'}</td></tr>`;
   }).join('');
 
-  const acts = [['dept', '科室会'], ['case', '病例征集'], ['dev', '医院开发'], ['channel', '渠道建设'], ['relation', '客情维护']];
+  const acts = actsFor(t);
 
   return `<section class="card">
     <div class="card-h">
@@ -429,6 +432,12 @@ function terminalDetail(t, c) {
   }).join('')}
     </div>
   </section>`;
+}
+
+function actsFor(t) {
+  if (t.type === 'retail') return [['patientedu', '患教会'], ['clerktrain', '店员培训'], ['display', '陈列谈判'], ['channel', '渠道建设'], ['relation', '客情维护'], ['pushstock', '压货']];
+  if (t.type === 'primary') return [['dept', '科室会'], ['case', '病例征集'], ['channel', '渠道建设'], ['relation', '客情维护'], ['pushstock', '压货'], ['dev', '医院开发']];
+  return [['dept', '科室会'], ['case', '病例征集'], ['dev', '医院开发'], ['relation', '客情维护'], ['pushstock', '压货']];
 }
 
 function doProject(pid, tid) {
@@ -529,7 +538,8 @@ function repCard(r) {
           ${r.filed ? '' : ' · <span style="color:#B3261E">未备案</span>'}</div></div>
       <div style="text-align:right"><div style="font-size:17px;font-weight:700">${f1(r.ability)}</div><div style="font-size:9.5px;color:#8494A6">能力</div></div>
     </div>
-    <div class="metrics">
+    <div class="metrics four">
+      <div><label>月产出</label><b>${f1(outputOf(r))}</b></div>
       <div><label>忠诚</label><b style="color:${r.loyalty < 35 ? '#B3261E' : '#0F1A26'}">${f1(r.loyalty)}</b></div>
       <div><label>合规倾向</label><b style="color:${r.ct < 50 ? '#B3261E' : '#17795A'}">${f1(r.ct)}</b></div>
       <div><label>风险敞口</label><b style="color:${expColor}">${f1(exp)}</b></div>
@@ -613,8 +623,19 @@ function matrixModal() {
   if (!S.team.length) return { title: '团队明细配置', body: '<div class="empty">还没有代表</div>', footer: '<button class="btn" onclick="closeModal()">关闭</button>' };
   const st = computeStats();
 
-  const rows = S.terminals.map(t => {
+  const ordered = S.terminals.slice().sort((a, b) => {
+    const A = a.ally || 'zz', B = b.ally || 'zz';
+    return A === B ? b.potential - a.potential : A < B ? -1 : 1;
+  });
+  let lastAlly = '__';
+  const rows = ordered.map(t => {
     const c = st.terms[t.id];
+    let groupRow = '';
+    if ((t.ally || 'zz') !== lastAlly) {
+      lastAlly = t.ally || 'zz';
+      const al = allianceOf(t);
+      groupRow = `<tr class="mxgroup"><td colspan="${PRODUCTS.length + 5}">${al ? `医共体 · ${al.name}（${al.members.length} 家）` : '独立终端'}</td></tr>`;
+    }
     const cells = PRODUCTS.map(p => {
       const owner = S.team.find(r => covers(r, t.id) && r.assign[t.id].p.includes(p.id));
       return `<td class="mxcell">${mxSelect(t.id, p.id, owner)}</td>`;
@@ -626,7 +647,7 @@ function matrixModal() {
           ${S.team.map(r => `<option value="${r.id}" ${phOwner && phOwner.id === r.id ? 'selected' : ''}>${r.name}</option>`).join('')}
         </select><span class="mxsub">${t.pharm} 家</span></td>`
       : `<td class="mxcell"><span class="mxsub">—</span></td>`;
-    return `<tr ${c.reps.length ? '' : 'style="opacity:.55"'}>
+    return groupRow + `<tr ${c.reps.length ? '' : 'style="opacity:.55"'}>
       <td class="mxname" onclick="mxRowAll('${t.id}')">
         <b>${t.name}${t.ally ? '<span class="ally-dot"></span>' : ''}</b>
         <span>${TYPE_LABEL[t.type]}${t.pharm ? ' · 院边 ' + t.pharm : ''}${t.idle >= 8 ? ' · 闲置' + t.idle + '周' : ''}</span>
@@ -834,6 +855,72 @@ function replayPlan() {
 }
 
 /* =========================================================
+   产品
+   ========================================================= */
+function setW(pid, v) { const p = PRODUCTS.find(x => x.id === pid); if (p) { p.w = +v; render(); } }
+function setStrat(pid, sid) { const p = PRODUCTS.find(x => x.id === pid); if (p) { p.strat = sid; render(); } }
+function doRes(pid) { const r = grantRes(pid); toast(r.msg, r.ok ? 'good' : 'bad'); render(); }
+
+function viewProducts() {
+  const st = computeStats();
+  const mt = marketTask();
+  const mk = relOf('internal', 'marketing');
+
+  return `
+  <div class="pagehead">
+    <div><h2>产品<span>PRODUCTS</span></h2><p>精力权重决定代表在这条线上分到多少力气；策略决定用学术、价格还是渠道撬。权重不是独立资源——给这条线多了，别的线就少了。</p></div>
+    <div class="hint" style="text-align:right">市场部好感 <b style="color:${mk >= 60 ? '#17795A' : mk < 35 ? '#B3261E' : '#0143B0'}">${f1(mk)}</b>（低于 35 无法申请资源）</div>
+  </div>
+
+  <div class="prodcards">
+    ${PRODUCTS.map(p => {
+    const share = productShare(p.id) * 100;
+    const sales = st.byProduct[p.id] || 0;
+    const w = p.w == null ? 50 : p.w;
+    const strat = p.strat || 'academic';
+    const canRes = mk >= 35 && (p.resWeeks || 0) <= 0;
+    const resCost = f1(4 * CFG.costScale[S.level]);
+    return `<section class="card prod">
+      <div class="prod-h">
+        <i style="background:${p.color}"></i>
+        <div style="flex:1"><b>${p.name}</b>
+          <div class="hint">${p.kind} · <span class="tachip">${TA_NAME[p.ta]}</span>${polChips(p)}</div></div>
+        <div style="text-align:right"><div style="font-size:18px;font-weight:700">${f1(sales)}<small style="font-size:10px;font-weight:400;color:#8494A6"> 万/月</small></div>
+          <div class="hint">份额 ${f1(share)}%</div></div>
+      </div>
+      <div class="prod-row">
+        <span class="lb">精力权重</span>
+        <input class="wrange" type="range" min="0" max="100" step="5" value="${w}" onchange="setW('${p.id}',this.value)">
+        <b style="width:34px;text-align:right">${w}</b>
+      </div>
+      <div class="prod-row" style="gap:5px">
+        <span class="lb">营销策略</span>
+        <div class="pills" style="flex:1">
+          ${PRODUCT_STRATS.map(x => `<button class="pill ${strat === x.id ? 'on' : ''}" title="${x.desc}" onclick="setStrat('${p.id}','${x.id}')">${x.name}</button>`).join('')}
+        </div>
+      </div>
+      <div class="prod-foot">
+        <span class="hint">${(p.resWeeks || 0) > 0 ? `<span style="color:#17795A">学术资源生效中 · 剩 ${p.resWeeks} 周</span>` : `认知推进按 ${PRODUCT_STRATS.find(x => x.id === strat).desc}`}</span>
+        <button class="btn sm" ${canRes ? '' : 'disabled'} onclick="doRes('${p.id}')">申请学术资源（${resCost}万 · 好感 -8）</button>
+      </div>
+    </section>`;
+  }).join('')}
+  </div>
+
+  <section class="card mt12">
+    <div class="card-h"><h3>市场部任务<em>MARKETING TASKS</em></h3><span class="sub">完成 +6 好感，失败不掉</span></div>
+    ${mt ? `<div class="taskbox">
+      <div class="tk-h"><b>${mt.task.name}</b><span>${mt.cur} / ${mt.need}</span></div>
+      <div class="hint">${mt.task.desc}</div>
+      <span class="bar"><i style="width:${Math.min(100, mt.cur / mt.need * 100)}%;background:${mt.done ? '#17795A' : '#0143B0'}"></i></span>
+    </div>` : '<div class="empty">暂无任务</div>'}
+    <div class="hint mt12" style="border-top:1px solid #F0F4F8;padding-top:9px">
+      市场部给的任务都很具体：交病例、办活动、做份额、铺覆盖。做完加好感，好感够了才批学术资源。
+    </div>
+  </section>`;
+}
+
+/* =========================================================
    关系
    ========================================================= */
 const REL_FX = {
@@ -989,7 +1076,7 @@ function renderStart() {
   const app = document.getElementById('app');
   if (START.stage === 'path') {
     app.innerHTML = `<div class="start"><div class="start-inner">
-      <div class="kicker">江右药业 · 营销体系模拟</div>
+      <div class="kicker">内资药企 · 营销体系模拟</div>
       <h1>药企模拟器<small>PHARMA SIMULATOR</small></h1>
       <div class="lead">先选一条成长路线。三条线的评价标准不同：营销看份额和回款，学术看证据和共识，市场看产品策略和准入。</div>
       <div class="pathgrid">
@@ -1215,10 +1302,31 @@ function promoteModal() {
       <p style="font-size:13px;color:#0F1A26;font-weight:600">你接手 ${a.org}，区域从 ${ACTS[S.level].region} 扩到 ${a.region}。</p>
       <p>${a.brief}</p>
       <div class="hint">编制扩至 ${CFG.teamCap[next]} 人 · 目标月均 ${f1(a.target)} 万元 · 份额 ${f1(a.shareTarget * 100)}%</div>`,
-    footer: `<button class="btn primary" onclick="doPromoteAndContinue()">接手新市场</button>`,
+    footer: `<button class="btn" onclick="thinkPromotion()">考虑一下</button>
+      <button class="btn" onclick="refusePromotion()">拒绝</button>
+      <button class="btn primary" onclick="doPromoteAndContinue()">接受晋升</button>`,
   }));
 }
+
+function openOffer() { if (S.offer) promoteModal(); }
+
+function thinkPromotion() {
+  S.offer = { level: S.level + 1 };
+  MODAL = null; renderModal();
+  toast('晋升邀请已挂起，本回合内随时可以接受', 'flat');
+  render();
+}
+
+function refusePromotion() {
+  S.offer = null;
+  S.flags.noPromoteUntil = S.monthInAct + 6;
+  S.reputation = Math.max(0, S.reputation - 8);
+  relAdd('internal', 'boss', -12);
+  log('bad', '你拒绝了晋升。省区总监沉默了三秒，说"再想想"。六个月内不再考虑你的晋升。');
+  closeModal();
+}
 function doPromoteAndContinue() {
+  S.offer = null;
   doPromote();
   MODAL = null; renderModal(); render();
   showBrief();

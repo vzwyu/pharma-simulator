@@ -42,7 +42,7 @@ const S = run('S');
 console.log('开局:', S && S.team.length === 2 ? 'OK' : 'FAIL', '| 难度', S.diff, '| 预算', S.cash);
 
 // 3) 各视图
-['overview', 'terminals', 'team', 'actions', 'relations', 'compliance', 'log'].forEach(tab => {
+['overview', 'terminals', 'team', 'products', 'actions', 'relations', 'compliance', 'log'].forEach(tab => {
   try {
     run(`TAB='${tab}'; render();`);
     const html = store.app || '';
@@ -70,6 +70,12 @@ try {
   run("openGuess(S.team[0].id); renderModal();");
   console.log('猜标签弹窗:', (store['modal-root'] || '').includes('猜标签') ? 'OK' : 'FAIL');
 } catch (e) { console.log('猜标签 ERROR', e.message); }
+
+try {
+  run("S.pendingPromotion={type:'promote',progress:promotionProgress()}; promoteModal(); renderModal();");
+  const h = store['modal-root'] || '';
+  console.log('晋升弹窗:', h.includes('考虑一下') && h.includes('拒绝') ? 'OK' : 'FAIL');
+} catch (e) { console.log('晋升弹窗 ERROR', e.message); }
 
 // 5) 推进四周 + 月报 + 事件
 try {

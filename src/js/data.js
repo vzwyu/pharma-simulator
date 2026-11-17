@@ -214,6 +214,12 @@ function buildTaAff(type) {
   return aff;
 }
 
+function tidFrom(tpl) {
+  let h = 2166136261;
+  for (let i = 0; i < tpl.length; i++) { h ^= tpl.charCodeAt(i); h = (h * 16777619) >>> 0; }
+  return 'h' + h.toString(36);
+}
+
 function buildTerminals() {
   TERM_SPECS.forEach((specs, act) => {
     TERMINALS[act].length = 0;
@@ -226,7 +232,7 @@ function buildTerminals() {
         .replace('{stores2}', stores).replace('{stores3}', rndInt(36, 58))
         .replace('{stores4}', stores);
       TERMINALS[act].push({
-        id: 't' + act + '-' + i,
+        id: tidFrom(s[0] + '|' + s[1]),
         name, type: s[1], potential: s[2], access: s[3],
         awareness: s[4], relation: s[5], comp: s[6], tier: s[7],
         pharm: s[8] || 0, stores: s[9] ? stores : 0,
@@ -406,6 +412,18 @@ const PROJECTS = [
   { id: 'relation', name: '客情维护', en: 'Key Account Care', cost: 2.0, ap: 1, multi: 3, fail: 0.10, delay: 0,
     base: { rel: 13 }, desc: '客情 +13 起，关系型终端更高；风险敞口 +2。',
     help: '客情是准入和处方的润滑剂，但边界要自己把握。' },
+  { id: 'pushstock', name: '压货', en: 'Channel Stuffing', cost: 2.0, ap: 1, multi: 2, fail: 0.38, delay: 0, weekOnly: 4,
+    base: {}, desc: '月末冲量：把货压到商业和院边店。成功则本月销量 +25%，但随后 1–3 个月回调。',
+    help: '只在每月最后一周能做。客情和商业公司关系决定成不成；压多了，下个月代表要还债。' },
+  { id: 'patientedu', name: '患教会', en: 'Patient Education', cost: 1.0, ap: 1, multi: 3, fail: 0.14, delay: 0,
+    base: { aw: 10, rel: 6 }, desc: '药店场景的学术动作：面向患者做用药教育，认知 +10、客情 +6。',
+    help: '药店讲不了科室会，但能讲患者教育。连锁总部认这个。' },
+  { id: 'clerktrain', name: '店员培训', en: 'Clerk Training', cost: 1.5, ap: 1, multi: 2, fail: 0.12, delay: 1,
+    base: { aw: 8, access: 5 }, desc: '给店员做产品培训，1 个月后生效：认知 +8、准入 +5。',
+    help: '店员不认产品，只认提成和好卖。培训要把这两点讲透。' },
+  { id: 'display', name: '陈列谈判', en: 'Shelf Negotiation', cost: 1.2, ap: 1, multi: 2, fail: 0.18, delay: 0,
+    base: { access: 6, rel: 4 }, desc: '谈端架、堆头、收银台位置：准入 +6、客情 +4。',
+    help: '位置就是销量。谈判筹码是你给连锁带来的客流。' },
   { id: 'coach', name: '协访', en: 'Co-visit', cost: 1.5, ap: 1, multi: -2, fail: 0.05, delay: 0,
     base: {}, desc: '陪一名代表跑一周市场：该代表覆盖 ×1.25 持续 4 周，忠诚 +6，其负责终端客情 +3。',
     help: '地区经理的基本功。带得动的人，才留得住；也顺带摸清他到底几斤几两。' },
@@ -426,6 +444,21 @@ const WEEKLY_ORDERS = [
   { id: 'academic', name: '抓学术', desc: '本周主抓科室会与病例：认知 +3', tone: '' },
   { id: 'relation', name: '做客情', desc: '本周重点维护关键客户：客情 +3', tone: '' },
   { id: 'compliance', name: '抓合规', desc: '本周只做规范动作：风险 -10，覆盖 -5%', tone: 'safe' },
+];
+
+/* 市场部任务：完成加好感，失败/超时掉好感 */
+const MARKET_TASKS = [
+  { id: 'cases', name: '提交真实世界病例', desc: '完成 2 次病例征集', need: 2, metric: 'case' },
+  { id: 'meetings', name: '组织学术活动', desc: '完成 3 场科室会或患教会', need: 3, metric: 'edu' },
+  { id: 'share', name: '提升核心品种份额', desc: '任一品种整体份额达到 22%', need: 1, metric: 'share' },
+  { id: 'coverage', name: '扩大终端覆盖', desc: '有代表的终端达到 5 家', need: 5, metric: 'covered' },
+];
+
+/* 产品营销策略 */
+const PRODUCT_STRATS = [
+  { id: 'academic', name: '学术驱动', desc: '认知效果 +15%，但价格劣势放大' },
+  { id: 'price', name: '价格驱动', desc: '价格系数 +0.04，认知效果 -15%' },
+  { id: 'channel', name: '渠道驱动', desc: '准入折算 +8%，认知效果 -10%' },
 ];
 
 const PUNISH = [
@@ -951,8 +984,8 @@ const REL_DEFS = {
    ========================================================= */
 EVENTS.push(
   {
-    id: 'nrdl', title: '医保目录谈判', en: 'NRDL Negotiation', weight: 13,
-    cond: s => PRODUCTS.some(p => !p.pol.includes('nrdl')),
+    id: 'nrdl', title: '医保目录谈判', en: 'NRDL Negotiation', weight: 13, minLevel: 3, delay: 12,
+    cond: s => s.level >= 3 && PRODUCTS.some(p => !p.pol.includes('nrdl')),
     text: () => {
       const p = pickOne(PRODUCTS.filter(x => !x.pol.includes('nrdl')));
       return `${p.name}（${TA_NAME[p.ta]}）进入今年国家医保目录谈判名单。以价换量，降价幅度决定了能不能进。`;
@@ -969,8 +1002,8 @@ EVENTS.push(
     ],
   },
   {
-    id: 'vbp', title: '集采投标', en: 'Volume-Based Procurement', weight: 12,
-    cond: s => PRODUCTS.some(p => !p.pol.includes('vbp') && (p.id === 'gen' || p.id === 'base')),
+    id: 'vbp', title: '集采投标', en: 'Volume-Based Procurement', weight: 12, minLevel: 3, delay: 12,
+    cond: s => s.level >= 3 && PRODUCTS.some(p => !p.pol.includes('vbp') && (p.id === 'gen' || p.id === 'base')),
     text: () => {
       const p = PRODUCTS.find(x => !x.pol.includes('vbp') && (x.id === 'gen' || x.id === 'base')) || PRODUCTS[0];
       return `${p.name} 所在品种组进入国家集采。规则是最低价中标，中标量价齐升，落标基本退出院内市场。`;
@@ -991,8 +1024,8 @@ EVENTS.push(
     ],
   },
   {
-    id: 'edl', title: '基药目录遴选', en: 'Essential Drug List', weight: 10,
-    cond: s => PRODUCTS.some(p => !p.pol.includes('edl') && (p.id === 'base' || p.id === 'herb')),
+    id: 'edl', title: '基药目录遴选', en: 'Essential Drug List', weight: 10, minLevel: 3, delay: 12,
+    cond: s => s.level >= 3 && PRODUCTS.some(p => !p.pol.includes('edl') && (p.id === 'base' || p.id === 'herb')),
     text: '新版基本药物目录开始遴选。进入目录意味着基层必须配备，但价格和利润空间都会被压。',
     options: [
       { label: '全力申报', cost: 2, ap: 1,
@@ -1038,6 +1071,57 @@ EVENTS.push(
         run: s => { const t = pick(s.terminals.filter(x => x.type === 'hospital'));
           if (t) t.access = Math.max(0, t.access - 18);
           return { text: t ? `${t.name} 被清退，准入 -18。` : '无医院。', tone: 'bad' }; } },
+    ],
+  },
+);
+
+/* 基层可执行的政策配合动作（决策在总部，执行在你） */
+EVENTS.push(
+  {
+    id: 'vbp-exec', title: '集采报量配合', en: 'VBP Volume Reporting', weight: 12, delay: 12,
+    cond: s => s.level < 3 && s.terminals.some(t => t.type === 'hospital'),
+    text: '省里启动新一轮集采报量，医院要在两周内上报历史采购量。报多少由总部定，但报得准不准，取决于你手上的数据。',
+    options: [
+      { label: '逐家核对历史采购数据，报准', cost: 2, ap: 1,
+        run: s => { s.rel.internal.commercial = Math.min(100, s.rel.internal.commercial + 3); s.compliance = Math.min(100, s.compliance + 2);
+          return { text: '报量数据经得起核。中标后配送份额更稳，商务部好感 +3。', tone: 'good' }; } },
+      { label: '按上限报，先把量做大', cost: 0,
+        run: s => { s.riskMod = Math.min(60, s.riskMod + 6);
+          return { text: '量报上去了，但如果实际用不掉，后续会被追责。风险 +6。', tone: 'bad' }; } },
+      { label: '让商业公司代报', cost: 1,
+        run: s => { s.rel.external.distributor = Math.min(100, s.rel.external.distributor + 4); s.rel.internal.commercial = Math.max(0, s.rel.internal.commercial - 2);
+          return { text: '商业公司代劳，你省事但他们掌握口径。经销商 +4，商务部 -2。', tone: 'flat' }; } },
+    ],
+  },
+  {
+    id: 'edl-exec', title: '基药配备率考核', en: 'EDL Penetration', weight: 11, delay: 12,
+    cond: s => s.level < 3 && s.terminals.some(t => t.type === 'primary'),
+    text: '卫健委把基本药物配备率纳入基层机构考核，卫生院要在季度末达到配齐率要求。你的品种在不在目录里，直接决定能不能被配。',
+    options: [
+      { label: '配合卫生院做目录梳理', cost: 1.5, ap: 1,
+        run: s => { s.terminals.filter(t => t.type === 'primary').forEach(t => { t.access = Math.min(100, t.access + 6); });
+          s.rel.external.hospital = Math.min(100, s.rel.external.hospital + 3);
+          return { text: '基层准入 +6，医院关系 +3。', tone: 'good' }; } },
+      { label: '只推已有基药身份的品种', cost: 0,
+        run: s => { const has = PRODUCTS.some(p => p.pol.includes('edl'));
+          if (has) return { text: '聚焦基药身份品种，资源没浪费。', tone: 'flat' };
+          s.terminals.filter(t => t.type === 'primary').forEach(t => { t.access = Math.max(0, t.access - 4); });
+          return { text: '手上没有基药身份品种，基层配备率帮不上忙，准入 -4。', tone: 'bad' }; } },
+    ],
+  },
+  {
+    id: 'nrdl-exec', title: '国谈药落地', en: 'NRDL Landing', weight: 11, delay: 12,
+    cond: s => s.level < 3 && PRODUCTS.some(p => p.pol.includes('nrdl')),
+    text: '国谈药进目录了，但医院要开药事会才能落地，双通道药店也要对接。总部催的是"落地率"，不是"进目录"。',
+    options: [
+      { label: '推动双通道药店对接', cost: 2, ap: 1,
+        run: s => { const rt = s.terminals.find(t => t.type === 'retail');
+          if (rt) { rt.access = Math.min(100, rt.access + 8); rt.awareness = Math.min(100, rt.awareness + 6); }
+          return { text: '双通道打通，连锁终端准入 +8、认知 +6。处方能流出来了。', tone: 'good' }; } },
+      { label: '盯医院药事会排期', cost: 1, ap: 1,
+        run: s => { const hs = s.terminals.filter(t => t.type === 'hospital');
+          hs.forEach(t => { t.access = Math.min(100, t.access + 4); });
+          return { text: '各院准入 +4。慢，但这是正路。', tone: 'flat' }; } },
     ],
   },
 );

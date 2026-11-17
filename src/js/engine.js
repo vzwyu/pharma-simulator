@@ -44,6 +44,55 @@ function policyOf(p, type) {
 
 function taOf(t, p) { return (t.taAff && t.taAff[p.ta]) || 0.7; }
 
+const STRAT = {
+  academic: { aw: 1.15, price: -0.015, access: 1.00 },
+  price:    { aw: 0.85, price: 0.040, access: 1.00 },
+  channel:  { aw: 0.90, price: 0.000, access: 1.08 },
+};
+
+function productShare(pid) {
+  const st = computeStats();
+  let num = 0, den = 0;
+  S.terminals.forEach(t => { num += st.terms[t.id].items[pid].sales; den += t.potential * ((MIX[t.type] || MIX.hospital)[pid] || 0.25); });
+  return den > 0 ? num / den : 0;
+}
+
+function outputOf(rep) {
+  const st = computeStats();
+  let out = 0;
+  S.terminals.forEach(t => {
+    const c = st.terms[t.id];
+    const sum = c.reps.reduce((a, x) => a + x.pw, 0) || 1;
+    c.reps.forEach(x => { if (x.id === rep.id) out += c.total * (x.pw / sum); });
+  });
+  return out;
+}
+
+/* ---------- 市场部 ---------- */
+function marketTask() {
+  const t = MARKET_TASKS[S.market.idx % MARKET_TASKS.length];
+  if (!t) return null;
+  let cur = 0;
+  if (t.metric === 'case') cur = S.market.cnt.case || 0;
+  else if (t.metric === 'edu') cur = S.market.cnt.edu || 0;
+  else if (t.metric === 'covered') cur = new Set(S.team.flatMap(r => Object.keys(r.assign))).size;
+  else if (t.metric === 'share') cur = Math.max(...PRODUCTS.map(p => productShare(p.id))) >= 0.22 ? 1 : 0;
+  return { task: t, cur, need: t.need, done: cur >= t.need };
+}
+
+function grantRes(pid) {
+  const p = PRODUCTS.find(x => x.id === pid);
+  if (!p) return { ok: false, msg: '品种不存在' };
+  if (relOf('internal', 'marketing') < 35) return { ok: false, msg: '市场部对你还没那么熟（好感 < 35）' };
+  const c = +(4 * CFG.costScale[S.level]).toFixed(2);
+  if (S.cash < c) return { ok: false, msg: '预算不足' };
+  S.cash = +(S.cash - c).toFixed(2);
+  p.resWeeks = 8;
+  relAdd('internal', 'marketing', -8);
+  log('good', `市场部批了 ${p.name} 的学术资源包，未来 8 周认知推进 +30%。`);
+  return { ok: true, msg: `已申请 ${p.name} 学术资源` };
+}
+
 /* ---------- 建人 ---------- */
 function pickVisible(n, forceId) {
   const out = [];
@@ -337,18 +386,23 @@ function computeStats() {
     const items = {};
     let total = 0;
 
+    const wAvg = PRODUCTS.reduce((a, x) => a + (x.w == null ? 50 : x.w), 0) / PRODUCTS.length || 50;
     PRODUCTS.forEach(p => {
       const m = mix[p.id] != null ? mix[p.id] : 0.25;
       const pol = policyOf(p, t.type);
       const taF = taOf(t, p);
-      const avail = 0.02 + 0.98 * Math.pow(clamp(t.access * taF, 0, 100) / 100, 0.7) * pol.access;
+      const stg = STRAT[p.strat || 'academic'];
+      const resF = (p.resWeeks || 0) > 0 ? 1.3 : 1;
+      const wF = clamp((p.w == null ? 50 : p.w) / wAvg, 0.35, 2.4);
+      const avail = 0.02 + 0.98 * Math.pow(clamp(t.access * taF * stg.access, 0, 100) / 100, 0.7) * pol.access;
       let share = p.base
-        + t.awareness / 100 * 0.26 * p.awWeight
-        + Math.min(cov[p.id] || 0, 1.3) * 0.115
+        + t.awareness / 100 * 0.26 * p.awWeight * stg.aw * resF
+        + Math.min((cov[p.id] || 0) * wF, 1.7) * 0.115
         + t.relation / 100 * 0.11
         - t.comp * 0.16
-        + p.priceEdge + pol.price;
-      share = clamp(share, 0, 0.72) * avail * tmul * am * orderMul * pol.mul;
+        + p.priceEdge + pol.price + stg.price;
+      share = clamp(share, 0, 0.75) * avail * tmul * am * orderMul * pol.mul
+        * (t.stockBoost > 0 ? 2.0 : 1) * (t.stockBoost === 0 && t.stockDrop > 0 ? 0.8 : 1);
       const sales = t.potential * m * share;
       items[p.id] = { share, sales, cov: cov[p.id] || 0, ta: taF, pol };
       total += sales;
@@ -423,6 +477,9 @@ function newGame(playerName, pathId, tagIds, diffId) {
     terminals: [],
     candidates: [],
     pending: [],
+    pendingEvents: [],
+    market: { idx: 0, cnt: { case: 0, edu: 0 } },
+    offer: null,
     log: [],
     history: [],
     flags: {},
@@ -582,7 +639,10 @@ function failRateOf(p, t) {
   S.team.forEach(r => { if (covers(r, t.id) && r.mod.fail < bestFail) bestFail = r.mod.fail; });
   f += bestFail;
   if (t.idle > 8) f += 0.05;
-  return clamp(f, 0.03, 0.7);
+  if (p.id === 'pushstock') {
+    f = 0.62 - t.relation / 100 * 0.25 - relMod('external', 'distributor') * 0.2;
+  }
+  return clamp(f, 0.03, p.id === 'pushstock' ? 0.85 : 0.7);
 }
 
 function launchProject(pid, tids, repId) {
@@ -590,6 +650,7 @@ function launchProject(pid, tids, repId) {
   if (!p) return { ok: false, msg: '项目不存在' };
   const dc = diffCfg();
   if (pid === 'dev' && dc.noPht) return { ok: false, msg: '这家医院常年不开药事会，正式开发走不通——用客情、病例、渠道磨进院' };
+  if (p.weekOnly && S.weekInMonth !== p.weekOnly) return { ok: false, msg: '压货只能在每月最后一周做' };
 
   if (p.multi === -2) {
     const r = S.team.find(x => x.id === repId);
@@ -674,9 +735,16 @@ function launchProject(pid, tids, repId) {
     });
     msgs.push(`${queued} 个终端的${p.name}已提交，${p.delay} 个月后出结果。`);
   } else {
-    let ok = 0, failed = 0;
+    let ok = 0, failed = 0, queued2 = 0;
     list.forEach(tid => {
       const t = termById(tid);
+      let dw = 0;
+      if (pid === 'dept') dw = Math.random() < 0.55 ? 0 : (1 + Math.floor(Math.random() * 3));
+      if (dw > 0) {
+        S.pending.push({ pid, tid, at: S.totalWeek + dw, cost: 0, mul: 1.35 });
+        queued2++;
+        return;
+      }
       const f = failRateOf(p, t);
       const success = Math.random() > f;
       if (success) ok++; else failed++;
@@ -684,6 +752,7 @@ function launchProject(pid, tids, repId) {
       if (list.length === 1 && failed) msgs.push(`${p.name}在 ${t.name} 失败（成功率 ${((1 - f) * 100).toFixed(0)}%）。`);
     });
     if (list.length > 1) msgs.push(`${p.name}：${ok} 个终端成功，${failed} 个失败。`);
+    if (queued2) msgs.push(`${queued2} 场科室会效果将在 1–3 周后显现。`);
   }
 
   // 关系变化
@@ -695,6 +764,9 @@ function launchProject(pid, tids, repId) {
   if (pid === 'relation') relAdd('external', 'hospital', 2);
   if (pid === 'case') { relAdd('internal', 'medical', 2); relAdd('external', 'kol', 2); }
   if (pid === 'dept') relAdd('internal', 'medical', 0.8);
+
+  if (pid === 'case') S.market.cnt.case++;
+  if (pid === 'dept' || pid === 'patientedu') S.market.cnt.edu++;
 
   if (!msgs.length) msgs.push(`${p.name}执行完成。`);
   S.planThisMonth.push({ pid, tids: list, msg: msgs[0] });
@@ -708,7 +780,7 @@ function applyEffect(p, t, success, extraMul) {
   const hard = diffCfg().noPht;
   switch (p.id) {
     case 'dept':
-      t.awareness = Math.min(100, t.awareness + (e.aw || 0) * k);
+      t.awareness = Math.min(100, t.awareness + (e.aw || 0) * k * (extraMul || 1));
       t.relation = Math.min(100, t.relation + (e.rel || 0) * (success ? 1 : 0.2));
       break;
     case 'case':
@@ -726,6 +798,22 @@ function applyEffect(p, t, success, extraMul) {
       break;
     case 'dev':
       t.access = Math.min(100, t.access + (e.access || 0) * (success ? rnd(0.9, 1.15) : 0.45) * (extraMul || 1));
+      break;
+    case 'pushstock':
+      if (success) { t.stockBoost = 1; t.stockDrop = 1 + Math.floor(Math.random() * 3); }
+      else { t.relation = Math.max(0, t.relation - 4); }
+      break;
+    case 'patientedu':
+      t.awareness = Math.min(100, t.awareness + 10 * k);
+      t.relation = Math.min(100, t.relation + 6 * k);
+      break;
+    case 'clerktrain':
+      t.awareness = Math.min(100, t.awareness + 8 * k);
+      t.access = Math.min(100, t.access + 5 * k);
+      break;
+    case 'display':
+      t.access = Math.min(100, t.access + 6 * k);
+      t.relation = Math.min(100, t.relation + 4 * k);
       break;
   }
   if (hard) {
@@ -835,6 +923,26 @@ function endWeek() {
   const resolved = resolvePending();
   resolved.forEach(m => log('action', m));
 
+  // 1.2) 政策/延迟事件出结果
+  const dueEv = S.pendingEvents.filter(x => x.at <= S.totalWeek);
+  S.pendingEvents = S.pendingEvents.filter(x => x.at > S.totalWeek);
+  dueEv.forEach(x => {
+    const ev = EVENTS.find(e => e.id === x.evId) || MGMT_EVENTS.find(e => e.id === x.evId);
+    const opt = ev && ev.options[x.idx];
+    if (!opt) return;
+    const res = opt.run(S) || { text: '', tone: 'flat' };
+    resolved.push(`【${ev.title}】${res.text}`);
+    log(res.tone === 'bad' ? 'bad' : res.tone === 'good' ? 'good' : 'info', `【${ev.title}】${res.text}`);
+  });
+
+  // 1.5) 市场部任务完成判定
+  const mt = marketTask();
+  if (mt && mt.done) {
+    relAdd('internal', 'marketing', 6);
+    S.market.idx++;
+    log('good', `完成市场部任务「${mt.task.name}」，市场部好感 +6。`);
+  }
+
   // 2) 周会要求落地
   const order = S.order;
   if (order) {
@@ -909,6 +1017,11 @@ function endWeek() {
   // 5) 销售（周 = 月跑量 / 4）
   const st = computeStats();
   const weekSales = st.total / CFG.weeksPerMonth;
+  // 压货效果计时（结算完本周销量后再递减）
+  S.terminals.forEach(t => {
+    if (t.stockBoost > 0) t.stockBoost--;
+    else if (t.stockDrop > 0) t.stockDrop--;
+  });
   const gross = weekSales * CFG.grossRate * (1 + relMod('external', 'distributor') * 0.08);
   const sal = salaryTotal() / CFG.weeksPerMonth;
   S.cash = +(S.cash + gross - sal).toFixed(2);
@@ -937,6 +1050,7 @@ function endWeek() {
 
   // 9) 政策时效
   ['filing', 'lean', 'tight'].forEach(k => { if (S.flags[k] > 0) S.flags[k]--; });
+  PRODUCTS.forEach(p => { if (p.resWeeks > 0) p.resWeeks--; });
 
   // 10) 累计到本月
   S.wk.sales += weekSales;
@@ -1109,6 +1223,7 @@ function checkPromotion() {
   const allOk = Object.values(p).every(x => x.ok);
 
   if (S.level < 3) {
+    if (S.flags.noPromoteUntil && S.monthInAct < S.flags.noPromoteUntil) return null;
     if (allOk && S.monthInAct > 5) return { type: 'promote', level: S.level + 1, progress: p };
     if (S.monthInAct > 12 && !S.actExtended) {
       const avg = recentAvg(3);
@@ -1155,8 +1270,19 @@ function doPromote() {
   enterAct(next, true);
   S.reputation = Math.min(100, S.reputation + 5);
   const add = Math.min(3, CFG.teamCap[next] - S.team.length);
-  for (let i = 0; i < add; i++) S.team.push(makeRep(S, { abilityBoost: 6 }));
-  if (add > 0) log('good', `公司从其他区域划转 ${add} 名代表随你到岗。`);
+  const newcomers = [];
+  for (let i = 0; i < add; i++) { const nr = makeRep(S, { abilityBoost: 6 }); newcomers.push(nr); S.team.push(nr); }
+  if (add > 0) {
+    // 新区域的代表自动接手没人管的终端
+    const covered = new Set();
+    S.team.forEach(r => Object.keys(r.assign).forEach(tid => covered.add(tid)));
+    const empty = S.terminals.filter(t => !covered.has(t.id)).sort((a, b) => b.potential - a.potential);
+    newcomers.forEach((nr, i) => {
+      const targets = empty.slice(i * 1, i * 1 + 2);
+      targets.forEach(t => { nr.assign[t.id] = { p: PRODUCTS.map(p => p.id), pharm: false }; });
+    });
+    log('good', `公司从其他区域划转 ${add} 名代表，已自动接手空缺终端。`);
+  }
   log('good', `晋升为${ACTS[next].rank}，接手${ACTS[next].region}。`);
 }
 
@@ -1187,6 +1313,11 @@ function rollEvent() {
 
 function applyEventOption(ev, idx) {
   const opt = ev.options[idx];
+  if (ev.delay) {
+    S.pendingEvents.push({ at: S.totalWeek + ev.delay, evId: ev.id, idx, title: ev.title, label: opt.label });
+    log('info', `【${ev.title}】已按「${opt.label}」上报，${Math.round(ev.delay / 4)} 个月后出结果。`);
+    return { text: `决策已上报总部。政策类事项不会当月见效——${Math.round(ev.delay / 4)} 个月后出结果。`, tone: 'flat' };
+  }
   if (opt.cost) {
     const c = +(opt.cost * CFG.costScale[S.level]).toFixed(2);
     S.cash = +(S.cash - c).toFixed(2);
