@@ -452,6 +452,9 @@ const MARKET_TASKS = [
   { id: 'meetings', name: '组织学术活动', desc: '完成 3 场科室会或患教会', need: 3, metric: 'edu' },
   { id: 'share', name: '提升核心品种份额', desc: '任一品种整体份额达到 22%', need: 1, metric: 'share' },
   { id: 'coverage', name: '扩大终端覆盖', desc: '有代表的终端达到 5 家', need: 5, metric: 'covered' },
+  { id: 'econ', name: '提交药物经济学模型', desc: '省级要材料：办 1 场区域会 + 1 次病例征集', need: 2, metric: 'econ', minLevel: 1 },
+  { id: 'kolrel', name: '推动省级专家共识', desc: '专家网络关系达到 65', need: 1, metric: 'kolrel', minLevel: 2 },
+  { id: 'brand', name: '全国品牌项目立项', desc: '2 个品种拿到学术资源或份额 ≥20%', need: 2, metric: 'brand', minLevel: 3 },
 ];
 
 /* 产品营销策略 */

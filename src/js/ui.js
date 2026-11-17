@@ -377,12 +377,13 @@ function terminalDetail(t, c) {
   const prodRows = PRODUCTS.map(p => {
     const it = c.items[p.id];
     const who = c.reps.filter(x => x.p.includes(p.id)).map(x => x.name);
+    const refuser = c.reps.some(x => { const rr = S.team.find(y => y.id === x.id); return rr && ((rr.wPref || {})[p.id] || 0) <= -0.5; });
     const ta = it.ta || 0.7;
     return `<tr><td><i style="display:inline-block;width:7px;height:7px;border-radius:2px;background:${p.color};margin-right:6px"></i>${p.name}
         <span class="tachip">${TA_NAME[p.ta]}</span>${polChips(p)}</td>
       <td class="r" style="color:${ta >= 1.1 ? '#17795A' : ta <= 0.65 ? '#B3261E' : '#8494A6'}">×${ta.toFixed(2)}</td>
       <td class="r">${f1(it.share * 100)}%</td><td class="r">${f1(it.sales)}</td>
-      <td style="font-size:11px;color:${who.length ? '#4A5C70' : '#B3261E'}">${who.length ? who.join('、') : '无人负责'}</td></tr>`;
+      <td style="font-size:11px;color:${who.length ? '#4A5C70' : '#B3261E'}">${who.length ? who.join('、') : '无人负责'}${refuser ? '<span style="color:#B3261E"> · 拒绝推进</span>' : ''}</td></tr>`;
   }).join('');
 
   const acts = actsFor(t);
@@ -962,6 +963,12 @@ function relRow(def, group) {
   </div>`;
 }
 
+function doRelocate() {
+  const r = relocateStock();
+  toast(r.msg, r.ok ? 'good' : 'bad');
+  render();
+}
+
 function viewRelations() {
   return `
   <div class="pagehead">
@@ -975,6 +982,14 @@ function viewRelations() {
     <section class="card">
       <div class="card-h"><h3>外部资源<em>EXTERNAL</em></h3><span class="sub">目标：让客户替你说话</span></div>
       ${REL_DEFS.external.map(d => relRow(d, 'external')).join('')}
+      <div class="stockbox">
+        <div class="tk-h"><b>商业公司库存</b><span style="color:${distOver() > 0 ? '#B3261E' : '#4A5C70'}">${f1(S.dist.stock)} / ${f1(distCap())} 万</span></div>
+        <span class="bar"><i style="width:${Math.min(100, S.dist.stock / distCap() * 100)}%;background:${distOver() > 0 ? '#B3261E' : '#0143B0'}"></i></span>
+        <div class="hint" style="margin-top:6px">
+          ${distOver() > 0 ? `<span style="color:#B3261E">积压 ${f1(distOver())} 万：压货更难、配送挑单、全渠道份额 -5%</span>` : '压货会把货压到商业仓库，卖不动就是债。'}
+        </div>
+        <button class="btn sm mt12" ${S.cash < CFG.costScale[S.level] ? 'disabled' : ''} onclick="doRelocate()">协调跨区调货（${f1(CFG.costScale[S.level])}万 · 调走 40%）</button>
+      </div>
     </section>
   </div>
   <section class="card mt12">

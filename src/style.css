@@ -624,3 +624,6 @@ table.tb tr:hover td { background: #FBFCFE; }
 .mxtable th.mxname, .mxtable td.mxname { min-width: 158px; }
 .mxtable td.mxname b { font-size: 12px; white-space: nowrap; }
 .mxtable td.mxname span { white-space: nowrap; }
+
+/* 商业库存 */
+.stockbox { margin-top: 14px; padding: 11px 13px; border: 1px solid var(--line); border-radius: 9px; background: #FBFCFE; }

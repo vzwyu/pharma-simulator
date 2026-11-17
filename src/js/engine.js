@@ -70,11 +70,16 @@ function outputOf(rep) {
 
 /* ---------- 市场部 ---------- */
 function marketTask() {
-  const t = MARKET_TASKS[S.market.idx % MARKET_TASKS.length];
+  const pool = MARKET_TASKS.filter(x => (x.minLevel || 0) <= S.level)
+    .slice().sort((a, b) => (b.minLevel || 0) - (a.minLevel || 0));
+  const t = pool[S.market.idx % pool.length];
   if (!t) return null;
   let cur = 0;
   if (t.metric === 'case') cur = S.market.cnt.case || 0;
   else if (t.metric === 'edu') cur = S.market.cnt.edu || 0;
+  else if (t.metric === 'econ') cur = (S.market.cnt.city || 0) + (S.market.cnt.case || 0);
+  else if (t.metric === 'kolrel') cur = relOf('external', 'kol') >= 65 ? 1 : 0;
+  else if (t.metric === 'brand') cur = PRODUCTS.filter(p => (p.resWeeks || 0) > 0 || productShare(p.id) >= 0.2).length;
   else if (t.metric === 'covered') cur = new Set(S.team.flatMap(r => Object.keys(r.assign))).size;
   else if (t.metric === 'share') cur = Math.max(...PRODUCTS.map(p => productShare(p.id))) >= 0.22 ? 1 : 0;
   return { task: t, cur, need: t.need, done: cur >= t.need };
@@ -157,6 +162,7 @@ function makeRep(state, opt) {
     salary,
     filed: !!(opt && opt.filed),
     coach: 0,
+    wPref: {},
     assign: {},
     tactic: 'standard',
     months: 0,
@@ -402,7 +408,11 @@ function computeStats() {
       const w = TYPE_COST[t.type] || 1;
       let pw = base * (w / Math.max(L, 0.001)) * overload;
       if (t.type === 'retail') pw *= retailEff;
-      (a.p || []).forEach(pid => { cov[pid] = (cov[pid] || 0) + pw; });
+      (a.p || []).forEach(pid => {
+        const pref = (r.wPref && r.wPref[pid]) || 0;
+        const wm = pref <= -0.5 ? 0 : 1 + pref;
+        cov[pid] = (cov[pid] || 0) + pw * wm;
+      });
       covAll += pw;
       mulW += pw; mulS += pw * mul;
       reps.push({ id: r.id, name: r.name, pw, p: a.p.slice(), pharm: a.pharm });
@@ -432,7 +442,7 @@ function computeStats() {
       share = clamp(share, 0, 0.75) * avail * tmul * am * orderMul * pol.mul
         * (t.stockBoost > 0 ? 2.0 : 1)
         * (t.stockBoost === 0 && t.stockDrop > 0 ? (t.stockMul || 0.8) : 1)
-        * (1 - (p.neglect || 0));
+        * (1 - (p.neglect || 0)) * (distOver() > 0 ? 0.95 : 1);
       const sales = t.potential * m * share;
       items[p.id] = { share, sales, cov: cov[p.id] || 0, ta: taF, pol };
       total += sales;
@@ -448,6 +458,21 @@ function computeStats() {
 function calcTerminal(t) { return computeStats().terms[t.id]; }
 function totalSales() { return S.terminals.reduce((a, t) => a + computeStats().terms[t.id].total, 0); }
 function marketSize() { return S.terminals.reduce((a, t) => a + t.potential, 0); }
+
+function distCap() { return 40 + relOf('external', 'distributor') * 0.9; }
+function distOver() { return Math.max(0, S.dist.stock - distCap()); }
+
+function relocateStock() {
+  const c = +(1 * CFG.costScale[S.level]).toFixed(2);
+  if (S.cash < c) return { ok: false, msg: '预算不足' };
+  if (S.dist.stock < 5) return { ok: false, msg: '商业公司没多少库存可调' };
+  S.cash = +(S.cash - c).toFixed(2);
+  const moved = S.dist.stock * 0.4;
+  S.dist.stock = +(S.dist.stock - moved).toFixed(1);
+  relAdd('external', 'distributor', 2);
+  log('good', `协调商业公司跨区调货 ${moved.toFixed(1)} 万，库存压力缓解。`);
+  return { ok: true, msg: `调走 ${moved.toFixed(1)} 万库存` };
+}
 
 function teamRisk() {
   if (!S.team.length) return clamp(S.riskMod, 0, 100);
@@ -508,7 +533,8 @@ function newGame(playerName, pathId, tagIds, diffId) {
     candidates: [],
     pending: [],
     pendingEvents: [],
-    market: { idx: 0, cnt: { case: 0, edu: 0 }, since: 1 },
+    market: { idx: 0, cnt: { case: 0, edu: 0, city: 0 }, since: 1 },
+    dist: { stock: 0 },
     offer: null,
     log: [],
     history: [],
@@ -670,7 +696,7 @@ function failRateOf(p, t) {
   f += bestFail;
   if (t.idle > 8) f += 0.05;
   if (p.id === 'pushstock') {
-    f = 0.62 - t.relation / 100 * 0.25 - relMod('external', 'distributor') * 0.2;
+    f = 0.62 - t.relation / 100 * 0.25 - relMod('external', 'distributor') * 0.2 + Math.min(0.3, distOver() / 40);
   }
   return clamp(f, 0.03, p.id === 'pushstock' ? 0.85 : 0.7);
 }
@@ -797,6 +823,7 @@ function launchProject(pid, tids, repId) {
   if (pid === 'dept') relAdd('internal', 'medical', 0.8);
 
   if (pid === 'case') S.market.cnt.case++;
+  if (pid === 'city') S.market.cnt.city++;
   if (pid === 'dept' || pid === 'patientedu') S.market.cnt.edu++;
 
   if (!msgs.length) msgs.push(`${p.name}执行完成。`);
@@ -832,6 +859,7 @@ function applyEffect(p, t, success, extraMul) {
       break;
     case 'pushstock':
       if (success) {
+        S.dist.stock = +(S.dist.stock + t.potential * 0.22).toFixed(1);
         const stacked = (t.stockDrop || 0) > 0;
         t.stockBoost = 1;
         t.stockDrop = stacked ? Math.max(2, (t.stockDrop || 0) + 1) : 1 + Math.floor(Math.random() * 3);
@@ -1032,6 +1060,25 @@ function endWeek() {
     r.loyalty = clamp(r.loyalty + loy, 0, 100);
     r.ability = Math.min(100, r.ability + (r.ability < 70 ? 0.55 : 0.22) / 4 * (1 + r.mod.growth + (playerMod().growth || 0)));
     if (r.coach > 0) r.coach--;
+
+    // 对低权重品种的态度：公司自己都不投，代表慢慢就不推了
+    r.wPref = r.wPref || {};
+    const pids = new Set();
+    ids.forEach(tid => { const a = r.assign[tid]; if (a) (a.p || []).forEach(x => pids.add(x)); });
+    pids.forEach(pid => {
+      const prod = PRODUCTS.find(x => x.id === pid);
+      if (!prod) return;
+      const w = prod.w == null ? 50 : prod.w;
+      const cur = r.wPref[pid] || 0;
+      let nv = cur;
+      if (w < 20) nv = Math.max(-0.6, cur - 0.04);
+      else if (w > 50) nv = Math.min(0.2, cur + 0.02);
+      if (nv <= -0.5 && cur > -0.5) {
+        r.loyalty = Math.max(0, r.loyalty - 3);
+        log('bad', `${r.name} 明确表示不愿意再推 ${prod.name}："这个品种公司自己都不投，我跑断腿也没用。"`);
+      }
+      r.wPref[pid] = nv;
+    });
   });
 
   // 4.5) 药事会周期推进
@@ -1072,6 +1119,14 @@ function endWeek() {
     else if (t.stockDrop > 0) t.stockDrop--;
   });
   const gross = weekSales * CFG.grossRate * (1 + relMod('external', 'distributor') * 0.08);
+
+  // 商业公司库存：随实际销售消化；积压则压货更难、关系下降、全渠道受阻
+  S.dist.stock = Math.max(0, +(S.dist.stock - weekSales * 0.62).toFixed(1));
+  const over = distOver();
+  if (over > 0) {
+    relAdd('external', 'distributor', -0.8);
+    if (S.totalWeek % 4 === 0) log('bad', `商业公司库存积压 ${over.toFixed(1)} 万，配送开始挑单。`);
+  }
   const sal = salaryTotal() / CFG.weeksPerMonth;
   S.cash = +(S.cash + gross - sal).toFixed(2);
 
