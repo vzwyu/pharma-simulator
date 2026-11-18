@@ -114,13 +114,25 @@ function mixChart() {
 /* =========================================================
    顶层
    ========================================================= */
+function captureScroll() {
+  const q = sel => { const el = document.querySelector(sel); return el ? el.scrollTop : 0; };
+  return { y: window.scrollY || 0, mb: q('.modal-b'), mx: q('.mxtable-wrap'), pl: q('.punchlist') };
+}
+function restoreScroll(sc) {
+  if (!sc) return;
+  try { window.scrollTo(0, sc.y); } catch (e) { /* noop */ }
+  const mb = document.querySelector('.modal-b'); if (mb) mb.scrollTop = sc.mb;
+  const mx = document.querySelector('.mxtable-wrap'); if (mx) mx.scrollTop = sc.mx;
+  const pl = document.querySelector('.punchlist'); if (pl) pl.scrollTop = sc.pl;
+}
+
 function render() {
   const app = document.getElementById('app');
   if (!S) { app.innerHTML = ''; renderStart(); return; }
-  const sy = window.scrollY;
+  const sc = captureScroll();
   app.innerHTML = topbar() + `<div class="layout">${nav()}<main class="main">${mainView()}</main></div>`;
-  window.scrollTo(0, sy);
-  renderModal();
+  restoreScroll(sc);
+  renderModal(sc);
 }
 
 function topbar() {
@@ -147,7 +159,12 @@ function topbar() {
       <div class="kpi"><label>合规评分</label><strong style="color:${S.compliance < 60 ? '#B3261E' : S.compliance < 78 ? '#B8730A' : '#17795A'}">${f1(S.compliance)}</strong></div>
       <div class="kpi"><label>上级评价</label><strong>${f1(S.reputation)}</strong></div>
     </div>
-    <button class="btn primary turn-btn" onclick="onEndWeek()">推进本周<span class="ap">精力 ${S.ap}/${apMax()}</span></button>
+    <div class="turnwrap">
+      <button class="btn primary turn-btn" onclick="onEndWeek()">推进本周<span class="ap">精力 ${S.ap}/${apMax()}</span></button>
+      <div class="weekdots">
+        ${[1, 2, 3, 4].map(w => `<i class="${w < S.weekInMonth ? 'done' : w === S.weekInMonth ? 'cur' : ''}"></i>`).join('')}
+      </div>
+    </div>
   </header>`;
 }
 
@@ -606,12 +623,12 @@ function repColor(rid) {
 function openMatrix() { PICKER = null; setModal(matrixModal); }
 function mxSet(tid, pid, rid) { setCellRep(tid, pid, rid || null); render(); }
 function mxSetPharm(tid, rid) { setPharmRep(tid, rid || null); render(); }
-function mxRowAll(tid) {
+function mxRowAll(tid, rid) {
   const t = termById(tid);
-  const any = S.team.some(r => covers(r, tid));
-  if (any) S.team.forEach(r => { delete r.assign[tid]; });
-  else if (S.team.length) {
-    const rid = S.team[0].id;
+  if (!t) return;
+  if (!rid) {
+    S.team.forEach(r => { delete r.assign[tid]; });
+  } else {
     PRODUCTS.forEach(p => setCellRep(tid, p.id, rid));
     if (t.pharm) setPharmRep(tid, rid);
   }
@@ -656,9 +673,14 @@ function matrixModal() {
         </select><span class="mxsub">${t.pharm} 家</span></td>`
       : `<td class="mxcell"><span class="mxsub">—</span></td>`;
     return groupRow + `<tr ${c.reps.length ? '' : 'style="opacity:.55"'}>
-      <td class="mxname" onclick="mxRowAll('${t.id}')">
+      <td class="mxname">
         <b>${t.name}${t.ally ? '<span class="ally-dot"></span>' : ''}</b>
         <span>${TYPE_LABEL[t.type]}${t.pharm ? ' · 院边 ' + t.pharm : ''}${t.idle >= 8 ? ' · 闲置' + t.idle + '周' : ''}</span>
+        <select class="mxall" onchange="mxRowAll('${t.id}', this.value)">
+          <option value="">整行指派…</option>
+          ${S.team.map(r => `<option value="${r.id}">${r.name}</option>`).join('')}
+          <option value="">清空</option>
+        </select>
       </td>
       ${cells}${phCell}
       <td class="r mxnum"><b>${f1(c.total)}</b><span>万/月</span></td>
@@ -1093,9 +1115,10 @@ function viewLog() {
 /* =========================================================
    弹窗
    ========================================================= */
-function renderModal() {
+function renderModal(sc) {
   const root = document.getElementById('modal-root');
   if (!MODAL) { root.innerHTML = ''; return; }
+  const keep = sc || captureScroll();
   const m = MODAL();
   root.innerHTML = `<div class="mask" onclick="${m.dismissible === false ? '' : 'closeModal()'}">
     <div class="modal ${m.wide ? 'wide' : ''}" onclick="event.stopPropagation()">
@@ -1104,6 +1127,7 @@ function renderModal() {
       <div class="modal-f">${m.footer || ''}</div>
     </div>
   </div>`;
+  restoreScroll(keep);
 }
 function closeModal() { MODAL = null; renderModal(); render(); }
 function setModal(builder) { MODAL = builder; renderModal(); }
@@ -1572,4 +1596,12 @@ document.addEventListener('click', e => {
   if (PICKER && !e.target.closest('.msel')) { PICKER = null; render(); }
 });
 
-window.addEventListener('DOMContentLoaded', () => render());
+window.addEventListener('DOMContentLoaded', () => {
+  render();
+  let seen = null;
+  try { seen = localStorage.getItem('ps_seen_help'); } catch (e) { seen = '1'; }
+  if (!seen) {
+    setTimeout(() => showHelp(), 300);
+    try { localStorage.setItem('ps_seen_help', '1'); } catch (e) { /* noop */ }
+  }
+});

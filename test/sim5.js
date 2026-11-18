@@ -9,7 +9,7 @@ A.newGame('测试','sales',['data','network']);
 const S=A.S();
 let guard=0, months=[];
 while(!S.over && guard++<220){
-  while(S.team.length<A.CFG.teamCap[S.level] && S.cash>30) S.team.push(A.makeRep(S));
+  while(S.team.length<A.CFG.teamCap[S.level] && S.cash>70) S.team.push(A.makeRep(S));
   vm.runInContext('fileAll()', ctx);
   const terms=S.terminals.slice().sort((a,b)=>b.potential-a.potential);
   S.team.forEach((r,i)=>{
@@ -23,11 +23,12 @@ while(!S.over && guard++<220){
     const sc=A.CFG.costScale[S.level];
     const low=S.terminals.filter(t=>t.access<36).sort((a,b)=>b.potential-a.potential)[0];
     const dev=A.PROJECTS.find(x=>x.id==='dev');
-    const need=S.terminals.slice().sort((a,b)=>(b.potential*(1-b.awareness/100))-(a.potential*(1-a.awareness/100)))[0];
+    const top=S.terminals.slice().sort((a,b)=>(b.potential*(1-b.awareness/100))-(a.potential*(1-a.awareness/100))).slice(0,5);
+    const need=top[Math.floor(Math.random()*top.length)];
     const dept=A.PROJECTS.find(x=>x.id==='dept');
     const r=Math.random();
-    if(low && S.cash>dev.cost*sc*3+10 && r<0.5){ A.launchProject('dev',[low.id]); continue; }
-    if(need && S.cash>dept.cost*sc*3+8){ A.launchProject('dept',[need.id]); continue; }
+    if(low && S.cash>dev.cost*sc*1.6 && r<0.5){ A.launchProject('dev',[low.id]); continue; }
+    if(need && S.cash>dept.cost*sc*1.6){ A.launchProject('dept',[need.id]); continue; }
     break;
   }
   if(S.cash>40 && S.ap>0 && S.team.some(r=>r.ability<70)) A.launchProject('train',[]);

@@ -5,12 +5,12 @@
 
 const CFG = {
   startCash: 140,         // 起始预算（万元）
-  grossRate: 0.66,        // 销售额 → 可支配市场费用
+  grossRate: 0.70,        // 销售额 → 可支配市场费用
   apBase: 3,              // 每周基础管理精力
   apPerRep: 0.1,          // 每名下属每周额外精力
   apCap: 6,
   teamCap: [6, 10, 15, 22],
-  costScale: [1, 1.9, 3.6, 8],
+  costScale: [1, 1.5, 2.8, 6],
   salaryScale: [1, 1.3, 1.7, 2.2],
   weeksPerMonth: 4,
   repCap: 3.2,
@@ -298,10 +298,10 @@ function buildTerminals() {
 
 /* ---------------- 四幕 ---------------- */
 const ACTS = [
-  { level: 0, title: '第一幕 · 县域', region: '', org: '', rank: '县区经理', target: 30, shareTarget: 0.18, brief: '', quote: '' },
-  { level: 1, title: '第二幕 · 地市', region: '', org: '', rank: '地区经理', target: 78, shareTarget: 0.17, brief: '', quote: '' },
-  { level: 2, title: '第三幕 · 省区', region: '', org: '', rank: '大区经理', target: 360, shareTarget: 0.18, brief: '', quote: '' },
-  { level: 3, title: '第四幕 · 全国', region: '全国', org: '营销中心', rank: '营销总监', target: 1700, shareTarget: 0.23, brief: '', quote: '' },
+  { level: 0, title: '第一幕 · 县域', region: '', org: '', rank: '县区经理', target: 30, shareTarget: 0.20, brief: '', quote: '' },
+  { level: 1, title: '第二幕 · 地市', region: '', org: '', rank: '地区经理', target: 78, shareTarget: 0.19, brief: '', quote: '' },
+  { level: 2, title: '第三幕 · 省区', region: '', org: '', rank: '大区经理', target: 360, shareTarget: 0.20, brief: '', quote: '' },
+  { level: 3, title: '第四幕 · 全国', region: '全国', org: '营销中心', rank: '营销总监', target: 1700, shareTarget: 0.25, brief: '', quote: '' },
 ];
 
 function buildActs() {

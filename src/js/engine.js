@@ -1092,7 +1092,7 @@ function endWeek() {
   // 3) 市场自然衰减（按周，闲置越久掉得越快）
   S.terminals.forEach(t => {
     const covered = S.team.some(r => covers(r, t.id));
-    const idleF = 1 + Math.min(20, t.idle) * 0.14;
+    const idleF = 1 + Math.min(20, t.idle) * 0.09;
     t.awareness = Math.max(0, t.awareness - (covered ? 1.5 : 2.6) / 4 * idleF);
     t.relation = Math.max(0, t.relation - 1.8 / 4 * idleF);
     if (t.access > 0) t.access = Math.max(0, t.access - 0.3 / 4 * idleF);
@@ -1415,9 +1415,9 @@ function promotionProgress() {
   return {
     sales: { cur: avg, need: act.target, ok: avg >= act.target, label: '近 3 月均销售' },
     share: { cur: share * 100, need: act.shareTarget * 100, ok: share >= act.shareTarget, label: '市场份额' },
-    compliance: { cur: S.compliance, need: 75, ok: S.compliance >= 75, label: '合规评分' },
-    reputation: { cur: S.reputation, need: 60, ok: S.reputation >= 60, label: '上级评价' },
-    team: { cur: S.team.length, need: 3, ok: S.team.length >= 3, label: '团队规模' },
+    compliance: { cur: S.compliance, need: 82, ok: S.compliance >= 82, label: '合规评分' },
+    reputation: { cur: S.reputation, need: 72, ok: S.reputation >= 72, label: '上级评价' },
+    team: { cur: S.team.length, need: 4, ok: S.team.length >= 4, label: '团队规模' },
   };
 }
 
@@ -1427,7 +1427,7 @@ function checkPromotion() {
 
   if (S.level < 3) {
     if (S.flags.noPromoteUntil && S.monthInAct < S.flags.noPromoteUntil) return null;
-    if (allOk && S.monthInAct > 5) return { type: 'promote', level: S.level + 1, progress: p };
+    if (allOk && S.monthInAct > 6) return { type: 'promote', level: S.level + 1, progress: p };
     if (S.monthInAct > 12 && !S.actExtended) {
       const avg = recentAvg(3);
       if (avg >= ACTS[S.level].target * 0.8) {
