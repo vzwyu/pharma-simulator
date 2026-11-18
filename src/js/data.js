@@ -312,7 +312,10 @@ function buildActs() {
 
   ACTS[0].region = WORLD.county;
   ACTS[0].org = co + ' · ' + WORLD.city + '办事处';
-  ACTS[0].brief = `报到第一天，办事处只有两张桌子、一台打印机和两个还在跑市场的代表。${WORLD.county} 38 万人口，三个县级医院、两个卫生院、一个连锁药房。可支配预算 120 万，编制 6 人。`;
+  const t0 = TERMINALS[0];
+  const nH = t0.filter(t => t.type === 'hospital').length;
+  const nP = t0.filter(t => t.type === 'primary').length;
+  ACTS[0].brief = `报到第一天，办事处只有两张桌子、一台打印机和两个还在跑市场的代表。${WORLD.county} ${WORLD.demo.countyPop} 万人口，${nH} 家医院、${nP} 个基层机构、1 个连锁药房，全年卫生费用约 ${WORLD.demo.healthTotal} 亿元。可支配预算 ${CFG.startCash} 万，编制 6 人。`;
   ACTS[0].quote = '“县域市场没有奇迹，只有一家一家医院啃下来。”——省区总监 周立群';
   ACTS[1].region = WORLD.city;
   ACTS[1].org = co + ' · ' + WORLD.city + '区域';

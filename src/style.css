@@ -268,9 +268,9 @@ table.tb tr:hover td { background: #FBFCFE; }
 .logi.sys .x { color: var(--blue); }
 
 /* ---------------- 模态 ---------------- */
-#modal-root { position: fixed; inset: 0; pointer-events: none; z-index: 100; }
+#modal-root { position: fixed; inset: 0; pointer-events: none; z-index: 600; }
 .mask {
-  position: absolute; inset: 0; background: rgba(11,20,31,.42); backdrop-filter: blur(2px);
+  position: fixed; inset: 0; z-index: 500; background: rgba(11,20,31,.55); backdrop-filter: blur(2px);
   pointer-events: auto; display: flex; align-items: center; justify-content: center; padding: 24px;
   animation: fadein .18s ease;
 }
@@ -664,7 +664,7 @@ table.tb tr:hover td { background: #FBFCFE; }
 /* 推进本周：周进度 */
 .turnwrap { display: flex; flex-direction: column; align-items: stretch; gap: 5px; }
 .weekdots { display: flex; gap: 4px; }
-.weekdots i { flex: 1; height: 3px; border-radius: 2px; background: rgba(255,255,255,.22); display: block; }
+.weekdots i { flex: 1; height: 4px; border-radius: 2px; background: rgba(255,255,255,.28); display: block; }
 .weekdots i.done { background: rgba(255,255,255,.75); }
 .weekdots i.cur { background: #FFD37A; }
 

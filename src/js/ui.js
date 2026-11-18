@@ -1195,7 +1195,7 @@ function startGame() {
   TAB = 'overview';
   SEL.terminal = S.terminals[0].id;
   render();
-  showBrief();
+  if (firstVisit()) { showHelp(); markSeen(); } else { showBrief(); }
 }
 
 function showHelp() {
@@ -1204,14 +1204,14 @@ function showHelp() {
     body: `
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px 24px">
         <div>
-          <p style="margin-bottom:6px"><b style="color:#0F1A26">一、回合</b><br>一个月 4 周，每周都能行动。每周精力 = 基础 + 团队规模（上限 4，可被个人标签 +1）。周末点「推进本周」结算，并开一次周会。</p>
+          <p style="margin-bottom:6px"><b style="color:#0F1A26">一、回合</b><br>一个月 4 周，每周都能行动。每周精力 = 3 点基础 + 团队规模加成（上限 6，可被个人标签 +1）。周末点「推进本周」结算，并开一次周会。</p>
           <p style="margin-bottom:6px"><b style="color:#0F1A26">二、周会</b><br>每周给团队一个要求：冲量 / 抓学术 / 做客情 / 抓合规。执行度由代表的忠诚和标签决定——老江湖、空降兵会打折扣，铁人、拼命三郎执行得更彻底。</p>
           <p style="margin-bottom:6px"><b style="color:#0F1A26">三、终端维护</b><br>越久不动的终端，认知和客情掉得越快。闲置 8 周以上会额外增加项目失败率。</p>
           <p style="margin-bottom:6px"><b style="color:#0F1A26">四、动作效果</b><br>同一个科室会，在三甲、卫生院、连锁药店里效果完全不同；终端还有学术型/关系型/价格型画像。选终端时能看到实际加成。</p>
         </div>
         <div>
           <p style="margin-bottom:6px"><b style="color:#0F1A26">五、标签</b><br>每人 1–2 个可见标签，另有 1–3 个隐藏特质。卡片上的「观察」是从异常现象反推的线索，每人可猜 2 次。</p>
-          <p style="margin-bottom:6px"><b style="color:#0F1A26">六、医共体</b><br>同一代表覆盖 ≥2 家成员，准入开发 ×1.35、份额加成，但管理当量更高。</p>
+          <p style="margin-bottom:6px"><b style="color:#0F1A26">六、医共体</b><br>同一代表覆盖 ≥2 家成员，准入开发 ×1.35、份额加成，但管理当量更高。医共体常带一批附属诊所与村卫生室，按「X 家」合并计入。</p>
           <p style="margin-bottom:6px"><b style="color:#0F1A26">七、管理事件</b><br>公司要求分 严格执行 / 选择执行 / 不执行，不执行会在 2–3 个月后引来专项核查。</p>
         </div>
       </div>
@@ -1596,12 +1596,14 @@ document.addEventListener('click', e => {
   if (PICKER && !e.target.closest('.msel')) { PICKER = null; render(); }
 });
 
+function firstVisit() {
+  try { return !localStorage.getItem('ps_seen_help_v2'); } catch (e) { return false; }
+}
+function markSeen() {
+  try { localStorage.setItem('ps_seen_help_v2', '1'); } catch (e) { /* noop */ }
+}
+
 window.addEventListener('DOMContentLoaded', () => {
   render();
-  let seen = null;
-  try { seen = localStorage.getItem('ps_seen_help'); } catch (e) { seen = '1'; }
-  if (!seen) {
-    setTimeout(() => showHelp(), 300);
-    try { localStorage.setItem('ps_seen_help', '1'); } catch (e) { /* noop */ }
-  }
+  if (firstVisit()) { showHelp(); markSeen(); }
 });
